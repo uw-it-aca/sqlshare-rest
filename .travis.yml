@@ -10,7 +10,7 @@ before_script:
   - cp travis-ci/manage.py manage.py
   - python manage.py syncdb --noinput
 script:
-  - pep8 sqlshare_rest/ --exclude=migrations
+  - pep8 sqlshare_rest/ --exclude=migrations,sqlshare_rest/tests.py,sqlshare_rest/test/
   - coverage run --source=sqlshare_rest/ --omit=sqlshare_rest/migrations/* manage.py test sqlshare_rest
 after_script:
   - coveralls
