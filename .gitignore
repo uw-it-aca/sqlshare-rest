@@ -60,6 +60,7 @@ target/
 /include/
 manage.py
 pip-selfcheck.json
+db.sqlite3
 
 # Vim...
 *.swp
