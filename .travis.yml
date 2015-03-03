@@ -1,0 +1,20 @@
+language: python
+python:
+  - "2.7"
+  - "3.4"
+install: pip install -r requirements.txt
+before_script:
+  - pip install coverage
+  - pip install python-coveralls
+  - pip install pep8
+  - cp travis-ci/manage.py manage.py
+  - python manage.py syncdb --noinput
+script:
+  - pep8 sqlshare_rest/ --exclude=migrations
+  - coverage run --source=sqlshare_rest/ --omit=sqlshare_rest/migrations/* manage.py test sqlshare_rest
+after_script:
+  - coveralls
+notifications:
+  webhooks:
+      urls:
+        - https://yarn.cac.washington.edu/rest/botalyst/v1/travis-ci
