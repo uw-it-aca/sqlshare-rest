@@ -1,3 +1,4 @@
+from sqlshare_rest.test.db_utils import TestBackendSettings
 from sqlshare_rest.test.api.dataset import DatsetAPITest
 #from sqlshare_rest.test.api.dataset_list import DatasetListAPITest
 #from sqlshare_rest.test.api.dataset_permissions import DatasetPermissionsAPITest
