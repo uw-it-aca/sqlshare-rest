@@ -3,6 +3,7 @@ import os
 import random
 import string
 
+
 class DBInterface(object):
     def __init__(self):
         self.username = None
@@ -42,7 +43,6 @@ class DBInterface(object):
                             db_username=username,
                             db_password=password,
                             schema=schema_name)
-
 
     # Overridable by db implementations - default comes from the C# version
     def get_db_username(self, user):

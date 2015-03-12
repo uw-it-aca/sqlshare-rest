@@ -1,5 +1,5 @@
 from django.db import models
-#from django_fields.fields import EncryptedCharField
+# from django_fields.fields import EncryptedCharField
 
 
 class User(models.Model):
@@ -7,7 +7,7 @@ class User(models.Model):
     username = models.CharField(max_length=200, db_index=True, unique=True)
     schema = models.CharField(max_length=200)
     db_username = models.CharField(max_length=250)
-#    db_password = EncryptedCharField(max_length=200)
+    # db_password = EncryptedCharField(max_length=200)
     db_password = models.CharField(max_length=200)
 
 
