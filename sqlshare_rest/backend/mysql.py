@@ -2,7 +2,7 @@ from sqlshare_rest.backend.base import DBInterface
 from sqlshare_rest.models import User
 from django.db import connection
 import re
-import md5
+import hashlib
 
 # grant create user on *.* to <user>
 # grant create on *.* to <user>
@@ -18,7 +18,7 @@ class MySQLBackend(DBInterface):
     def get_db_username(self, user):
         # MySQL only allows 16 character names.  Take the md5sum of the
         # username, and hope it's unique enough.
-        test_value = "meta_%s" % (md5.new(user).hexdigest()[:11])
+        test_value = "meta_%s" % (hashlib.md5(user).hexdigest()[:11])
 
         try:
             existing = User.objects.get(db_username=test_value)
