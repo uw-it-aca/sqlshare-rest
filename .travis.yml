@@ -4,7 +4,6 @@ python:
   - "3.4"
 install: pip install -r requirements.txt
 before_script:
-  - mysql -u root -e 'create database test_sqlshare_app'
   - mysql -u root -e 'create database sqlshare_app'
   - mysql -u root -e 'create user "sqlshare_user" identified by "ss_pass"'
   - mysql -u root -e 'grant all on test_sqlshare_app.* to "sqlshare_user"'
@@ -15,7 +14,7 @@ before_script:
   - pip install coverage
   - pip install python-coveralls
   - pip install pep8
-  - pip install MySQL-python
+  - pip install PyMySQL
   - cp travis-ci/manage.py manage.py
   - python manage.py syncdb --noinput
 env:

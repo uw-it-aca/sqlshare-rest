@@ -71,6 +71,12 @@ if os.environ['DB'] == "sqlite3":
         }
     }
 elif os.environ['DB'] == "mysql":
+    try:
+        import pymysql
+        pymysql.install_as_MySQLdb()
+    except ImportError:
+        pass
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
