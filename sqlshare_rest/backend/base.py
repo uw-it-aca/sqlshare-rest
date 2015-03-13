@@ -18,6 +18,17 @@ class DBInterface(object):
     def create_db_schema(self, username, schema):
         self._not_implemented("create_db_schema")
 
+    def remove_db_user(self, db_username):
+        self._not_implemented("remove_db_user")
+
+    def remove_schema(self, schema):
+        self._not_implemented("remove_schema")
+
+    def remove_user(self, username):
+        model = User.objects.get(username=username)
+        self.remove_db_user(model.db_username)
+        self.remove_schema(model.schema)
+
     def _not_implemented(self, message):
         raise NotImplementedError("%s not implemented in %s" % (message, self))
 

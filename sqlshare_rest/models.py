@@ -5,8 +5,8 @@ from django.db import models
 class User(models.Model):
     """ A cached reference to a database user """
     username = models.CharField(max_length=200, db_index=True, unique=True)
-    schema = models.CharField(max_length=200)
-    db_username = models.CharField(max_length=250)
+    schema = models.CharField(max_length=200, unique=True)
+    db_username = models.CharField(max_length=250, db_index=True, unique=True)
     # db_password = EncryptedCharField(max_length=200)
     db_password = models.CharField(max_length=200)
 

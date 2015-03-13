@@ -8,7 +8,7 @@ class SQLite3Backend(DBInterface):
         return
 
     # Maybe this could become separate files at some point?
-    def create_db_schema(self, username, password):
+    def create_db_schema(self, db_username, schema_name):
         return
 
     def run_query(self, sql, username):
