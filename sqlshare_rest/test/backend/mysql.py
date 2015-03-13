@@ -33,4 +33,4 @@ class TestMySQLBackend(TestCase):
             try:
                 backend.remove_user(user)
             except Exception as ex:
-                print "Error deleting user: ", ex
+                print ("Error deleting user: ", ex)
