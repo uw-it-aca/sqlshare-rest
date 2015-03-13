@@ -18,7 +18,8 @@ class MySQLBackend(DBInterface):
     def get_db_username(self, user):
         # MySQL only allows 16 character names.  Take the md5sum of the
         # username, and hope it's unique enough.
-        test_value = "meta_%s" % (hashlib.md5(user.encode("utf-8")).hexdigest()[:11])
+        hash_val = hashlib.md5(user.encode("utf-8")).hexdigest()[:11]
+        test_value = "meta_%s" % (hash_val)
 
         try:
             existing = User.objects.get(db_username=test_value)
