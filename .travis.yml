@@ -5,8 +5,10 @@ python:
 install: pip install -r requirements.txt
 before_script:
   - mysql -u root -e 'create database test_sqlshare_app'
+  - mysql -u root -e 'create database sqlshare_app'
   - mysql -u root -e 'create user "sqlshare_user" identified by "ss_pass"'
   - mysql -u root -e 'grant all on test_sqlshare_app.* to "sqlshare_user"'
+  - mysql -u root -e 'grant all on sqlshare_app.* to "sqlshare_user"'
   - mysql -u root -e 'grant create user on *.* to sqlshare_user'
   - mysql -u root -e 'grant create on *.* to sqlshare_user'
   - mysql -u root -e 'grant drop on *.* to sqlshare_user'
