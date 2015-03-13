@@ -4,11 +4,20 @@ python:
   - "3.4"
 install: pip install -r requirements.txt
 before_script:
+  - mysql -e 'create database test_sqlshare_app'
+  - mysql -e 'create user "sqlshare_user" identified by "ss_pass"'
+  - mysql -e 'grant create user on *.* to sqlshare_user'
+  - mysql -e 'grant create on *.* to sqlshare_user'
+  - mysql -e 'grant drop on *.* to sqlshare_user'
   - pip install coverage
   - pip install python-coveralls
   - pip install pep8
+  - pip install MySQL-python
   - cp travis-ci/manage.py manage.py
   - python manage.py syncdb --noinput
+env:
+  - DB=sqlite3
+  - DB=mysql
 script:
   - pep8 sqlshare_rest/ --exclude=migrations,sqlshare_rest/tests.py,sqlshare_rest/test/
   - coverage run --source=sqlshare_rest/ --omit=sqlshare_rest/migrations/* manage.py test sqlshare_rest
