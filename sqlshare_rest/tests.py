@@ -1,3 +1,4 @@
+from sqlshare_rest.test.parser import TestParser
 from sqlshare_rest.test.db_utils import TestBackendSettings
 from sqlshare_rest.test.backend.mysql import TestMySQLBackend
 from sqlshare_rest.test.backend.sqlite3 import TestSQLite3Backend
