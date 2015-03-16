@@ -49,7 +49,8 @@ class TestMySQLBackend(TestCase):
         except Exception as ex:
             print ("Err: ", ex)
 
-    def setUpClass():
+    @classmethod
+    def setUpClass(cls):
         def _run_query(sql):
             cursor = connection.cursor()
             try:
