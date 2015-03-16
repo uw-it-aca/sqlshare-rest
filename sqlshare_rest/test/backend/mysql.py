@@ -44,10 +44,26 @@ class TestMySQLBackend(TestCase):
             # User2 doesn't have access to user1!
             self.assertRaises(OperationalError, backend.run_query, "SELECT * from %s.test1" % user1.schema, user2)
 
-            backend.close_user_connection(user1)
-            backend.close_user_connection(user2)
         except Exception as ex:
             print ("Err: ", ex)
+
+        backend.close_user_connection(user1)
+        backend.close_user_connection(user2)
+
+    def test_create_view(self):
+        self.remove_users.append("test_user_view1")
+        backend = get_backend()
+        user = backend.get_user("test_user_view1")
+        backend.create_view("test_view", "SELECT (1) UNION SELECT ('a')", user)
+
+        try:
+            result = backend.run_query("SELECT * FROM %s.test_view" % user.schema, user)
+            self.assertEquals((('1',),('a',)), result)
+            result = backend.run_query("SELECT * FROM test_view", user)
+            self.assertEquals((('1',),('a',)), result)
+        except Exception as ex:
+            print ("E: ", ex)
+        backend.close_user_connection(user)
 
     @classmethod
     def setUpClass(cls):

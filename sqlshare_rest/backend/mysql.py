@@ -67,6 +67,11 @@ class MySQLBackend(DBInterface):
     def _disconnect_connection(self, connection):
         connection["connection"].close()
 
+    def create_view(self, name, sql, user):
+        view_sql = "CREATE OR REPLACE VIEW %s AS %s" % (name, sql)
+        self.run_query(view_sql, user)
+        return
+
     def run_query(self, sql, user):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
