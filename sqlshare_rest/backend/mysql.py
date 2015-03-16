@@ -97,4 +97,3 @@ class MySQLBackend(DBInterface):
         conn = pymysql.connect(**kwargs)
 
         return conn
-

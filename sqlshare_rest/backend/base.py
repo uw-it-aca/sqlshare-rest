@@ -3,6 +3,7 @@ import os
 import random
 import string
 
+
 class DBInterface(object):
 
     USER_CONNECTIONS = {}
@@ -78,8 +79,8 @@ class DBInterface(object):
         by_user = DBInterface.USER_CONNECTIONS
         if user.db_username not in by_user:
             connection = self._create_user_connection(user)
-            by_user[user.db_username] = { "connection": connection,
-                                          "user": user }
+            by_user[user.db_username] = {"connection": connection,
+                                         "user": user}
         return by_user[user.db_username]["connection"]
 
     def close_user_connection(self, user):
