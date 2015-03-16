@@ -1,6 +1,10 @@
 from django.test import TestCase
 from sqlshare_rest.parser import Parser
-from StringIO import StringIO
+import six
+if six.PY2:
+    from StringIO import StringIO
+elif six.PY3:
+    from io import StringIO
 
 class TestParser(TestCase):
     def test_headers(self):

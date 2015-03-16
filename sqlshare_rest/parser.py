@@ -1,5 +1,10 @@
 import csv
-from StringIO import StringIO
+import six
+
+if six.PY2:
+    from StringIO import StringIO
+elif six.PY3:
+    from io import StringIO
 
 
 class Parser(object):
@@ -23,7 +28,7 @@ class Parser(object):
         if self._has_header:
             self._headers = self._get_headers_from_handle(data)
         else:
-            count = len(csv.reader(data).next())
+            count = len(self._next(csv.reader(data)))
             self._headers = self.generate_column_names(count)
 
     def parse(self, handle):
@@ -39,7 +44,7 @@ class Parser(object):
             self._headers = self._get_headers_from_handle(handle)
 
     def _get_headers_from_handle(self, handle):
-        return self.make_unique_columns(csv.reader(handle).next())
+        return self.make_unique_columns(self._next(csv.reader(handle)))
 
     def make_unique_columns(self, names):
         seen_names = {}
@@ -75,10 +80,21 @@ class Parser(object):
             self._delimiter = value
         return self._delimiter
 
+    # To handle python 2/3 differences
+    def _next(self, handle):
+        if six.PY2:
+            return handle.next()
+        elif six.PY3:
+            return next(handle)
+
     # To make this iterable - intended to make it so we can be somewhat
     # low-memory, even on large files
     def __iter__(self):
         return self
 
     def next(self):
-        return csv.reader(self._handle, delimiter=self.delimiter()).next()
+        reader = csv.reader(self._handle, delimiter=self.delimiter())
+        return self._next(reader)
+
+    # Python 3 version of next
+    __next__ = next
