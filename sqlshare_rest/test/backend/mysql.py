@@ -1,5 +1,6 @@
 from django.test import TestCase
 from sqlshare_rest.util.db import is_mysql, get_backend
+from django.db import connection
 import unittest
 
 @unittest.skipUnless(is_mysql(), "Only test with mysql")
@@ -19,11 +20,54 @@ class TestMySQLBackend(TestCase):
         self.assertEquals(result[0][0], 5)
 
         result = backend.run_query('select (10) union select ("a")', user)
+        backend.close_user_connection(user)
         self.assertEquals(len(result), 2)
         self.assertEquals(result[0][0], '10')
         self.assertEquals(result[1][0], "a")
 
+    def test_basic_permissions(self):
+        from pymysql.err import OperationalError
+        try:
+            self.remove_users.append("test_user_perm1")
+            self.remove_users.append("test_user_perm2")
+            backend = get_backend()
+            user1 = backend.get_user("test_user_perm1")
+            user2 = backend.get_user("test_user_perm2")
+
+            result = backend.run_query("create table test1 (id int primary key auto_increment)", user1)
+            r2 = backend.run_query("insert into %s.test1 (id) values (NULL)" % user1.schema, user1)
+
+            r3 = backend.run_query("SELECT * from %s.test1" % user1.schema, user1)
+            self.assertEquals(len(r3), 1)
+            self.assertEquals(r3[0][0], 1)
+
+            # User2 doesn't have access to user1!
+            self.assertRaises(OperationalError, backend.run_query, "SELECT * from %s.test1" % user1.schema, user2)
+
+            backend.close_user_connection(user1)
+            backend.close_user_connection(user2)
+        except Exception as ex:
+            print ("Err: ", ex)
+
+    def setUpClass():
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        _run_query("drop user meta_634153bf808")
+        _run_query("drop user meta_8daa171745c")
+        _run_query("drop user meta_5e19e9d789a")
+        _run_query("drop user meta_b26f3aaa573")
+        _run_query("drop database test_user_tcu1")
+        _run_query("drop database test_user_trq1")
+        _run_query("drop database test_user_perm2")
+
     def setUp(self):
+        # Try to cleanup from any previous test runs...
         self.remove_users = []
 
     def tearDown(self):
@@ -34,3 +78,5 @@ class TestMySQLBackend(TestCase):
                 backend.remove_user(user)
             except Exception as ex:
                 print ("Error deleting user: ", ex)
+
+        self.remove_users = []

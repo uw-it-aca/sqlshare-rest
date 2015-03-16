@@ -1,12 +1,14 @@
 from sqlshare_rest.backend.base import DBInterface
 from sqlshare_rest.models import User
 from django.db import connection
+from django.conf import settings
 import re
 import hashlib
 
-# grant create user on *.* to <user>
-# grant create on *.* to <user>
-# grant drop on *.* to <user>
+# Basic permissions to everything
+# grant all on *.* to <user>
+# Ability to give new users permission to their database
+# grant grant option on *.* to <user>
 
 
 class MySQLBackend(DBInterface):
@@ -45,6 +47,9 @@ class MySQLBackend(DBInterface):
         # a-z, 0-9, and _.
         cursor.execute("CREATE DATABASE %s" % schema)
 
+        # Using placeholders here results in bad syntax
+        cursor.execute("GRANT ALL on %s.* to %s" % (schema, username))
+
     def remove_db_user(self, user):
         cursor = connection.cursor()
         # MySQL doesn't let the username be a placeholder in DROP USER.
@@ -59,7 +64,37 @@ class MySQLBackend(DBInterface):
         schema = self.get_db_schema(schema)
         cursor.execute("DROP DATABASE %s" % schema)
 
-    def run_query(self, sql, username):
+    def _disconnect_connection(self, connection):
+        connection["connection"].close()
+
+    def run_query(self, sql, user):
+        connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
         cursor.execute(sql)
         return cursor.fetchall()
+
+    def _create_user_connection(self, user):
+        username = user.db_username
+        password = user.db_password
+        schema = user.schema
+
+        host = settings.DATABASES['default']['HOST']
+        port = settings.DATABASES['default']['PORT']
+
+        kwargs = {
+            "user": username,
+            "passwd": password,
+            "db": schema,
+        }
+
+        if host:
+            kwargs["host"] = host
+
+        if port:
+            kwargs["port"] = port
+
+        import pymysql
+        conn = pymysql.connect(**kwargs)
+
+        return conn
+

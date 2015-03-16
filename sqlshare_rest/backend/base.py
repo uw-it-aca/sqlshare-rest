@@ -3,11 +3,12 @@ import os
 import random
 import string
 
-
 class DBInterface(object):
+
+    USER_CONNECTIONS = {}
+
     def __init__(self):
         self.username = None
-        self.user_connection = None
 
     def run_query(self, sql, user):
         self._not_implemented("run_query")
@@ -28,6 +29,12 @@ class DBInterface(object):
         model = User.objects.get(username=username)
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
+
+    def _create_user_connection(self, user):
+        self._not_implemented("_create_user_connection")
+
+    def _disconnect_connection(self, connection):
+        self._not_implemented("_disconnect_connection")
 
     def _not_implemented(self, message):
         raise NotImplementedError("%s not implemented in %s" % (message, self))
@@ -66,3 +73,17 @@ class DBInterface(object):
     def create_db_user_password(self):
         chars = string.ascii_letters + string.digits
         return ''.join(random.choice(chars) for i in range(40))
+
+    def get_connection_for_user(self, user):
+        by_user = DBInterface.USER_CONNECTIONS
+        if user.db_username not in by_user:
+            connection = self._create_user_connection(user)
+            by_user[user.db_username] = { "connection": connection,
+                                          "user": user }
+        return by_user[user.db_username]["connection"]
+
+    def close_user_connection(self, user):
+        by_user = DBInterface.USER_CONNECTIONS
+        if user.db_username in by_user:
+            self._disconnect_connection(by_user[user.db_username])
+            del by_user[user.db_username]
