@@ -7,6 +7,11 @@ class SQLite3Backend(DBInterface):
     def create_db_user(self, username, password):
         return
 
+    def create_view(self, name, sql, user):
+        view_sql = "CREATE VIEW %s AS %s" % (name, sql)
+        self.run_query(view_sql, user)
+        return
+
     # Maybe this could become separate files at some point?
     def create_db_schema(self, db_username, schema_name):
         return

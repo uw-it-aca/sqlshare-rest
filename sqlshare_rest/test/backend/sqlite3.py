@@ -21,3 +21,16 @@ class TestSQLite3Backend(TestCase):
         self.assertEquals(len(result), 2)
         self.assertEquals(result[0][0], 10)
         self.assertEquals(result[1][0], "a")
+
+    def test_create_view(self):
+        backend = get_backend()
+        user = backend.get_user("test_user_view1")
+        backend.create_view("test_view", "SELECT (1) UNION SELECT ('a')", user)
+
+        try:
+            result = backend.run_query("SELECT * FROM test_view", user)
+            self.assertEquals([(1,),(u'a',)], result)
+        except Exception as ex:
+            print ("E: ", ex)
+
+        backend.close_user_connection(user)
