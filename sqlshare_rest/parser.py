@@ -44,6 +44,9 @@ class Parser(object):
             # XXX - make this overridable?
             self._headers = self._get_headers_from_handle(handle)
 
+    def get_data_handle(self):
+        return DataHandler(self)
+
     def _get_headers_from_handle(self, handle):
         return self.make_unique_columns(self._next(csv.reader(handle)))
 
@@ -68,6 +71,12 @@ class Parser(object):
             names.append("Column%s" % i)
         return names
 
+    def clear_column_types(self):
+        """
+        Clears the column type cache.  Mainly for unit testing.
+        """
+        self._column_types = None
+
     def column_types(self):
         """
         Does a best-guess at column types.  Currently supports detection of
@@ -79,6 +88,8 @@ class Parser(object):
 
         Currently the preferred matches goes int -> float -> text
         """
+        if self._column_types:
+            return self._column_types
         if not self._handle:
             raise Exception("No handle to read from")
 
@@ -94,6 +105,7 @@ class Parser(object):
             self._guess_column_types_by_row(row, values)
 
         self._handle.seek(current_index)
+        self._column_types = values
         return values
 
     def _guess_column_types_by_row(self, row, values):
@@ -187,4 +199,31 @@ class Parser(object):
         return self._next(reader)
 
     # Python 3 version of next
+    __next__ = next
+
+
+class DataHandler(object):
+    def __init__(self, parser):
+        self._parser = parser
+        self._columns = parser.column_types()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        typed = []
+        raw = self._parser.next()
+
+        for i in range(0, len(raw)):
+            value = raw[i]
+            col_type = self._columns[i]["type"]
+
+            if "int" == col_type:
+                typed.append(int(value))
+            elif "float" == col_type:
+                typed.append(float(value))
+            else:
+                typed.append(value)
+        return typed
+
     __next__ = next

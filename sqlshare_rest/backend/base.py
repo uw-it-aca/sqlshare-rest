@@ -34,10 +34,34 @@ class DBInterface(object):
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 
+    def create_dataset_from_parser(self, dataset_name, parser, user):
+        table_name = self._get_table_name_for_dataset(dataset_name)
+        self._create_table(table_name=table_name,
+                           column_names=parser.column_names(),
+                           column_types=parser.column_types(),
+                           user=user)
+
+        self._load_table(table_name, parser.get_data_handle(), user)
+        self.create_view(dataset_name,
+                         self._get_view_sql_for_dataset(table_name),
+                         user)
+
+    def _get_view_sql_for_dataset(self, table_name):
+        """
+        The SQL statement that creates a view of the given table of data
+        """
+        self._not_implemented("_get_view_sql_for_dataset")
+
     def _create_user_connection(self, user):
+        """
+        Builds a per-user connection to the database
+        """
         self._not_implemented("_create_user_connection")
 
     def _disconnect_connection(self, connection):
+        """
+        Disconnects a per-user connection to the database
+        """
         self._not_implemented("_disconnect_connection")
 
     def _not_implemented(self, message):
@@ -65,6 +89,24 @@ class DBInterface(object):
                             db_username=username,
                             db_password=password,
                             schema=schema_name)
+
+    def _load_table(self, table_name, data_handle, user):
+        """
+        Add data from data_handle to the table.  data_handle must be iterable,
+        and the type values for columns must be correct.
+        """
+        raise NotImplementedError("_load_table")
+
+    def _create_table(self, table_name, column_names, column_types, user):
+        """
+        Create a table, building the definition from the column names and
+        types given.
+        """
+        raise NotImplementedError("_create_table")
+
+    # Overridable - default comes from the C# version
+    def _get_table_name_for_dataset(self, dataset_name):
+        return "table_%s" % (dataset_name)
 
     # Overridable by db implementations - default comes from the C# version
     def get_db_username(self, user):
