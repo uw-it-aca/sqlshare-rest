@@ -93,7 +93,6 @@ class Parser(object):
         for row in self:
             self._guess_column_types_by_row(row, values)
 
-
         self._handle.seek(current_index)
         return values
 
@@ -102,19 +101,19 @@ class Parser(object):
         def _cv(i, v):
             if i < len(v):
                 return v[i]
-            return { "type": None }
+            return {"type": None}
 
         # utility for the text type definition
         def _get_text_value(value):
-            return { "type": "text", "max": len(value) }
+            return {"type": "text", "max": len(value)}
 
         # utility for the float type definition
         def _get_float_value(value):
-            return { "type": "float" }
+            return {"type": "float"}
 
         # utility for the int type definition
         def _get_int_value(value):
-            return { "type": "int" }
+            return {"type": "int"}
 
         # the CSV module always returns strings... so we do our own attempt
         def _is_int(value):
