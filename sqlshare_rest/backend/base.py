@@ -35,6 +35,12 @@ class DBInterface(object):
         self.remove_schema(model.schema)
 
     def create_dataset_from_parser(self, dataset_name, parser, user):
+        """
+        Turns a parser object into a dataset.
+        # Creates a table based on the parser columns
+        # Loads the data that's in the handle for the parser
+        # Creates the view for the dataset
+        """
         table_name = self._get_table_name_for_dataset(dataset_name)
         self._create_table(table_name=table_name,
                            column_names=parser.column_names(),

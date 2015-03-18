@@ -64,6 +64,27 @@ class MySQLBackend(DBInterface):
         schema = self.get_db_schema(schema)
         cursor.execute("DROP DATABASE %s" % schema)
 
+    def _create_table_sql(self, table_name, column_names, column_types):
+        def _column_sql(name, col_type):
+            if "int" == col_type["type"]:
+                return "`%s` INT" % name
+            if "float" == col_type["type"]:
+                return "`%s` FLOAT" % name
+            if "text" == col_type["type"]:
+                return "`%s` VARCHAR(%s)" % (name, col_type["max"])
+            # Fallback to text is hopefully good?
+            return "`%s` TEXT" % name
+
+        columns = []
+        for i in range(0, len(column_names)):
+            columns.append(_column_sql(column_names[i], column_types[i]))
+
+        return "CREATE TABLE `%s` (%s) ENGINE InnoDB CHARACTER SET utf8 " \
+               "COLLATE utf8_bin" % (
+                    table_name,
+                    ", ".join(columns)
+               )
+
     def _disconnect_connection(self, connection):
         connection["connection"].close()
 

@@ -13,18 +13,18 @@ class TestParser(TestCase):
         p = Parser()
         p.guess("a,b,c,d\n0,1,2,3\n4,5,6,7")
         self.assertTrue(p.has_header_row())
-        self.assertEquals(['a','b','c','d'], p.headers())
+        self.assertEquals(['a','b','c','d'], p.column_names())
 
         p.guess("9,8,7,6\n0,1,2,3\n4,5,6,7")
         self.assertFalse(p.has_header_row())
-        self.assertEquals(['Column1','Column2','Column3','Column4'], p.headers())
+        self.assertEquals(['Column1','Column2','Column3','Column4'], p.column_names())
 
         p.guess("a,b,5,6\n0,1,2,3\n4,5,6,7")
         self.assertFalse(p.has_header_row())
 
         p.guess("a,b,b,d\n0,1,2,3\n4,5,6,7")
         self.assertTrue(p.has_header_row())
-        self.assertEquals(['a','b','b1','d'], p.headers())
+        self.assertEquals(['a','b','b1','d'], p.column_names())
 
     def test_overrides(self):
         p = Parser()

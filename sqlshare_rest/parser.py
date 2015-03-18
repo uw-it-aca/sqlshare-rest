@@ -11,13 +11,13 @@ class Parser(object):
     def __init__(self):
         self._has_header = None
         self._delimiter = None
-        self._headers = None
+        self._column_names = None
         self._handle = None
         self._column_types = None
 
     def set_defaults(self):
         self._has_header = False
-        self._headers = []
+        self._column_names = []
         self._delimiter = ','
 
     def guess(self, content):
@@ -27,10 +27,10 @@ class Parser(object):
 
         data = StringIO(content)
         if self._has_header:
-            self._headers = self._get_headers_from_handle(data)
+            self._column_names = self._get_headers_from_handle(data)
         else:
             count = len(self._next(csv.reader(data)))
-            self._headers = self.generate_column_names(count)
+            self._column_names = self.generate_column_names(count)
 
     def parse(self, handle):
         if self._has_header is None:
@@ -42,7 +42,7 @@ class Parser(object):
         self._handle = handle
         if self.has_header_row():
             # XXX - make this overridable?
-            self._headers = self._get_headers_from_handle(handle)
+            self._column_names = self._get_headers_from_handle(handle)
 
     def get_data_handle(self):
         return DataHandler(self)
@@ -174,8 +174,8 @@ class Parser(object):
             self._has_header = value
         return self._has_header
 
-    def headers(self):
-        return self._headers
+    def column_names(self):
+        return self._column_names
 
     def delimiter(self, value=None):
         if value is not None:

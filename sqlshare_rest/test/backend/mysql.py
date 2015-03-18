@@ -1,7 +1,14 @@
 from django.test import TestCase
 from sqlshare_rest.util.db import is_mysql, get_backend
+from sqlshare_rest.parser import Parser
 from django.db import connection
 import unittest
+import six
+if six.PY2:
+    from StringIO import StringIO
+elif six.PY3:
+    from io import StringIO
+
 
 @unittest.skipUnless(is_mysql(), "Only test with mysql")
 class TestMySQLBackend(TestCase):
@@ -64,6 +71,32 @@ class TestMySQLBackend(TestCase):
         except Exception as ex:
             print ("E: ", ex)
         backend.close_user_connection(user)
+
+    @unittest.skip("Not implemented yet")
+    def test_create_dataset(self):
+        self.remove_users.append("test_user_dataset1")
+        backend = get_backend()
+        user = backend.get_user("test_user_dataset1")
+
+        handle = StringIO("z,y,x\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        backend.create_dataset_from_parser("test_dataset1", parser, user)
+        result = backend.run_query("SELECT * FROM %s.table_test_dataset1" % user.schema, user)
+        self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+        result2 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
+        self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result2)
+
+
+    def test_create_table_sql(self):
+        backend = get_backend()
+        sql = backend._create_table_sql("test_table1", ["Column1", "Column2", "Column3"], [{ "type": "int" }, { "type": "float" }, { "type": "text", "max": 400 }])
+
+        self.assertEquals(sql, "CREATE TABLE `test_table1` (`Column1` INT, `Column2` FLOAT, `Column3` VARCHAR(400)) ENGINE InnoDB CHARACTER SET utf8 COLLATE utf8_bin")
 
     @classmethod
     def setUpClass(cls):
