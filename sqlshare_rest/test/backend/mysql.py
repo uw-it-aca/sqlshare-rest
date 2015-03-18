@@ -101,6 +101,13 @@ class TestMySQLBackend(TestCase):
         finally:
             backend.close_user_connection(user)
 
+    def test_view_sql_for_dataset(self):
+        self.remove_users.append("test_user_tvsfd")
+        backend = get_backend()
+        user = backend.get_user("test_user_tvsfd")
+        sql = backend._get_view_sql_for_dataset("table_';!@$", user)
+        self.assertEquals(sql, "SELECT * FROM `%s`.`table_';!@$`" % user.schema)
+
     def test_load_table_sql(self):
         backend = get_backend()
         sql = backend._load_table_sql("table1';", ["a", 1, 1.112, "';\\%@!!#\n@"])

@@ -49,10 +49,10 @@ class DBInterface(object):
 
         self._load_table(table_name, parser.get_data_handle(), user)
         self.create_view(dataset_name,
-                         self._get_view_sql_for_dataset(table_name),
+                         self._get_view_sql_for_dataset(table_name, user),
                          user)
 
-    def _get_view_sql_for_dataset(self, table_name):
+    def _get_view_sql_for_dataset(self, table_name, user):
         """
         The SQL statement that creates a view of the given table of data
         """

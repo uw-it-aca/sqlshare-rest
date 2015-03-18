@@ -99,7 +99,6 @@ class MySQLBackend(DBInterface):
             sql = self._load_table_sql(table_name, row)
             self.run_query(sql, user, row)
 
-
     def _disconnect_connection(self, connection):
         connection["connection"].close()
 
@@ -110,6 +109,9 @@ class MySQLBackend(DBInterface):
 
     def _create_view_sql(self, name, sql):
         return "CREATE OR REPLACE VIEW `%s` AS %s" % (name, sql)
+
+    def _get_view_sql_for_dataset(self, table_name, user):
+        return "SELECT * FROM `%s`.`%s`" % (user.schema, table_name)
 
     def run_query(self, sql, user, params=None):
         connection = self.get_connection_for_user(user)
