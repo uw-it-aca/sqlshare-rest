@@ -64,6 +64,10 @@ class MySQLBackend(DBInterface):
         schema = self.get_db_schema(schema)
         cursor.execute("DROP DATABASE %s" % schema)
 
+    def _create_table(self, table_name, column_names, column_types, user):
+        sql = self._create_table_sql(table_name, column_names, column_types)
+        self.run_query(sql, user)
+
     def _create_table_sql(self, table_name, column_names, column_types):
         def _column_sql(name, col_type):
             if "int" == col_type["type"]:
@@ -85,6 +89,17 @@ class MySQLBackend(DBInterface):
                     ", ".join(columns)
                )
 
+    def _load_table_sql(self, table_name, row):
+        placeholders = map(lambda x: "%s", row)
+        return "INSERT INTO `%s` VALUES (%s)" % (table_name,
+                                                 ", ".join(placeholders))
+
+    def _load_table(self, table_name, data_handle, user):
+        for row in data_handle:
+            sql = self._load_table_sql(table_name, row)
+            self.run_query(sql, user, row)
+
+
     def _disconnect_connection(self, connection):
         connection["connection"].close()
 
@@ -96,10 +111,10 @@ class MySQLBackend(DBInterface):
     def _create_view_sql(self, name, sql):
         return "CREATE OR REPLACE VIEW `%s` AS %s" % (name, sql)
 
-    def run_query(self, sql, user):
+    def run_query(self, sql, user, params=None):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, params)
         return cursor.fetchall()
 
     def _create_user_connection(self, user):

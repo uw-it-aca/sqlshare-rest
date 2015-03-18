@@ -51,11 +51,11 @@ class TestMySQLBackend(TestCase):
             # User2 doesn't have access to user1!
             self.assertRaises(OperationalError, backend.run_query, "SELECT * from %s.test1" % user1.schema, user2)
 
-        except Exception as ex:
-            print ("Err: ", ex)
-
-        backend.close_user_connection(user1)
-        backend.close_user_connection(user2)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user1)
+            backend.close_user_connection(user2)
 
     def test_create_view_sql(self):
         backend = get_backend()
@@ -73,11 +73,11 @@ class TestMySQLBackend(TestCase):
             self.assertEquals((('1',),('a',)), result)
             result = backend.run_query("SELECT * FROM test_view", user)
             self.assertEquals((('1',),('a',)), result)
-        except Exception as ex:
-            print ("E: ", ex)
-        backend.close_user_connection(user)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
 
-    @unittest.skip("Not implemented yet")
     def test_create_dataset(self):
         self.remove_users.append("test_user_dataset1")
         backend = get_backend()
@@ -90,12 +90,21 @@ class TestMySQLBackend(TestCase):
         handle.seek(0)
         parser.parse(handle)
 
-        backend.create_dataset_from_parser("test_dataset1", parser, user)
-        result = backend.run_query("SELECT * FROM %s.table_test_dataset1" % user.schema, user)
-        self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
-        result2 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
-        self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result2)
+        try:
+            backend.create_dataset_from_parser("test_dataset1", parser, user)
+            result = backend.run_query("SELECT * FROM %s.table_test_dataset1" % user.schema, user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+            result2 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result2)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
 
+    def test_load_table_sql(self):
+        backend = get_backend()
+        sql = backend._load_table_sql("table1';", ["a", 1, 1.112, "';\\%@!!#\n@"])
+        self.assertEquals(sql, "INSERT INTO `table1';` VALUES (%s, %s, %s, %s)")
 
     def test_create_table_sql(self):
         backend = get_backend()
@@ -117,9 +126,11 @@ class TestMySQLBackend(TestCase):
         _run_query("drop user meta_8daa171745c")
         _run_query("drop user meta_5e19e9d789a")
         _run_query("drop user meta_b26f3aaa573")
+        _run_query("drop user meta_b07070ff008")
         _run_query("drop database test_user_tcu1")
         _run_query("drop database test_user_trq1")
         _run_query("drop database test_user_perm2")
+        _run_query("drop database test_user_dataset1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...
