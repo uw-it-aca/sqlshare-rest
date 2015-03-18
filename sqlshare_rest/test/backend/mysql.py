@@ -57,6 +57,11 @@ class TestMySQLBackend(TestCase):
         backend.close_user_connection(user1)
         backend.close_user_connection(user2)
 
+    def test_create_view_sql(self):
+        backend = get_backend()
+        self.assertEquals(backend._create_view_sql("'\";!@#$", "SELECT * from whatever"), "CREATE OR REPLACE VIEW `'\";!@#$` AS SELECT * from whatever")
+
+
     def test_create_view(self):
         self.remove_users.append("test_user_view1")
         backend = get_backend()
