@@ -142,3 +142,30 @@ class TestParser(TestCase):
         self.assertEquals(data_handle.next(), [0, 1.1, "a"])
         self.assertEquals(data_handle.next(), [3, 4.1, "bbbsd"])
 
+    def test_non_square_data_handle(self):
+        p = Parser()
+        p.delimiter(",")
+        p.has_header_row(False)
+        # the csv module *really* wants "1" to be the delimiter here.
+        # if you want to test a different non-square dataset, add a new test
+        # instead of editing this string.
+        handle = StringIO("0,1,2,3,4,5\n0,1,2,3\n0,1")
+        p.guess(handle.read())
+        handle.seek(0)
+        p.parse(handle)
+        data_handle = p.get_data_handle()
+        self.assertEquals(data_handle.next(), [0, 1, 2, 3, 4, 5])
+        self.assertEquals(data_handle.next(), [0, 1, 2, 3, None, None])
+        self.assertEquals(data_handle.next(), [0, 1, None, None, None, None])
+
+        # Make sure NULLs dont' result in the wrong data type
+        handle = StringIO("0,1.1,a,b\n0,1.2,b\n1")
+        p.clear_column_types()
+        p.guess(handle.read())
+        p.has_header_row(False)
+        handle.seek(0)
+        p.parse(handle)
+        data_handle = p.get_data_handle()
+        self.assertEquals(data_handle.next(), [0, 1.1, 'a', 'b'])
+        self.assertEquals(data_handle.next(), [0, 1.2, 'b', None])
+        self.assertEquals(data_handle.next(), [1, None, None, None])

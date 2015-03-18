@@ -101,6 +101,52 @@ class TestMySQLBackend(TestCase):
         finally:
             backend.close_user_connection(user)
 
+    def test_create_non_square_dataset(self):
+        self.remove_users.append("test_user_dataset2")
+        backend = get_backend()
+        user = backend.get_user("test_user_dataset2")
+
+        handle = StringIO("0,1,2,3,4,5\n0,1,2,3\n0,1")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("test_dataset2", parser, user)
+            result = backend.run_query("SELECT * FROM %s.table_test_dataset2" % user.schema, user)
+            self.assertEquals(((0, 1, 2, 3, 4, 5, ), (0, 1, 2, 3, None, None, ), (0, 1, None, None, None, None,)), result)
+            result2 = backend.run_query("SELECT * FROM %s.test_dataset2" % user.schema, user)
+            self.assertEquals(((0, 1, 2, 3, 4, 5, ), (0, 1, 2, 3, None, None, ), (0, 1, None, None, None, None,)), result2)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
+    def test_non_square_multi_type_dataset(self):
+        self.remove_users.append("test_user_dataset3")
+        backend = get_backend()
+        user = backend.get_user("test_user_dataset3")
+
+        handle = StringIO("0,1.1,a,b\n0,1.2,b\n1")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("test_dataset3", parser, user)
+            result = backend.run_query("SELECT * FROM %s.table_test_dataset3" % user.schema, user)
+            self.assertEquals(((0, 1.1, "a", "b",), (0, 1.2, "b", None ), (1, None, None, None, )), result)
+            result2 = backend.run_query("SELECT * FROM %s.test_dataset3" % user.schema, user)
+            self.assertEquals(((0, 1.1, "a", "b",), (0, 1.2, "b", None ), (1, None, None, None, )), result2)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
     def test_view_sql_for_dataset(self):
         self.remove_users.append("test_user_tvsfd")
         backend = get_backend()

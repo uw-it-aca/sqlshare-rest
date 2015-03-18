@@ -22,8 +22,15 @@ class Parser(object):
 
     def guess(self, content):
         self.set_defaults()
-        self._has_header = csv.Sniffer().has_header(content)
-        self._delimiter = csv.Sniffer().sniff(content).delimiter
+        try:
+            self._has_header = csv.Sniffer().has_header(content)
+            self._delimiter = csv.Sniffer().sniff(content, delimiters=",\t").delimiter
+        except Exception as ex:
+            # In some non-square datasets, csv fails to detect "," as the
+            # delimiter, even if it seems like a pretty clear choice
+            self._delimiter = ","
+            # This can also mess up header detection :(
+            self._has_header = False
 
         data = StringIO(content)
         if self._has_header:
@@ -88,12 +95,15 @@ class Parser(object):
 
         Currently the preferred matches goes int -> float -> text
         """
+
         if self._column_types:
             return self._column_types
         if not self._handle:
             raise Exception("No handle to read from")
 
         current_index = self._handle.tell()
+        self._handle.seek(0)
+
         self._handle.seek(0)
 
         values = []
@@ -214,16 +224,20 @@ class DataHandler(object):
         typed = []
         raw = self._parser.next()
 
-        for i in range(0, len(raw)):
-            value = raw[i]
+        for i in range(0, len(self._columns)):
             col_type = self._columns[i]["type"]
 
-            if "int" == col_type:
-                typed.append(int(value))
-            elif "float" == col_type:
-                typed.append(float(value))
+            if len(raw) <= i:
+                # Make the data square!
+                typed.append(None)
             else:
-                typed.append(value)
+                value = raw[i]
+                if "int" == col_type:
+                    typed.append(int(value))
+                elif "float" == col_type:
+                    typed.append(float(value))
+                else:
+                    typed.append(value)
         return typed
 
     __next__ = next
