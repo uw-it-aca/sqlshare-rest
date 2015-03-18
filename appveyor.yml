@@ -20,7 +20,7 @@ install:
   - "%PYTHON%/Scripts/pip.exe install pep8"
   - "%PYTHON%/Scripts/pip.exe install PyMySQL"
   - "ls"
-  - "copy travis-ci/manage.py manage.py"
+  - ps: cp travis-ci/manage.py manage.py
 test_script:
   - "%PYTHON%/Scripts/pip.exe --version"
   - "%PYTHON%/python.exe manage.py test sqlshare_rest"
