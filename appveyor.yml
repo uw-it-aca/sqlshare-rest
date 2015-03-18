@@ -9,7 +9,6 @@ environment:
       DB: "sqlite3"
 init:
   - "ECHO %PYTHON%"
-  - "copy travis-ci/manage.py manage.py"
   - ps: "ls C:/Python*"
 install:
   - ps: (new-object net.webclient).DownloadFile('https://raw.github.com/pypa/pip/master/contrib/get-pip.py', 'C:/get-pip.py')
@@ -19,6 +18,8 @@ install:
   - "%PYTHON%/Scripts/pip.exe install python-coveralls"
   - "%PYTHON%/Scripts/pip.exe install pep8"
   - "%PYTHON%/Scripts/pip.exe install PyMySQL"
+  - "ls"
+  - "copy travis-ci/manage.py manage.py"
 test_script:
   - "%PYTHON%/Scripts/pip.exe --version"
   - "%PYTHON%/python.exe manage.py test sqlshare_rest"
