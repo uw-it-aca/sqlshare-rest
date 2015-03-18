@@ -24,7 +24,8 @@ class Parser(object):
         self.set_defaults()
         try:
             self._has_header = csv.Sniffer().has_header(content)
-            self._delimiter = csv.Sniffer().sniff(content, delimiters=",\t").delimiter
+            self._delimiter = csv.Sniffer().sniff(content,
+                                                  delimiters=",\t").delimiter
         except Exception as ex:
             # In some non-square datasets, csv fails to detect "," as the
             # delimiter, even if it seems like a pretty clear choice
