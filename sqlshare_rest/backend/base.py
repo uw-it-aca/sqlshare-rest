@@ -23,6 +23,9 @@ class DBInterface(object):
     def create_db_schema(self, username, schema):
         self._not_implemented("create_db_schema")
 
+    def create_snapshot(self, source_dataset, destination_datset, user):
+        self._not_implemented("create_snapshot")
+
     def remove_db_user(self, db_username):
         self._not_implemented("remove_db_user")
 

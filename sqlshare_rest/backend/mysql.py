@@ -64,6 +64,23 @@ class MySQLBackend(DBInterface):
         schema = self.get_db_schema(schema)
         cursor.execute("DROP DATABASE %s" % schema)
 
+    def _create_snapshot_sql(self, source_dataset, destination_datset):
+        """
+        Requires the source to be quoted, the destination to not be.
+
+        Source could be another user's dataset, so we can't quote that.
+        """
+        return "CREATE TABLE `%s` AS SELECT * FROM %s" % (destination_datset,
+                                                          source_dataset)
+
+    def create_snapshot(self, source_dataset, destination_datset, user):
+        table_name = self._get_table_name_for_dataset(destination_datset)
+        sql = self._create_snapshot_sql(source_dataset, table_name)
+        self.run_query(sql, user)
+        self.create_view(destination_datset,
+                         self._get_view_sql_for_dataset(table_name, user),
+                         user)
+
     def _create_table(self, table_name, column_names, column_types, user):
         sql = self._create_table_sql(table_name, column_names, column_types)
         self.run_query(sql, user)

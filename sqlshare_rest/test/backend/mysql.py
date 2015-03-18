@@ -165,6 +165,51 @@ class TestMySQLBackend(TestCase):
 
         self.assertEquals(sql, "CREATE TABLE `test_table1` (`Column1` INT, `Column2` FLOAT, `Column3` VARCHAR(400)) ENGINE InnoDB CHARACTER SET utf8 COLLATE utf8_bin")
 
+    def test_snapshot_sql(self):
+        backend = get_backend()
+        sql = backend._create_snapshot_sql("old", "new")
+        self.assertEquals(sql, "CREATE TABLE `new` AS SELECT * FROM old")
+
+    def test_snapshot(self):
+        self.remove_users.append("test_user_snapshot1")
+        backend = get_backend()
+        user = backend.get_user("test_user_snapshot1")
+
+        handle = StringIO("z,y,x\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("test_dataset1", parser, user)
+            result = backend.run_query("SELECT * FROM %s.table_test_dataset1" % user.schema, user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+            result2 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result2)
+
+            backend.create_snapshot("`test_user_snapshot1`.`test_dataset1`", "test_snapshot1", user)
+
+            # Make sure the snapshot has the right initial data
+            result3 = backend.run_query("SELECT * FROM test_user_snapshot1.test_snapshot1", user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result3)
+
+            # Update the original backing table
+            # make sure the original dataset is updated, but the snapshot isn't
+            backend.run_query("INSERT INTO table_test_dataset1 VALUES (3,14,15)", user)
+            result4 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, ), (3, 14, 15, )), result4)
+
+            result5 = backend.run_query("SELECT * FROM test_user_snapshot1.test_snapshot1", user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result5)
+
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+       
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):
