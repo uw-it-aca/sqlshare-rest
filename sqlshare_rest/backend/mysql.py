@@ -64,6 +64,14 @@ class MySQLBackend(DBInterface):
         schema = self.get_db_schema(schema)
         cursor.execute("DROP DATABASE %s" % schema)
 
+    def delete_table(self, table, owner):
+        sql = "DROP TABLE `%s`" % (table)
+        self.run_query(sql, owner)
+
+    def delete_dataset(self, dataset_name, owner):
+        sql = "DROP VIEW `%s`" % (dataset_name)
+        self.run_query(sql, owner)
+
     def _create_snapshot_sql(self, source_dataset, destination_datset):
         """
         Requires the source to be quoted, the destination to not be.

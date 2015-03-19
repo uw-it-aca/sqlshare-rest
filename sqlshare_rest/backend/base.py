@@ -62,6 +62,12 @@ class DBInterface(object):
                          self._get_view_sql_for_dataset(table_name, user),
                          user)
 
+    def delete_table(self, table_name, owner):
+        self._not_implemented("delete_table")
+
+    def delete_dataset(self, dataset_name, owner):
+        self._not_implemented("delete_dataset")
+
     def _get_view_sql_for_dataset(self, table_name, user):
         """
         The SQL statement that creates a view of the given table of data

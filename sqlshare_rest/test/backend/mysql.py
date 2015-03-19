@@ -102,6 +102,36 @@ class TestMySQLBackend(TestCase):
         finally:
             backend.close_user_connection(user)
 
+    def test_delete_dataset(self):
+        from pymysql.err import ProgrammingError
+        self.remove_users.append("test_user_delete_dataset1")
+        backend = get_backend()
+        user = backend.get_user("test_user_delete_dataset1")
+
+        handle = StringIO("z,y,x\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("soon_to_be_gone", parser, user)
+            result = backend.run_query("SELECT * FROM %s.soon_to_be_gone" % user.schema, user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+
+            backend.delete_dataset("soon_to_be_gone", user)
+            self.assertRaises(ProgrammingError, backend.run_query, "SELECT * FROM %s.soon_to_be_gone" % user.schema, user)
+            result = backend.run_query("SELECT * FROM %s.table_soon_to_be_gone" % user.schema, user)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+            backend.delete_table("table_soon_to_be_gone", user)
+            self.assertRaises(ProgrammingError, backend.run_query, "SELECT * FROM %s.table_soon_to_be_gone" % user.schema, user)
+
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
     def test_create_non_square_dataset(self):
         self.remove_users.append("test_user_dataset2")
         backend = get_backend()
