@@ -26,6 +26,8 @@ def is_mysql():
 def is_sqlite3():
     return _get_basic_settings()['ENGINE'] == "django.db.backends.sqlite3"
 
+def is_mssql():
+    return _get_basic_settings()['ENGINE'] == "sqlserver_ado"
 
 class BackendNotImplemented(Exception):
     pass
