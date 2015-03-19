@@ -81,6 +81,24 @@ class MySQLBackend(DBInterface):
                          self._get_view_sql_for_dataset(table_name, user),
                          user)
 
+
+    def _add_read_access_sql(self, dataset, owner, reader):
+        return "GRANT SELECT ON `%s`.`%s` TO `%s`" % (owner.schema,
+                                                      dataset,
+                                                      reader.db_username)
+
+    def add_read_access_to_dataset(self, dataset, owner, reader):
+        pass
+
+    def _remove_read_access_sql(self, dataset, owner, reader):
+        db_user = reader.db_username
+        return "REVOKE ALL PRIVILEGES ON `%s`.`%s` FROM `%s`" % (owner.schema,
+                                                                 dataset,
+                                                                 db_user)
+
+    def remove_access_to_dataset(self, dataset, owner, reader):
+        pass
+
     def _create_table(self, table_name, column_names, column_types, user):
         sql = self._create_table_sql(table_name, column_names, column_types)
         self.run_query(sql, user)

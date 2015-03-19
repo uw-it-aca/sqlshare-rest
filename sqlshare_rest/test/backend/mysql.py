@@ -208,7 +208,25 @@ class TestMySQLBackend(TestCase):
             raise
         finally:
             backend.close_user_connection(user)
-       
+
+    def test_add_access_sql(self):
+        self.remove_users.append("test_user_add_access_sql1")
+        self.remove_users.append("test_user_add_access_sql2")
+        backend = get_backend()
+        user1 = backend.get_user("test_user_add_access_sql1")
+        user2 = backend.get_user("test_user_add_access_sql2")
+        sql = backend._add_read_access_sql("demo_dataset", user1, user2)
+        self.assertEquals(sql, "GRANT SELECT ON `test_user_add_access_sql1`.`demo_dataset` TO `meta_dc1031bf6f0`")
+
+
+    def test_remove_access_sql(self):
+        self.remove_users.append("test_user_remove_access_sql1")
+        self.remove_users.append("test_user_remove_access_sql2")
+        backend = get_backend()
+        user1 = backend.get_user("test_user_remove_access_sql1")
+        user2 = backend.get_user("test_user_remove_access_sql2")
+        sql = backend._remove_read_access_sql("demo_dataset", user1, user2)
+        self.assertEquals(sql, "REVOKE ALL PRIVILEGES ON `test_user_remove_access_sql1`.`demo_dataset` FROM `meta_388d357fbb9`")
 
     @classmethod
     def setUpClass(cls):

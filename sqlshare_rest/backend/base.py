@@ -37,6 +37,12 @@ class DBInterface(object):
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 
+    def add_read_access_to_dataset(dataset, owner, reader):
+        self._not_implemented("add_read_access_to_dataset")
+
+    def remove_access_to_dataset(dataset, owner, reader):
+        self._not_implemented("remove_access_to_dataset")
+
     def create_dataset_from_parser(self, dataset_name, parser, user):
         """
         Turns a parser object into a dataset.
