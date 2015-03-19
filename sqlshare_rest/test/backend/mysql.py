@@ -228,6 +228,64 @@ class TestMySQLBackend(TestCase):
         sql = backend._remove_read_access_sql("demo_dataset", user1, user2)
         self.assertEquals(sql, "REVOKE ALL PRIVILEGES ON `test_user_remove_access_sql1`.`demo_dataset` FROM `meta_388d357fbb9`")
 
+
+    def test_permissions_control(self):
+        from pymysql.err import OperationalError
+        self.remove_users.append("test_user_permissions1")
+        self.remove_users.append("test_user_permissions2")
+        self.remove_users.append("test_user_permissions3")
+
+        backend = get_backend()
+
+        user1 = backend.get_user("test_user_permissions1")
+        user2 = backend.get_user("test_user_permissions2")
+        user3 = backend.get_user("test_user_permissions3")
+
+        handle = StringIO("A,B,C\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("share_me", parser, user1)
+            # Not shared yet - no access
+            self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_permissions1`.`share_me`", user2)
+
+            # Share it
+            backend.add_read_access_to_dataset("share_me", user1, user2)
+
+            # Check the new person has access
+            result = backend.run_query("SELECT * FROM `test_user_permissions1`.`share_me`", user2)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+
+            # Check that the owner still has access
+            result = backend.run_query("SELECT * FROM `test_user_permissions1`.`share_me`", user1)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+
+            # Make sure only user2 has access, not user3
+            self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_permissions1`.`share_me`", user3)
+
+            # Drop the sharing from user2
+            backend.remove_access_to_dataset("share_me", user1, user2)
+
+            # Make sure user2 and user3 don't have access
+            self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_permissions1`.`share_me`", user2)
+            self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_permissions1`.`share_me`", user3)
+
+            # Make sure the owner does have access
+            result = backend.run_query("SELECT * FROM `test_user_permissions1`.`share_me`", user1)
+            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user1)
+            backend.close_user_connection(user2)
+            backend.close_user_connection(user3)
+
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):
@@ -243,10 +301,28 @@ class TestMySQLBackend(TestCase):
         _run_query("drop user meta_5e19e9d789a")
         _run_query("drop user meta_b26f3aaa573")
         _run_query("drop user meta_b07070ff008")
+        _run_query("drop user meta_f762bda7cdc")
+        _run_query("drop user meta_c12720852fb")
+        _run_query("drop user meta_1a79dccaa61")
+        _run_query("drop user meta_e2abbb836ab")
+        _run_query("drop user meta_81cfadd5369")
+        _run_query("drop user meta_6821430ebab")
+        _run_query("drop user meta_2095813758f")
+        _run_query("drop user meta_169ef98d749")
         _run_query("drop database test_user_tcu1")
         _run_query("drop database test_user_trq1")
+        _run_query("drop database test_user_tvsfd")
+        _run_query("drop database test_user_perm1")
         _run_query("drop database test_user_perm2")
         _run_query("drop database test_user_dataset1")
+        _run_query("drop database test_user_snapshot1")
+        _run_query("drop database test_user_remove_access_sql1")
+        _run_query("drop database test_user_permissions1")
+        _run_query("drop database test_user_dataset3")
+        _run_query("drop database test_user_dataset2")
+        _run_query("drop database test_user_dataset1")
+        _run_query("drop database test_user_view1")
+        _run_query("drop database test_user_add_access_sql1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

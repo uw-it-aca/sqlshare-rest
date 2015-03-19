@@ -15,7 +15,6 @@ class MySQLBackend(DBInterface):
     def create_db_user(self, username, password):
         cursor = connection.cursor()
         cursor.execute("CREATE USER %s IDENTIFIED BY %s", (username, password))
-        return
 
     def get_db_username(self, user):
         # MySQL only allows 16 character names.  Take the md5sum of the
@@ -49,6 +48,7 @@ class MySQLBackend(DBInterface):
 
         # Using placeholders here results in bad syntax
         cursor.execute("GRANT ALL on %s.* to %s" % (schema, username))
+        cursor.execute("GRANT GRANT OPTION ON %s.* TO %s" % (schema, username))
 
     def remove_db_user(self, user):
         cursor = connection.cursor()
@@ -87,7 +87,8 @@ class MySQLBackend(DBInterface):
                                                       reader.db_username)
 
     def add_read_access_to_dataset(self, dataset, owner, reader):
-        pass
+        sql = self._add_read_access_sql(dataset, owner, reader)
+        self.run_query(sql, owner)
 
     def _remove_read_access_sql(self, dataset, owner, reader):
         db_user = reader.db_username
@@ -96,7 +97,8 @@ class MySQLBackend(DBInterface):
                                                                  db_user)
 
     def remove_access_to_dataset(self, dataset, owner, reader):
-        pass
+        sql = self._remove_read_access_sql(dataset, owner, reader)
+        self.run_query(sql, owner)
 
     def _create_table(self, table_name, column_names, column_types, user):
         sql = self._create_table_sql(table_name, column_names, column_types)
