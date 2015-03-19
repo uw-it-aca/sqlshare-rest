@@ -81,7 +81,6 @@ class MySQLBackend(DBInterface):
                          self._get_view_sql_for_dataset(table_name, user),
                          user)
 
-
     def _add_read_access_sql(self, dataset, owner, reader):
         return "GRANT SELECT ON `%s`.`%s` TO `%s`" % (owner.schema,
                                                       dataset,
