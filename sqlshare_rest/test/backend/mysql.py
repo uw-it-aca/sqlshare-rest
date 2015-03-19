@@ -2,6 +2,7 @@ from django.test import TestCase
 from sqlshare_rest.util.db import is_mysql, get_backend
 from sqlshare_rest.parser import Parser
 from django.db import connection
+from django.conf import settings
 import unittest
 import six
 if six.PY2:
@@ -285,6 +286,89 @@ class TestMySQLBackend(TestCase):
             backend.close_user_connection(user2)
             backend.close_user_connection(user3)
 
+    def test_public_datasets(self):
+        with self.settings(SQLSHARE_PUBLIC_DB_CONNECTION_USERNAME="ss_test_public",
+                           SQLSHARE_PUBLIC_DB_CONNECTION_PASSWORD="fm4i3oj5h",
+                           SQLSHARE_PUBLIC_DB_CONNECTION_SCHEMA="ss_test_public_db"):
+            cursor = connection.cursor()
+            cursor.execute("CREATE USER ss_test_public IDENTIFIED BY 'fm4i3oj5h'")
+            cursor.execute("CREATE DATABASE ss_test_public_db")
+            cursor.execute("GRANT SELECT ON ss_test_public_db.* to `ss_test_public`")
+
+            from pymysql.err import OperationalError, InternalError
+            self.remove_users.append("test_user_public_grant1")
+            self.remove_users.append("test_user_public_user")
+
+            backend = get_backend()
+            user1 = backend.get_user("test_user_public_grant1")
+            user2 = backend.get_user("test_user_public_user")
+
+            handle = StringIO("A,B,C\n1,3,4\n2,10,12")
+            parser = Parser()
+            parser.guess(handle.read(1024*20))
+            handle.seek(0)
+            parser.parse(handle)
+
+            handle2 = StringIO("D,E,F\n1,3,4\n2,10,12")
+
+            parser2 = Parser()
+            parser2.guess(handle2.read(1024*20))
+            handle2.seek(0)
+            parser2.parse(handle2)
+
+
+            try:
+                backend.create_dataset_from_parser("share_me", parser, user1)
+                backend.create_dataset_from_parser("dont_share_me", parser2, user1)
+                # Not shared yet - no access
+                self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_public_grant1`.`share_me`", user2)
+
+                # Make sure the public query can't access it yet
+                self.assertRaises(OperationalError, backend.run_public_query, "SELECT * FROM `test_user_public_grant1`.`share_me`")
+
+                # Make sure some rando can't add public access
+                self.assertRaises(InternalError, backend.remove_public_access, "share_me", user2)
+                self.assertRaises(OperationalError, backend.run_public_query, "SELECT * FROM `test_user_public_grant1`.`share_me`")
+
+                backend.add_public_access("share_me", user1)
+
+                # Running it as the user will still be an error - can't grant wildcard user access
+                self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_public_grant1`.`share_me`", user2)
+
+                # But the public query will work
+                result = backend.run_public_query("SELECT * FROM `test_user_public_grant1`.`share_me`")
+                self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+
+                # Make sure a query unioning the public with non-public datasets fails
+                self.assertRaises(OperationalError, backend.run_public_query, "SELECT * FROM `test_user_public_grant1`.`share_me` LEFT JOIN `test_user_public_grant1`.`dont_share_me` ON A = D")
+
+                # Make sure this query actually works!
+                result = backend.run_query("SELECT * FROM `test_user_public_grant1`.`share_me` LEFT JOIN `test_user_public_grant1`.`dont_share_me` ON A = D", user1)
+                self.assertEquals(((1, 3, 4, 1, 3, 4,), (2, 10, 12, 2, 10, 12,)), result)
+
+                # Make sure some rando can't remove public access
+                self.assertRaises(InternalError, backend.remove_public_access, "share_me", user2)
+                result = backend.run_public_query("SELECT * FROM `test_user_public_grant1`.`share_me`")
+                self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+
+                # OK, remove access.
+                backend.remove_public_access("share_me", user1)
+                self.assertRaises(OperationalError, backend.run_public_query, "SELECT * FROM `test_user_public_grant1`.`share_me`")
+
+                # make sure the owner has access still
+                result = backend.run_query("SELECT * FROM `test_user_public_grant1`.`share_me`", user1)
+                self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
+
+            except Exception:
+                raise
+            finally:
+                backend.close_user_connection(backend.get_public_user())
+                backend.close_user_connection(user1)
+                backend.close_user_connection(user2)
+
+                cursor.execute("DROP USER ss_test_public")
+                cursor.execute("DROP DATABASE ss_test_public_db")
+
 
     @classmethod
     def setUpClass(cls):
@@ -296,6 +380,8 @@ class TestMySQLBackend(TestCase):
                 # Hopefully all of these will fail, so ignore the failures
                 pass
 
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
         _run_query("drop user meta_634153bf808")
         _run_query("drop user meta_8daa171745c")
         _run_query("drop user meta_5e19e9d789a")
@@ -309,6 +395,15 @@ class TestMySQLBackend(TestCase):
         _run_query("drop user meta_6821430ebab")
         _run_query("drop user meta_2095813758f")
         _run_query("drop user meta_169ef98d749")
+        _run_query("drop user meta_be26803663f")
+        _run_query("drop user meta_4876e117d6b")
+        _run_query("drop user meta_388d357fbb9")
+        _run_query("drop user meta_ecbf2a2db0e")
+        _run_query("drop user meta_dc1031bf6f0")
+        _run_query("drop user meta_a64eaca0830")
+        _run_query("drop user ss_test_public")
+        _run_query("drop database test_user_public_user")
+        _run_query("drop database ss_test_public_db")
         _run_query("drop database test_user_tcu1")
         _run_query("drop database test_user_trq1")
         _run_query("drop database test_user_tvsfd")
@@ -318,11 +413,16 @@ class TestMySQLBackend(TestCase):
         _run_query("drop database test_user_snapshot1")
         _run_query("drop database test_user_remove_access_sql1")
         _run_query("drop database test_user_permissions1")
+        _run_query("drop database test_user_permissions2")
+        _run_query("drop database test_user_permissions3")
         _run_query("drop database test_user_dataset3")
         _run_query("drop database test_user_dataset2")
         _run_query("drop database test_user_dataset1")
         _run_query("drop database test_user_view1")
         _run_query("drop database test_user_add_access_sql1")
+        _run_query("drop database test_user_add_access_sql2")
+        _run_query("drop database test_user_remove_access_sql2")
+        _run_query("drop database test_user_public_grant1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

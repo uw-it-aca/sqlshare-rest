@@ -100,6 +100,26 @@ class MySQLBackend(DBInterface):
         sql = self._remove_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner)
 
+    def _add_public_access_sql(self, dataset, owner):
+        public_user = self.get_public_user()
+        return "GRANT SELECT ON `%s`.`%s` TO `%s`" % (owner.schema,
+                                                      dataset,
+                                                      public_user.db_username)
+
+    def add_public_access(self, dataset, owner):
+        sql = self._add_public_access_sql(dataset, owner)
+        self.run_query(sql, owner)
+
+    def _remove_public_access_sql(self, dataset, owner):
+        public_user = self.get_public_user()
+        return "REVOKE ALL ON `%s`.`%s` FROM `%s`" % (owner.schema,
+                                                      dataset,
+                                                      public_user.db_username)
+
+    def remove_public_access(self, dataset, owner):
+        sql = self._remove_public_access_sql(dataset, owner)
+        self.run_query(sql, owner)
+
     def _create_table(self, table_name, column_names, column_types, user):
         sql = self._create_table_sql(table_name, column_names, column_types)
         self.run_query(sql, user)

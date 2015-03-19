@@ -2,6 +2,7 @@ from sqlshare_rest.models import User
 import os
 import random
 import string
+from django.conf import settings
 
 
 class DBInterface(object):
@@ -11,7 +12,7 @@ class DBInterface(object):
     def __init__(self):
         self.username = None
 
-    def run_query(self, sql, user):
+    def run_query(self, sql, user, params=None):
         self._not_implemented("run_query")
 
     def create_view(self, name, sql, user):
@@ -37,10 +38,10 @@ class DBInterface(object):
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 
-    def add_read_access_to_dataset(dataset, owner, reader):
+    def add_read_access_to_dataset(self, dataset, owner, reader):
         self._not_implemented("add_read_access_to_dataset")
 
-    def remove_access_to_dataset(dataset, owner, reader):
+    def remove_access_to_dataset(self, dataset, owner, reader):
         self._not_implemented("remove_access_to_dataset")
 
     def create_dataset_from_parser(self, dataset_name, parser, user):
@@ -130,6 +131,43 @@ class DBInterface(object):
     # Just their username by default?
     def get_db_schema(self, user):
         return user
+
+    def add_public_access(self, dataset, owner):
+        self._not_implemented("add_public_access")
+
+    def remove_public_access(self, dataset, owner):
+        self._not_implemented("add_public_access")
+
+    def run_public_query(self, sql, params=None):
+        """
+        This is intended as a fall-back for database engines that don't allow
+        a view to be readable by all users.  If there's an error running a
+        query as the current user, and the dataset is public, this will be
+        called.
+        """
+        user = self.get_public_user()
+        return self.run_query(sql, user, params)
+
+    def get_public_user(self):
+        """
+        Returns a stubbed out user for connecting to the database.  This
+        account should be "public", that is, shouldn't have any rights in the
+        database, except for specific "public" grants.
+        """
+        user = User()
+        user.db_username = self._get_public_username()
+        user.db_password = self._get_public_password()
+        user.schema = self._get_public_schema()
+        return user
+
+    def _get_public_username(self):
+        return settings.SQLSHARE_PUBLIC_DB_CONNECTION_USERNAME
+
+    def _get_public_password(self):
+        return settings.SQLSHARE_PUBLIC_DB_CONNECTION_PASSWORD
+
+    def _get_public_schema(self):
+        return settings.SQLSHARE_PUBLIC_DB_CONNECTION_SCHEMA
 
     def create_db_user_password(self):
         chars = string.ascii_letters + string.digits
