@@ -13,6 +13,7 @@ from sqlshare_rest.views.file_upload import FileUploadView
 from sqlshare_rest.views.file_parser import FileParserView
 
 urlpatterns = patterns(
+    'sqlshare_rest.views',
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
         csrf_exempt(DatasetView().run),
         name="sqlshare_view_dataset"),
@@ -25,8 +26,10 @@ urlpatterns = patterns(
         csrf_exempt(DatasetTagsView().run),
         name="sqlshare_view_dataset_tags"),
 
-    url('v3/db/dataset',
-        csrf_exempt(DatasetListView().run),
+    #    url('v3/db/dataset',
+    #        csrf_exempt(DatasetListView().run),
+    #        name="sqlshare_view_dataset_list"),
+    url('v3/db/dataset', 'dataset_list.dataset_list',
         name="sqlshare_view_dataset_list"),
 
     url('v3/db/query/(?P<id>[0-9]+)',
