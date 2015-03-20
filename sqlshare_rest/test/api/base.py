@@ -4,8 +4,20 @@ from oauth2_provider.models import get_application_model
 from oauth2_provider.settings import oauth2_settings
 from oauth2_provider.compat import get_user_model, urlencode, parse_qs, urlparse
 import json
+import base64
 
 class BaseAPITest(TestCase):
+    def get_basic_auth_header(self, user, password):
+        """
+        Return a dict containg the correct headers to set to make HTTP Basic Auth request
+        """
+        user_pass = '{0}:{1}'.format(user, password)
+        auth_string = base64.b64encode(user_pass.encode('utf-8'))
+        auth_headers = {
+            'HTTP_AUTHORIZATION': 'Basic ' + auth_string.decode("utf-8"),
+        }
+        return auth_headers
+
     def get_auth_header_for_username(self, username):
         # Not actually useful until v0.7.3?
         oauth2_settings.ALLOWED_REDIRECT_URI_SCHEMES = ['http', 'custom-scheme', 'http://ok']
