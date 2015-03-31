@@ -2,8 +2,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.decorators import protected_resource
 import json
-from sqlshare_rest.models import Dataset
-from django.contrib.auth.models import User
+from sqlshare_rest.models import Dataset, User
 from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
@@ -28,7 +27,6 @@ def _get_dataset(request, owner, name):
     except User.DoesNotExist:
         return get404()
     except Exception as ex:
-        print ("E: ", ex)
         raise
 
     if not dataset.user_has_access(request.user):
@@ -49,6 +47,7 @@ def _put_dataset(request, owner, name):
     is_public = data.get("is_public", False)
     dataset.description = description
     dataset.is_public = is_public
+
     dataset.save()
 
     response = HttpResponse(json.dumps(dataset.json_data()))

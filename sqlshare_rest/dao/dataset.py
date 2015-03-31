@@ -1,6 +1,5 @@
 from sqlshare_rest.util.db import get_backend
-from sqlshare_rest.models import Dataset
-from django.contrib.auth.models import User
+from sqlshare_rest.models import Dataset, User
 
 
 def get_dataset_by_owner_and_name(owner, name):

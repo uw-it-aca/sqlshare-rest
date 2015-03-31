@@ -1,12 +1,14 @@
-from django.test import TestCase
+from sqlshare_rest.test import CleanUpTestCase
+from sqlshare_rest.util.db import is_mysql, get_backend
 from django.core.urlresolvers import reverse
 from oauth2_provider.models import get_application_model
 from oauth2_provider.settings import oauth2_settings
 from oauth2_provider.compat import get_user_model, urlencode, parse_qs, urlparse
+from django.db import connection
 import json
 import base64
 
-class BaseAPITest(TestCase):
+class BaseAPITest(CleanUpTestCase):
     def get_basic_auth_header(self, user, password):
         """
         Return a dict containg the correct headers to set to make HTTP Basic Auth request
@@ -23,7 +25,10 @@ class BaseAPITest(TestCase):
         oauth2_settings.ALLOWED_REDIRECT_URI_SCHEMES = ['http', 'custom-scheme', 'http://ok']
         Application = get_application_model()
         UserModel = get_user_model()
-        self.dev_user = UserModel.objects.create_user(username, "", "123456")
+        try:
+            self.dev_user = UserModel.objects.get(username=username)
+        except Exception:
+            self.dev_user = UserModel.objects.create_user(username, "", "123456")
         app = Application(
             name="Test Application",
             redirect_uris="http://ok",

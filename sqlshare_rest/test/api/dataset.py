@@ -1,5 +1,6 @@
 from django.test import TestCase
 from unittest2 import skipIf
+from django.db import connection
 import json
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
@@ -21,6 +22,8 @@ from sqlshare_rest.test.api.base import BaseAPITest
 
 class DatsetAPITest(BaseAPITest):
     def setUp(self):
+        # Try to cleanup from any previous test runs...
+        self.remove_users = []
         self.client = Client()
 
     def test_unauthenticated(self):
@@ -58,6 +61,7 @@ class DatsetAPITest(BaseAPITest):
     def test_create_from_query(self):
         owner = "put_user1"
         ds1_name = "dataset_1"
+        self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
                                                         'name': ds1_name})
@@ -105,8 +109,9 @@ class DatsetAPITest(BaseAPITest):
 
 
     def test_valid_no_permissions(self):
-        owner = "put_user1"
+        owner = "put_user2"
         ds1_name = "dataset_1"
+        self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
                                                         'name': ds1_name})
@@ -131,8 +136,9 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(response.status_code, 403)
 
     def test_public_access(self):
-        owner = "put_user1"
+        owner = "put_user3"
         ds1_name = "dataset_1"
+        self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
                                                         'name': ds1_name})
@@ -155,3 +161,23 @@ class DatsetAPITest(BaseAPITest):
         response = self.client.get(url, **auth_headers)
 
         self.assertEquals(response.status_code, 200)
+
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop database put_user1")
+        _run_query("drop database put_user2")
+        _run_query("drop database put_user3")
+        _run_query("drop database dao_user1")
+        _run_query("drop user meta_3a95151f1de")
+        _run_query("drop user meta_8af92476928")
+        _run_query("drop user meta_012da3777ee")
