@@ -1,6 +1,12 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User
 
+def get_datasets_owned_by_user(user):
+    # Django auth user vs sqlshare user
+    backend = get_backend()
+    user_obj = backend.get_user(user.username)
+    return Dataset.objects.filter(owner=user_obj)
+
 
 def get_dataset_by_owner_and_name(owner, name):
     user_obj = User.objects.get(username=owner)

@@ -25,6 +25,7 @@ class CleanUpTestCase(TestCase):
             try:
                 backend.remove_user(user)
             except Exception as ex:
-                print ("Error deleting user: ", ex)
+                # This is going to fail on at least sqlite3
+                pass
 
         self.remove_users = []

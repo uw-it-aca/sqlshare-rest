@@ -32,6 +32,7 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(response.status_code, 403)
 
     def test_methods(self):
+        self.remove_users.append("test_user1")
         auth_headers = self.get_auth_header_for_username("test_user1")
         url = reverse("sqlshare_view_dataset_list")
         response = self.client.get(url, **auth_headers)
@@ -40,6 +41,7 @@ class DatsetAPITest(BaseAPITest):
 
     def test_get_missing(self):
         owner = "okwhateveruser"
+        self.remove_users.append(owner)
         ds1_name = "not-really-here"
         auth_headers = self.get_auth_header_for_username(owner)
 
@@ -178,6 +180,10 @@ class DatsetAPITest(BaseAPITest):
         _run_query("drop database put_user2")
         _run_query("drop database put_user3")
         _run_query("drop database dao_user1")
+        _run_query("drop database test_user1")
+        _run_query("drop database okwhateveruser")
         _run_query("drop user meta_3a95151f1de")
         _run_query("drop user meta_8af92476928")
         _run_query("drop user meta_012da3777ee")
+        _run_query("drop user meta_e1bc449093c")
+        _run_query("drop user meta_9e311190103")
