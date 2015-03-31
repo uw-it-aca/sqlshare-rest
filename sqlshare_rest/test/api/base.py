@@ -23,7 +23,7 @@ class BaseAPITest(TestCase):
         oauth2_settings.ALLOWED_REDIRECT_URI_SCHEMES = ['http', 'custom-scheme', 'http://ok']
         Application = get_application_model()
         UserModel = get_user_model()
-        self.dev_user = UserModel.objects.create_user("dev_user", "dev@user.com", "123456")
+        self.dev_user = UserModel.objects.create_user(username, "", "123456")
         app = Application(
             name="Test Application",
             redirect_uris="http://ok",
@@ -33,7 +33,7 @@ class BaseAPITest(TestCase):
         )
         app.save()
 
-        self.client.login(username="dev_user", password="123456")
+        self.client.login(username=username, password="123456")
         authcode_data = {
             'client_id': app.client_id,
             'state': 'random_state_string',
@@ -42,7 +42,9 @@ class BaseAPITest(TestCase):
             'response_type': 'code',
             'allow': True,
         }
+
         response = self.client.post(reverse('oauth2_provider:authorize'), data=authcode_data)
+        self.client.logout()
         query_dict = parse_qs(urlparse(response['Location']).query)
         authorization_code = query_dict['code'].pop()
 

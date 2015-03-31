@@ -2,7 +2,6 @@ from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
 
 from sqlshare_rest.views.dataset_list import DatasetListView
-from sqlshare_rest.views.dataset import DatasetView
 from sqlshare_rest.views.dataset_permissions import DatasetPermissionsView
 from sqlshare_rest.views.dataset_tags import DatasetTagsView
 
@@ -15,7 +14,7 @@ from sqlshare_rest.views.file_parser import FileParserView
 urlpatterns = patterns(
     'sqlshare_rest.views',
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
-        csrf_exempt(DatasetView().run),
+        'dataset.dataset',
         name="sqlshare_view_dataset"),
 
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/permissions',
