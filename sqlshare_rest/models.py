@@ -11,6 +11,11 @@ class User(models.Model):
     # db_password = EncryptedCharField(max_length=200)
     db_password = models.CharField(max_length=200)
 
+    def json_data(self):
+        return {
+            "login": self.username,
+        }
+
 
 class Dataset(models.Model):
     """ A cached reference to a database view """
@@ -21,6 +26,7 @@ class Dataset(models.Model):
     data_preview = models.TextField(null=True)
     is_public = models.BooleanField(default=False)
     is_shared = models.BooleanField(default=False)
+    shared_with = models.ManyToManyField(User, related_name="shared_with")
 
     class Meta:
         unique_together = (("name", "owner"),)
@@ -44,11 +50,20 @@ class Dataset(models.Model):
                                                        'name': self.name})
         return url
 
-    def user_has_access(self, user):
+    def user_has_read_access(self, user):
         if user.username == self.owner.username:
             return True
 
         if self.is_public:
             return True
+
+        if self.is_shared:
+            try:
+                ss_user = User.objects.get(username=user.username)
+            except User.DoesNotExist:
+                return False
+
+            val = self.shared_with.filter(pk=ss_user.pk).exists()
+            return val
 
         return False

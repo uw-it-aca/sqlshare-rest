@@ -1,7 +1,6 @@
 from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
 
-from sqlshare_rest.views.dataset_permissions import DatasetPermissionsView
 from sqlshare_rest.views.dataset_tags import DatasetTagsView
 
 from sqlshare_rest.views.query_list import QueryListView
@@ -12,17 +11,17 @@ from sqlshare_rest.views.file_parser import FileParserView
 
 urlpatterns = patterns(
     'sqlshare_rest.views',
-    url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
-        'dataset.dataset',
-        name="sqlshare_view_dataset"),
-
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/permissions',
-        csrf_exempt(DatasetPermissionsView().run),
+        'dataset_permissions.permissions',
         name="sqlshare_view_dataset_permissions"),
 
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/tags',
         csrf_exempt(DatasetTagsView().run),
         name="sqlshare_view_dataset_tags"),
+
+    url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
+        'dataset.dataset',
+        name="sqlshare_view_dataset"),
 
     url('v3/db/dataset', 'dataset_list.dataset_list',
         name="sqlshare_view_dataset_list"),

@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.decorators import protected_resource
 import json
 from sqlshare_rest.models import Dataset, User
-from sqlshare_rest.views import get_oauth_user
+from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 
@@ -29,7 +29,7 @@ def _get_dataset(request, owner, name):
     except Exception as ex:
         raise
 
-    if not dataset.user_has_access(request.user):
+    if not dataset.user_has_read_access(request.user):
         return get403()
 
     return HttpResponse(json.dumps(dataset.json_data()))
@@ -53,16 +53,4 @@ def _put_dataset(request, owner, name):
     response = HttpResponse(json.dumps(dataset.json_data()))
     response.status_code = 201
 
-    return response
-
-
-def get404():
-    response = HttpResponse("")
-    response.status_code = 404
-    return response
-
-
-def get403():
-    response = HttpResponse("")
-    response.status_code = 403
     return response

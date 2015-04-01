@@ -7,6 +7,14 @@ class SQLite3Backend(DBInterface):
     def create_db_user(self, username, password):
         return
 
+    # This is here so some amount of the permissions api unit tests
+    # can be run w/ sqlite3.
+    def add_read_access_to_dataset(*args, **kwargs):
+        pass
+
+    def remove_access_to_dataset(*args, **kwargs):
+        pass
+
     def create_view(self, name, sql, user):
         view_sql = "CREATE VIEW %s AS %s" % (name, sql)
         self.run_query(view_sql, user)

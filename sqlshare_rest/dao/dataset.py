@@ -1,5 +1,6 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User
+from sqlshare_rest.exceptions import InvalidAccountException
 
 
 def get_datasets_owned_by_user(user):
@@ -30,3 +31,32 @@ def create_dataset_from_query(username, dataset_name, sql):
         raise
     finally:
         backend.close_user_connection(user)
+
+
+def set_dataset_accounts(dataset, accounts, save_dataset=True):
+    backend = get_backend()
+    # Get a unique list of values...
+    # The set is used for removing access
+    account_set = set(accounts)
+    accounts = list(set(accounts))
+    user_models = User.objects.filter(username__in=accounts)
+
+    if len(user_models) != len(accounts):
+        raise InvalidAccountException()
+
+    # XXX - put this in a transaction?
+    current_users = dataset.shared_with.all()
+    for user in current_users:
+        if user.username not in account_set:
+            backend.remove_access_to_dataset(dataset.name,
+                                             owner=dataset.owner,
+                                             reader=user)
+
+    for user in user_models:
+        backend.add_read_access_to_dataset(dataset.name,
+                                           owner=dataset.owner,
+                                           reader=user)
+
+    dataset.shared_with = user_models
+    if save_dataset:
+        dataset.save()

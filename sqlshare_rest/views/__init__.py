@@ -23,3 +23,21 @@ class RESTView(object):
         request = args[0]
         if request.META['REQUEST_METHOD'] == "GET":
             return self.GET(*args, **kwargs)
+
+
+def get404():
+    response = HttpResponse("")
+    response.status_code = 404
+    return response
+
+
+def get403():
+    response = HttpResponse("")
+    response.status_code = 403
+    return response
+
+
+def get400():
+    response = HttpResponse("")
+    response.status_code = 400
+    return response
