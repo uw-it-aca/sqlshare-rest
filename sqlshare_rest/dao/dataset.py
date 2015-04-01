@@ -1,5 +1,5 @@
 from sqlshare_rest.util.db import get_backend
-from sqlshare_rest.models import Dataset, User
+from sqlshare_rest.models import Dataset, User, SharingEmail
 from sqlshare_rest.exceptions import InvalidAccountException
 
 
@@ -58,5 +58,23 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
                                            reader=user)
 
     dataset.shared_with = user_models
+    if save_dataset:
+        dataset.save()
+
+def set_dataset_emails(dataset, emails, save_dataset=True):
+    # Get a unique list...
+    emails = list(set(emails))
+    existing_models = list(SharingEmail.objects.filter(email__in=emails))
+
+    # Fill in the gaps
+    if len(existing_models) != len(emails):
+        existing_set = set(map(lambda x: x.email, existing_models))
+
+        for email in emails:
+            if email not in existing_set:
+                new = SharingEmail.objects.create(email=email)
+                existing_models.append(new)
+
+    dataset.email_shares = existing_models
     if save_dataset:
         dataset.save()

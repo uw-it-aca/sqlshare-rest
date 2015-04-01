@@ -7,7 +7,7 @@ from sqlshare_rest.models import Dataset, User
 from sqlshare_rest.views import get_oauth_user, get400, get403, get404
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
-from sqlshare_rest.dao.dataset import set_dataset_accounts
+from sqlshare_rest.dao.dataset import set_dataset_accounts, set_dataset_emails
 
 
 @csrf_exempt
@@ -35,11 +35,13 @@ def permissions(request, owner, name):
 
 
 def _get_dataset_permissions(request, dataset):
+    # The list() is needed for python3
     data = {
         "is_public": dataset.is_public,
         "is_shared": dataset.is_shared,
-        "accounts": map(lambda x: x.json_data(), dataset.shared_with.all()),
-        "emails": [],
+        "accounts": list(map(lambda x: x.json_data(),
+                             dataset.shared_with.all())),
+        "emails": list(map(lambda x: x.email, dataset.email_shares.all())),
     }
 
     return HttpResponse(json.dumps(data))
@@ -57,6 +59,12 @@ def _set_dataset_permissions(request, dataset):
             is_shared = True
     except InvalidAccountException:
         return get400()
+
+    emails = data.get("emails", [])
+    if len(emails):
+        is_shared = True
+
+    set_dataset_emails(dataset, emails, save_dataset=False)
 
     dataset.is_shared = is_shared
     dataset.save()

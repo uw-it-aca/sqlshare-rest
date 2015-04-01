@@ -3,6 +3,10 @@ from django.core.urlresolvers import reverse
 # from django_fields.fields import EncryptedCharField
 
 
+class SharingEmail(models.Model):
+    email = models.CharField(max_length=200)
+
+
 class User(models.Model):
     """ A cached reference to a database user """
     username = models.CharField(max_length=200, db_index=True, unique=True)
@@ -27,6 +31,7 @@ class Dataset(models.Model):
     is_public = models.BooleanField(default=False)
     is_shared = models.BooleanField(default=False)
     shared_with = models.ManyToManyField(User, related_name="shared_with")
+    email_shares = models.ManyToManyField(SharingEmail)
 
     class Meta:
         unique_together = (("name", "owner"),)

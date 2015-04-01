@@ -191,3 +191,76 @@ class DatasetPermissionsAPITest(BaseAPITest):
         self.assertEquals(response.status_code, 403)
         response = self.client.get(url, **user3_auth_headers)
         self.assertEquals(response.status_code, 403)
+
+    def test_emails(self):
+        owner = "email_permissions_user2"
+        dataset_name = "ds1"
+        self.remove_users.append(owner)
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+
+        # Test the default state of the permissions api...
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+        response = self.client.get(permissions_url, **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["is_public"], False)
+        self.assertEquals(data["is_shared"], False)
+        self.assertEquals(data["accounts"], [])
+        self.assertEquals(data["emails"], [])
+
+        # Add 2 emails:
+        new_data = { "emails": [ "user1@example.com", "user2@example.com" ] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode("utf-8"), "")
+
+        response = self.client.get(permissions_url, **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["is_public"], False)
+        self.assertEquals(data["is_shared"], True)
+        self.assertEquals(data["accounts"], [])
+
+        emails = data["emails"]
+        lookup = {}
+        for email in emails:
+            lookup[email] = True
+
+        self.assertEquals(lookup, { "user1@example.com": True, "user2@example.com": True })
+
+        # Change the 2 emails, keeping 1 the same...
+        new_data = { "emails": [ "user2@example.com", "user3@example.com" ] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode("utf-8"), "")
+
+        response = self.client.get(permissions_url, **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["is_public"], False)
+        self.assertEquals(data["is_shared"], True)
+        self.assertEquals(data["accounts"], [])
+
+        emails = data["emails"]
+        lookup = {}
+        for email in emails:
+            lookup[email] = True
+
+        self.assertEquals(lookup, { "user2@example.com": True, "user3@example.com": True })
+
+        # Drop all emails...
+        new_data = { "emails": [] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode("utf-8"), "")
+
+        response = self.client.get(permissions_url, **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["is_public"], False)
+        self.assertEquals(data["is_shared"], False)
+        self.assertEquals(data["accounts"], [])
+        self.assertEquals(data["emails"], [])
+
