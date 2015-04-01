@@ -26,6 +26,9 @@ urlpatterns = patterns(
     url('v3/db/dataset', 'dataset_list.dataset_list',
         name="sqlshare_view_dataset_list"),
 
+    url('v3/user/me', 'user.user',
+        name="sqlshare_view_user"),
+
     url('v3/db/query/(?P<id>[0-9]+)',
         csrf_exempt(QueryView().run),
         name="sqlshare_view_query"),

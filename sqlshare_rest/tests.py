@@ -6,6 +6,7 @@ from sqlshare_rest.test.dao.dataset import TestDatasetDAO
 from sqlshare_rest.test.api.dataset import DatsetAPITest
 from sqlshare_rest.test.api.dataset_list import DatsetListAPITest
 from sqlshare_rest.test.api.permissions import DatasetPermissionsAPITest
+from sqlshare_rest.test.api.user import UserAPITest
 #from sqlshare_rest.test.api.dataset_tags import DatasetTagsAPITest
 #from sqlshare_rest.test.api.file_parser import FileParserAPITest
 #from sqlshare_rest.test.api.file_upload import FileUploadAPITest
