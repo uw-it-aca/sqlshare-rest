@@ -2,6 +2,7 @@ from django.test import TestCase
 from unittest2 import skipIf
 from django.db import connection
 import json
+from datetime import datetime
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
 from django.test.client import Client
@@ -93,6 +94,20 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["name"], ds1_name)
         self.assertEquals(data["tags"], [])
         self.assertEquals(data["url"], url)
+
+        creation_date = data["date_created"]
+        modification_date = data["modification_date"]
+
+        cd_obj = datetime.strptime(creation_date, "%a, %d %b %Y %H:%M:%S %Z")
+        md_obj = datetime.strptime(modification_date, "%a, %d %b %Y %H:%M:%S %Z")
+
+        now = datetime.now()
+
+        self.assertTrue((now - cd_obj).total_seconds() < 2)
+        self.assertTrue((now - md_obj).total_seconds() < 2)
+
+        self.assertTrue((cd_obj - now).total_seconds() > -2)
+        self.assertTrue((md_obj - now).total_seconds() > -2)
 
         # Test that the GET returns data too...
         response = self.client.get(url, **auth_headers)

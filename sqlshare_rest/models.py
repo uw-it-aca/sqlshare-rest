@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.urlresolvers import reverse
+from datetime import datetime
 # from django_fields.fields import EncryptedCharField
 
 
@@ -32,6 +33,8 @@ class Dataset(models.Model):
     is_shared = models.BooleanField(default=False)
     shared_with = models.ManyToManyField(User, related_name="shared_with")
     email_shares = models.ManyToManyField(SharingEmail)
+    date_created = models.DateTimeField(auto_now_add=True, default=datetime.now)
+    date_modified = models.DateTimeField(auto_now=True, default=datetime.now)
 
     class Meta:
         unique_together = (("name", "owner"),)
@@ -40,6 +43,8 @@ class Dataset(models.Model):
         return {
             "name": self.name,
             "description": self.description,
+            "date_created": self.date_created.strftime("%a, %d %b %Y %H:%M:%S %Z"),
+            "modification_date": self.date_modified.strftime("%a, %d %b %Y %H:%M:%S %Z"),
             "is_public": self.is_public,
             "is_shared": self.is_shared,
             "sql_code": self.sql,
