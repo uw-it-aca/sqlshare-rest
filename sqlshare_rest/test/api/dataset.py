@@ -90,6 +90,7 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["sql_code"], "SELECT(1)")
         self.assertEquals(data["columns"], None)
         self.assertEquals(data["popularity"], 0)
+        self.assertEquals(data["name"], ds1_name)
         self.assertEquals(data["tags"], [])
         self.assertEquals(data["url"], url)
 

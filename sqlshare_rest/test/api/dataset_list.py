@@ -44,6 +44,7 @@ class DatsetListAPITest(BaseAPITest):
         self.assertEquals(len(data), 4)
         self.assertEquals(data[0]["sql_code"], "SELECT(1)")
         self.assertEquals(data[0]["is_public"], False)
+        self.assertEquals(data[0]["name"], "ds1")
 
         self.assertEquals(data[1]["sql_code"], "SELECT(2)")
         self.assertEquals(data[2]["sql_code"], "SELECT(3)")

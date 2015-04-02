@@ -38,6 +38,7 @@ class Dataset(models.Model):
 
     def json_data(self):
         return {
+            "name": self.name,
             "description": self.description,
             "is_public": self.is_public,
             "is_shared": self.is_shared,
