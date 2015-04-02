@@ -36,6 +36,8 @@ class Dataset(models.Model):
     date_created = models.DateTimeField(auto_now_add=True,
                                         default=datetime.now)
     date_modified = models.DateTimeField(auto_now=True, default=datetime.now)
+    popularity = models.IntegerField(default=0)
+    last_viewed = models.DateTimeField(null=True)
 
     class Meta:
         unique_together = (("name", "owner"),)
@@ -53,7 +55,7 @@ class Dataset(models.Model):
             "is_shared": self.is_shared,
             "sql_code": self.sql,
             "columns": None,
-            "popularity": 0,
+            "popularity": self.popularity,
             "tags": [],
             "url": self.get_url(),
             "sample_data_status": "working",

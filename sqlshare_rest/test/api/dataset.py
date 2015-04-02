@@ -3,11 +3,13 @@ from unittest2 import skipIf
 from django.db import connection
 import json
 from datetime import datetime
+from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
 from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
+from sqlshare_rest.dao.dataset import create_dataset_from_query
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -39,6 +41,48 @@ class DatsetAPITest(BaseAPITest):
         response = self.client.get(url, **auth_headers)
 
         self.assertEquals(response.content.decode("utf-8"), '[]')
+
+    def test_popularity(self):
+        owner = "mr_popular"
+        other = "other_account"
+        self.remove_users.append(owner)
+        self.remove_users.append(other)
+        auth_headers = self.get_auth_header_for_username(owner)
+        other_auth_headers = self.get_auth_header_for_username(other)
+
+        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': "ds1"})
+
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':"ds1"})
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["popularity"], 1)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["popularity"], 2)
+
+        # Test the someone w/o access doesn't increase the popularity
+        response = self.client.get(url, **other_auth_headers)
+        self.assertEquals(response.status_code, 403)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["popularity"], 3)
+
+        get_backend().get_user(other)
+        # Give them access, make sure it increases popularity
+        new_data = { "accounts": [ other ] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **auth_headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode("utf-8"), "")
+
+        response = self.client.get(url, **other_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["popularity"], 4)
+
 
     def test_get_missing(self):
         owner = "okwhateveruser"
@@ -122,7 +166,7 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["is_shared"], False)
         self.assertEquals(data["sql_code"], "SELECT(1)")
         self.assertEquals(data["columns"], None)
-        self.assertEquals(data["popularity"], 0)
+        self.assertEquals(data["popularity"], 1)
         self.assertEquals(data["tags"], [])
         self.assertEquals(data["url"], url)
 

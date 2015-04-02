@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.decorators import protected_resource
 import json
+from datetime import datetime
 from sqlshare_rest.models import Dataset, User
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.dataset import create_dataset_from_query
@@ -31,6 +32,13 @@ def _get_dataset(request, owner, name):
 
     if not dataset.user_has_read_access(request.user):
         return get403()
+
+    if dataset.popularity:
+        dataset.popularity = dataset.popularity + 1
+    else:
+        dataset.popularity = 1
+    dataset.last_viewed = datetime.now()
+    dataset.save()
 
     return HttpResponse(json.dumps(dataset.json_data()))
 
