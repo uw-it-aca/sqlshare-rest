@@ -96,7 +96,7 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["url"], url)
 
         creation_date = data["date_created"]
-        modification_date = data["modification_date"]
+        modification_date = data["date_modified"]
 
         cd_obj = datetime.strptime(creation_date, "%a, %d %b %Y %H:%M:%S %Z")
         md_obj = datetime.strptime(modification_date, "%a, %d %b %Y %H:%M:%S %Z")
@@ -116,6 +116,7 @@ class DatsetAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
 
         self.assertEquals(data["sample_data_status"], "working")
+        self.assertEquals(data["owner"], owner)
         self.assertEquals(data["description"], "This is a test dataset")
         self.assertEquals(data["is_public"], False)
         self.assertEquals(data["is_shared"], False)

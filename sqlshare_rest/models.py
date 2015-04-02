@@ -42,9 +42,10 @@ class Dataset(models.Model):
     def json_data(self):
         return {
             "name": self.name,
+            "owner": self.owner.username,
             "description": self.description,
-            "date_created": self.date_created.strftime("%a, %d %b %Y %H:%M:%S %Z"),
-            "modification_date": self.date_modified.strftime("%a, %d %b %Y %H:%M:%S %Z"),
+            "date_created": self.date_created.strftime("%a, %-d %b %Y %-H:%M:%S %Z"),
+            "date_modified": self.date_modified.strftime("%a, %-d %b %Y %-H:%M:%S %Z"),
             "is_public": self.is_public,
             "is_shared": self.is_shared,
             "sql_code": self.sql,

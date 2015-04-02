@@ -1,5 +1,6 @@
 from django.core.urlresolvers import reverse
 from unittest2 import skipIf
+from datetime import datetime
 from django.test.utils import override_settings
 from django.test.client import Client
 from sqlshare_rest.test.api.base import BaseAPITest
@@ -45,6 +46,23 @@ class DatsetListAPITest(BaseAPITest):
         self.assertEquals(data[0]["sql_code"], "SELECT(1)")
         self.assertEquals(data[0]["is_public"], False)
         self.assertEquals(data[0]["name"], "ds1")
+        self.assertEquals(data[0]["owner"], owner)
+
+        creation_date = data[0]["date_created"]
+        modification_date = data[0]["date_modified"]
+
+        cd_obj = datetime.strptime(creation_date, "%a, %d %b %Y %H:%M:%S %Z")
+        md_obj = datetime.strptime(modification_date, "%a, %d %b %Y %H:%M:%S %Z")
+
+        now = datetime.now()
+
+        self.assertTrue((now - cd_obj).total_seconds() < 2)
+        self.assertTrue((now - md_obj).total_seconds() < 2)
+
+        self.assertTrue((cd_obj - now).total_seconds() > -2)
+        self.assertTrue((md_obj - now).total_seconds() > -2)
+
+
 
         self.assertEquals(data[1]["sql_code"], "SELECT(2)")
         self.assertEquals(data[2]["sql_code"], "SELECT(3)")
