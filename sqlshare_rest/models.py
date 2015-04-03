@@ -56,7 +56,7 @@ class Dataset(models.Model):
             "sql_code": self.sql,
             "columns": None,
             "popularity": self.popularity,
-            "tags": [],
+            "tags": self.get_tags_data(),
             "url": self.get_url(),
             "sample_data_status": "working",
         }

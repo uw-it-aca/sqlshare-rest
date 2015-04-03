@@ -192,3 +192,12 @@ class TagAPITest(BaseAPITest):
             { "name": user2, "tags": [ "tag99" ] },
         ]
         self.assertEquals(response_data, data5_correct)
+
+        # Make sure all this data is in the dataset api itself:
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': dataset_name })
+
+        response = self.client.get(url, **owner_auth_headers)
+        tags = json.loads(response.content.decode("utf-8"))["tags"]
+
+        self.assertEquals(tags, data5_correct)
