@@ -61,6 +61,22 @@ class Dataset(models.Model):
             "sample_data_status": "working",
         }
 
+    def get_tags_data(self):
+        by_user = []
+        filtered = DatasetTag.objects.filter(dataset=self)
+        tags = filtered.order_by('user__username', 'tag__tag')
+
+        current_user = None
+        for tag in tags:
+            username = tag.user.username
+            if username != current_user:
+                current_user = username
+                by_user.append({"name": username, "tags": []})
+
+            by_user[len(by_user)-1]["tags"].append(tag.tag.tag)
+
+        return by_user
+
     def get_url(self):
         username = self.owner.username
         url = reverse("sqlshare_view_dataset", kwargs={'owner': username,
@@ -84,3 +100,18 @@ class Dataset(models.Model):
             return val
 
         return False
+
+
+class Tag(models.Model):
+    """ A tag for datasets, with popularity """
+    tag = models.CharField(max_length=200, db_index=True)
+    popularity = models.IntegerField(default=0)
+
+
+class DatasetTag(models.Model):
+    tag = models.ForeignKey(Tag)
+    user = models.ForeignKey(User)
+    dataset = models.ForeignKey(Dataset, db_index=True)
+
+    class Meta:
+        unique_together = (("tag", "dataset"),)

@@ -1,5 +1,5 @@
 from sqlshare_rest.util.db import get_backend
-from sqlshare_rest.models import Dataset, User, SharingEmail
+from sqlshare_rest.models import Dataset, User, SharingEmail, DatasetTag, Tag
 from sqlshare_rest.exceptions import InvalidAccountException
 
 
@@ -79,3 +79,69 @@ def set_dataset_emails(dataset, emails, save_dataset=True):
     dataset.email_shares = existing_models
     if save_dataset:
         dataset.save()
+
+
+def update_tags(dataset, change_list, user):
+    # Update the owner's tags last, in case they remove a tag
+    # from a user, and then add it to their own list
+    owner_tags = None
+    for item in change_list:
+        username = item["name"]
+        tags = item["tags"]
+
+        if username == dataset.owner.username:
+            owner_tags = item
+        else:
+            can_add = False
+            if username == user.username:
+                can_add = True
+            _update_tag_list(dataset, item, can_add=can_add)
+
+    if owner_tags:
+        _update_tag_list(dataset, owner_tags, can_add=True)
+
+
+def _update_tag_list(dataset, tag_item, can_add):
+    username = tag_item["name"]
+    tags = tag_item["tags"]
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return
+
+    # Get all their existing tags, so we know what to remove/update the
+    # popularity of
+    existing_list = DatasetTag.objects.filter(dataset=dataset, user=user)
+    existing_lookup = {}
+    for dataset_tag in existing_list:
+        existing_lookup[dataset_tag.tag.tag] = dataset_tag
+
+    for tag_label in tags:
+        if tag_label in existing_lookup:
+            del(existing_lookup[tag_label])
+        else:
+            if can_add:
+                _create_tag(dataset, user, tag_label)
+
+    for tag in existing_lookup:
+        dataset_tag = existing_lookup[tag]
+        dataset_tag.delete()
+
+        _update_tag_popularity(tag)
+
+
+def _create_tag(dataset, user, tag_label):
+    (tag_obj, created) = Tag.objects.get_or_create(tag=tag_label)
+
+    dataset_tag = DatasetTag.objects.get_or_create(tag=tag_obj,
+                                                   user=user,
+                                                   dataset=dataset)
+    _update_tag_popularity(tag_label)
+
+
+def _update_tag_popularity(tag_label):
+    tag_obj = Tag.objects.get(tag=tag_label)
+    count = DatasetTag.objects.filter(tag=tag_obj).count()
+    tag_obj.popularity = count
+    tag_obj.save()
