@@ -1,5 +1,6 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Query
+from django.utils import timezone
 
 
 def process_queue():
@@ -18,4 +19,6 @@ def process_queue():
         oldest_query.error = str(ex)
 
     oldest_query.is_finished = True
+    oldest_query.date_finished = timezone.now()
+    print "Finished: ", oldest_query.date_finished
     oldest_query.save()
