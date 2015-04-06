@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.urlresolvers import reverse
 from datetime import datetime
+from django.utils import timezone
 # from django_fields.fields import EncryptedCharField
 
 JSON_DATE = "%a, %-d %b %Y %-H:%M:%S %Z"
@@ -36,8 +37,8 @@ class Dataset(models.Model):
     shared_with = models.ManyToManyField(User, related_name="shared_with")
     email_shares = models.ManyToManyField(SharingEmail)
     date_created = models.DateTimeField(auto_now_add=True,
-                                        default=datetime.now)
-    date_modified = models.DateTimeField(auto_now=True, default=datetime.now)
+                                        default=timezone.now)
+    date_modified = models.DateTimeField(auto_now=True, default=timezone.now)
     popularity = models.IntegerField(default=0)
     last_viewed = models.DateTimeField(null=True)
 
@@ -127,7 +128,7 @@ class Query(models.Model):
     is_preview_for = models.ForeignKey(Dataset, null=True)
     owner = models.ForeignKey(User)
     date_created = models.DateTimeField(auto_now_add=True,
-                                        default=datetime.now)
+                                        default=timezone.now)
     date_finished = models.DateTimeField(null=True)
 
     def json_data(self):

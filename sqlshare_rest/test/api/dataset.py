@@ -3,6 +3,8 @@ from unittest2 import skipIf
 from django.db import connection
 import json
 from datetime import datetime
+from dateutil import parser
+from django.utils import timezone
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
@@ -142,10 +144,10 @@ class DatsetAPITest(BaseAPITest):
         creation_date = data["date_created"]
         modification_date = data["date_modified"]
 
-        cd_obj = datetime.strptime(creation_date, "%a, %d %b %Y %H:%M:%S %Z")
-        md_obj = datetime.strptime(modification_date, "%a, %d %b %Y %H:%M:%S %Z")
+        cd_obj = parser.parse(creation_date)
+        md_obj = parser.parse(modification_date)
 
-        now = datetime.now()
+        now = timezone.now()
 
         self.assertTrue((now - cd_obj).total_seconds() < 2)
         self.assertTrue((now - md_obj).total_seconds() < 2)

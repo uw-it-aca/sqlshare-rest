@@ -1,11 +1,13 @@
 from django.core.urlresolvers import reverse
 from unittest2 import skipIf
 from datetime import datetime
+from dateutil import parser
 from django.test.utils import override_settings
 from django.test.client import Client
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.test import missing_url
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from django.utils import timezone
 import json
 
 
@@ -51,10 +53,10 @@ class DatsetListAPITest(BaseAPITest):
         creation_date = data[0]["date_created"]
         modification_date = data[0]["date_modified"]
 
-        cd_obj = datetime.strptime(creation_date, "%a, %d %b %Y %H:%M:%S %Z")
-        md_obj = datetime.strptime(modification_date, "%a, %d %b %Y %H:%M:%S %Z")
+        cd_obj = parser.parse(creation_date)
+        md_obj = parser.parse(modification_date)
 
-        now = datetime.now()
+        now = timezone.now()
 
         self.assertTrue((now - cd_obj).total_seconds() < 2)
         self.assertTrue((now - md_obj).total_seconds() < 2)
