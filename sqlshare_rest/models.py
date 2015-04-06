@@ -3,6 +3,8 @@ from django.core.urlresolvers import reverse
 from datetime import datetime
 # from django_fields.fields import EncryptedCharField
 
+JSON_DATE = "%a, %-d %b %Y %-H:%M:%S %Z"
+
 
 class SharingEmail(models.Model):
     email = models.CharField(max_length=200)
@@ -43,8 +45,8 @@ class Dataset(models.Model):
         unique_together = (("name", "owner"),)
 
     def json_data(self):
-        mod_date = self.date_modified.strftime("%a, %-d %b %Y %-H:%M:%S %Z")
-        create_date = self.date_created.strftime("%a, %-d %b %Y %-H:%M:%S %Z")
+        mod_date = self.date_modified.strftime(JSON_DATE)
+        create_date = self.date_created.strftime(JSON_DATE)
         return {
             "name": self.name,
             "owner": self.owner.username,
@@ -115,3 +117,36 @@ class DatasetTag(models.Model):
 
     class Meta:
         unique_together = (("tag", "dataset"),)
+
+
+class Query(models.Model):
+    sql = models.TextField(null=True)
+    is_finished = models.BooleanField(default=False)
+    has_error = models.BooleanField(default=False)
+    error = models.TextField(null=True)
+    is_preview_for = models.ForeignKey(Dataset, null=True)
+    owner = models.ForeignKey(User)
+    date_created = models.DateTimeField(auto_now_add=True,
+                                        default=datetime.now)
+    date_finished = models.DateTimeField(null=True)
+
+    def json_data(self):
+        finish_date = None
+        if self.date_finished:
+            finish_date = self.date_finished.strftime(JSON_DATE)
+        create_date = self.date_created.strftime(JSON_DATE)
+
+        return {
+            "sql_code": self.sql,
+            "is_finished": self.is_finished,
+            "has_error": self.has_error,
+            "error": self.error,
+            "date_created": create_date,
+            "date_finished": finish_date,
+            "url": self.get_url(),
+        }
+
+
+    def get_url(self):
+        return reverse("sqlshare_view_query", kwargs={'id': self.pk })
+

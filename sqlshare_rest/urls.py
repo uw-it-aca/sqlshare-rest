@@ -1,7 +1,6 @@
 from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
 
-from sqlshare_rest.views.query_list import QueryListView
 from sqlshare_rest.views.query import QueryView
 
 from sqlshare_rest.views.file_upload import FileUploadView
@@ -32,7 +31,7 @@ urlpatterns = patterns(
         name="sqlshare_view_query"),
 
     url('v3/db/query',
-        csrf_exempt(QueryListView().run),
+        'query_list.query_list',
         name="sqlshare_view_query_list"),
 
     url('v3/db/file/(?P<id>[0-9]+)',
