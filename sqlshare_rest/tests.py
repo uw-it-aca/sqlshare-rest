@@ -10,6 +10,7 @@ from sqlshare_rest.test.api.permissions import DatasetPermissionsAPITest
 from sqlshare_rest.test.api.user import UserAPITest
 from sqlshare_rest.test.api.tags import TagAPITest
 from sqlshare_rest.test.api.query import QueryAPITest
+from sqlshare_rest.test.api.query_list import QueryListAPITest
 #from sqlshare_rest.test.api.dataset_tags import DatasetTagsAPITest
 #from sqlshare_rest.test.api.file_parser import FileParserAPITest
 #from sqlshare_rest.test.api.file_upload import FileUploadAPITest
