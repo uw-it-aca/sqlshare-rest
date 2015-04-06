@@ -8,16 +8,14 @@ class Command(BaseCommand):
 
     option_list = BaseCommand.option_list + (
         make_option('--run-once',
-            dest='run_once',
-            default=False,
-            action="store_true",
-            help='This will only process one item in the queue'),
-        )
-
+                    dest='run_once',
+                    default=False,
+                    action="store_true",
+                    help='This will only process one item in the queue'),
+                    )
 
     def handle(self, *args, **options):
         if not options["run_once"]:
             raise Exception("Only handles run_once for now")
 
         process_queue()
-
