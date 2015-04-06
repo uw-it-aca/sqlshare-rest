@@ -1,6 +1,7 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Query
 
+
 def process_queue():
     filtered = Query.objects.filter(is_finished=False)
 

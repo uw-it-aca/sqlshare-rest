@@ -146,7 +146,5 @@ class Query(models.Model):
             "url": self.get_url(),
         }
 
-
     def get_url(self):
-        return reverse("sqlshare_view_query", kwargs={'id': self.pk })
-
+        return reverse("sqlshare_view_query", kwargs={'id': self.pk})

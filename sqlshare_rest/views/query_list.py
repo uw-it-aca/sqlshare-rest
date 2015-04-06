@@ -5,6 +5,7 @@ from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.query import create_query
 import json
 
+
 @csrf_exempt
 @protected_resource()
 def query_list(request):
@@ -29,4 +30,3 @@ def _start_query(request):
     response = HttpResponse(json.dumps(query.json_data()))
     response.status_code = 201
     return response
-
