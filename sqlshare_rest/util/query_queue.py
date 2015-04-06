@@ -20,5 +20,4 @@ def process_queue():
 
     oldest_query.is_finished = True
     oldest_query.date_finished = timezone.now()
-    print "Finished: ", oldest_query.date_finished
     oldest_query.save()
