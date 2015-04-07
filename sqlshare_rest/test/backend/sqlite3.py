@@ -34,3 +34,14 @@ class TestSQLite3Backend(TestCase):
             print ("E: ", ex)
 
         backend.close_user_connection(user)
+
+    def test_table_from_query(self):
+        backend = get_backend()
+        user = backend.get_user("test_query_save1")
+        cursor1 = backend.run_query("select (1)", user, return_cursor=True)
+
+        print cursor1.description
+        cursor2 = backend.run_query("select (1.1)", user, return_cursor=True)
+        print cursor2.description
+        cursor3 = backend.run_query("select ('a')", user, return_cursor=True)
+        print cursor3.description

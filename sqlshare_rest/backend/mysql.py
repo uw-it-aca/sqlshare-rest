@@ -128,6 +128,50 @@ class MySQLBackend(DBInterface):
         sql = self._remove_public_access_sql(dataset, owner)
         self.run_query(sql, owner)
 
+    def create_table_from_query_result(self, name, cursor):
+        pass
+
+    def _get_column_definitions_for_cursor(self, cursor):
+        import pymysql
+        # XXX - is defining this a sign that this is a mistake?
+        FLOAT = pymysql.DBAPISet([pymysql.FIELD_TYPE.DECIMAL,
+                                  pymysql.FIELD_TYPE.NEWDECIMAL,
+                                  pymysql.FIELD_TYPE.DOUBLE,
+                                  pymysql.FIELD_TYPE.FLOAT])
+
+        index = 0
+        column_defs = []
+        for col in cursor.description:
+            index = index + 1
+            col_type = col[1]
+            col_len = col[3]
+            null_ok = col[6]
+
+            column_name = "COLUMN%s" % index
+
+            if col_type == FLOAT:
+                if null_ok:
+                    column_defs.append("%s FLOAT" % column_name)
+                else:
+                    column_defs.append("%s FLOAT NOT NULL" % column_name)
+            elif col_type == pymysql.NUMBER:
+                if null_ok:
+                    column_defs.append("%s INT" % column_name)
+                else:
+                    column_defs.append("%s INT NOT NULL" % column_name)
+
+            elif col_type == pymysql.STRING and col_len:
+                if null_ok:
+                    column_defs.append("%s VARCHAR(%s)" % (column_name,
+                                                           col_len))
+                else:
+                    base_str = "%s VARCHAR(%s) NOT NULL"
+                    column_defs.append(base_str % (column_name, col_len))
+            else:
+                column_defs.append("%s TEXT" % column_name)
+
+        return ", ".join(column_defs)
+
     def _create_table(self, table_name, column_names, column_types, user):
         sql = self._create_table_sql(table_name, column_names, column_types)
         self.run_query(sql, user)

@@ -33,6 +33,21 @@ class TestMySQLBackend(TestCase):
         self.assertEquals(result[0][0], '10')
         self.assertEquals(result[1][0], "a")
 
+    def test_table_from_query(self):
+        self.remove_users.append("test_query_save1")
+        try:
+            backend = get_backend()
+            user = backend.get_user("test_query_save1")
+            cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)
+
+            coldef = backend._get_column_definitions_for_cursor(cursor1)
+            self.assertEquals(coldef, "COLUMN1 INT NOT NULL, COLUMN2 VARCHAR(5) NOT NULL, COLUMN3 INT NOT NULL, COLUMN4 FLOAT, COLUMN5 INT")
+
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
     def test_basic_permissions(self):
         from pymysql.err import OperationalError
         try:
