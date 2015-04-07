@@ -51,3 +51,8 @@ class QueryAPITest(BaseAPITest):
         url = values["url"]
 
         self.assertTrue(re.match("/v3/db/query/[\d]+$", url))
+
+        response = self.client.get(url, **auth_headers)
+
+        self.assertEquals(response.status_code, 200)
+        values = json.loads(response.content.decode("utf-8"))

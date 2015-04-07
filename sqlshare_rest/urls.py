@@ -1,8 +1,6 @@
 from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
 
-from sqlshare_rest.views.query import QueryView
-
 from sqlshare_rest.views.file_upload import FileUploadView
 from sqlshare_rest.views.file_parser import FileParserView
 
@@ -27,7 +25,7 @@ urlpatterns = patterns(
         name="sqlshare_view_user"),
 
     url('v3/db/query/(?P<id>[0-9]+)',
-        csrf_exempt(QueryView().run),
+        'query.details',
         name="sqlshare_view_query"),
 
     url('v3/db/query',

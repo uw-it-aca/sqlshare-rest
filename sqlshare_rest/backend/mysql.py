@@ -177,10 +177,13 @@ class MySQLBackend(DBInterface):
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM `%s`.`%s`" % (user.schema, table_name)
 
-    def run_query(self, sql, user, params=None):
+    def run_query(self, sql, user, params=None, return_cursor=False):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
         cursor.execute(sql, params)
+
+        if return_cursor:
+            return cursor
         return cursor.fetchall()
 
     def _create_user_connection(self, user):

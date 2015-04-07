@@ -24,7 +24,9 @@ class SQLite3Backend(DBInterface):
     def create_db_schema(self, db_username, schema_name):
         return
 
-    def run_query(self, sql, username):
+    def run_query(self, sql, username, params=None, return_cursor=False):
         cursor = connection.cursor()
         cursor.execute(sql)
+        if return_cursor:
+            return cursor
         return cursor.fetchall()

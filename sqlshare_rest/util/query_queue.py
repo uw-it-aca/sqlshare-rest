@@ -13,7 +13,16 @@ def process_queue():
 
     backend = get_backend()
     try:
-        res = backend.run_query(oldest_query.sql, oldest_query.owner)
+        cursor = backend.run_query(oldest_query.sql,
+                                   oldest_query.owner,
+                                   return_cursor=True)
+
+        name = "query_%s" % oldest_query.pk
+        try:
+            get_backend().create_table_from_query_result(name, cursor)
+        except NotImplementedError:
+            # Not implemented in any backend yet!
+            pass
     except Exception as ex:
         oldest_query.has_error = True
         oldest_query.error = str(ex)

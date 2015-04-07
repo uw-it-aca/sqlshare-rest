@@ -12,7 +12,7 @@ class DBInterface(object):
     def __init__(self):
         self.username = None
 
-    def run_query(self, sql, user, params=None):
+    def run_query(self, sql, user, params=None, return_cursor=False):
         self._not_implemented("run_query")
 
     def create_view(self, name, sql, user):
@@ -118,6 +118,13 @@ class DBInterface(object):
         and the type values for columns must be correct.
         """
         raise NotImplementedError("_load_table")
+
+    def create_table_from_query_result(self, name, cursor):
+        """
+        Create a table based on the values in:
+        https://www.python.org/dev/peps/pep-0249/#cursor-objects
+        """
+        raise NotImplementedError("create_table_from_query_result")
 
     def _create_table(self, table_name, column_names, column_types, user):
         """
