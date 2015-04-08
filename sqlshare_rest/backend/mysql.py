@@ -128,7 +128,33 @@ class MySQLBackend(DBInterface):
         sql = self._remove_public_access_sql(dataset, owner)
         self.run_query(sql, owner)
 
-    def create_table_from_query_result(self, name, cursor):
+    def get_query_cache_db_name(self):
+        return getattr(settings, "SQLSHARE_QUERY_CACHE_DB", "ss_query_db")
+
+    def create_table_from_query_result(self, name, source_cursor):
+        # Make sure the db exists to stash query results into
+        QUERY_SCHEMA = self.get_query_cache_db_name()
+        cursor = connection.cursor()
+        cursor.execute("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA "
+                       "WHERE SCHEMA_NAME = '%s'" % (QUERY_SCHEMA))
+
+        if not cursor.rowcount:
+            cursor.execute("CREATE DATABASE %s" % (QUERY_SCHEMA))
+
+        column_def = self._get_column_definitions_for_cursor(source_cursor)
+
+        full_name = "`%s`.`%s`" % (QUERY_SCHEMA, name)
+        create_table = "CREATE TABLE %s (%s)" % (full_name, column_def)
+        cursor.execute(create_table)
+
+        row = source_cursor.fetchone()
+
+        placeholders = ", ".join(list(map(lambda x: "%s", row)))
+        insert = "INSERT INTO %s VALUES (%s)" % (full_name, placeholders)
+        while row:
+            cursor.execute(insert, row)
+            row = source_cursor.fetchone()
+
         pass
 
     def _get_column_definitions_for_cursor(self, cursor):

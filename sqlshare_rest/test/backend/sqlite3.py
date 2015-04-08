@@ -38,10 +38,4 @@ class TestSQLite3Backend(TestCase):
     def test_table_from_query(self):
         backend = get_backend()
         user = backend.get_user("test_query_save1")
-        cursor1 = backend.run_query("select (1)", user, return_cursor=True)
-
-        print cursor1.description
-        cursor2 = backend.run_query("select (1.1)", user, return_cursor=True)
-        print cursor2.description
-        cursor3 = backend.run_query("select ('a')", user, return_cursor=True)
-        print cursor3.description
+        cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)

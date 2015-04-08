@@ -1,9 +1,11 @@
 from sqlshare_rest.test import CleanUpTestCase
 from django.db import connection
+from django.test.utils import override_settings
 from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
 
+@override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
 class TestQueryDAO(CleanUpTestCase):
     def test_valid_query(self):
         owner = "dao_query_user1"
@@ -22,6 +24,7 @@ class TestQueryDAO(CleanUpTestCase):
         q2 = Query.objects.get(pk=query.pk)
 
         self.assertEquals(q2.is_finished, True)
+        self.assertEquals(q2.error, None)
         self.assertEquals(q2.has_error, False)
 
     def test_order(self):

@@ -35,18 +35,32 @@ class TestMySQLBackend(TestCase):
 
     def test_table_from_query(self):
         self.remove_users.append("test_query_save1")
-        try:
-            backend = get_backend()
-            user = backend.get_user("test_query_save1")
-            cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)
+        tmp_db_name = "test_ss_query_db"
+        with self.settings(SQLSHARE_QUERY_CACHE_DB=tmp_db_name):
+            try:
+                backend = get_backend()
+                user = backend.get_user("test_query_save1")
+                cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)
 
-            coldef = backend._get_column_definitions_for_cursor(cursor1)
-            self.assertEquals(coldef, "COLUMN1 INT NOT NULL, COLUMN2 VARCHAR(5) NOT NULL, COLUMN3 INT NOT NULL, COLUMN4 FLOAT, COLUMN5 INT")
+                coldef = backend._get_column_definitions_for_cursor(cursor1)
+                self.assertEquals(coldef, "COLUMN1 INT NOT NULL, COLUMN2 VARCHAR(5) NOT NULL, COLUMN3 INT NOT NULL, COLUMN4 FLOAT, COLUMN5 INT")
 
-        except Exception:
-            raise
-        finally:
-            backend.close_user_connection(user)
+                backend.create_table_from_query_result("test_query1", cursor1)
+
+                cursor = connection.cursor()
+                # See if we have the data in the table!
+                db_name = backend.get_query_cache_db_name()
+                cursor.execute("SELECT * FROM %s.test_query1" % db_name)
+                self.assertEquals(cursor.fetchall(), ((1, "a1234", 1, 1.2, None), (2, "b", 4, None, 3)))
+
+                cursor.execute("DROP TABLE `%s`.`test_query1`" % db_name)
+
+            except Exception:
+                raise
+            finally:
+                backend.close_user_connection(user)
+                cursor = connection.cursor()
+                cursor.execute("DROP DATABASE %s" % tmp_db_name)
 
     def test_basic_permissions(self):
         from pymysql.err import OperationalError
