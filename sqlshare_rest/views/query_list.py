@@ -31,5 +31,6 @@ def _start_query(request):
     query = create_query(request.user.username, data["sql"])
 
     response = HttpResponse(json.dumps(query.json_data(request)))
-    response.status_code = 201
+    response["Location"] = query.get_url()
+    response.status_code = 202
     return response

@@ -159,6 +159,10 @@ class Query(models.Model):
     def get_sample_data_status(self):
         if self.is_finished and not self.error:
             return "success"
+        elif not self.is_finished:
+            return "working"
+        else:
+            return "error"
 
     def get_url(self):
         return reverse("sqlshare_view_query", kwargs={'id': self.pk})

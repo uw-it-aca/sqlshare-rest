@@ -29,4 +29,9 @@ def details(request, id):
     data["sample_data"] = sample_data
     data["columns"] = columns
 
-    return HttpResponse(json.dumps(data))
+    response = HttpResponse(json.dumps(data))
+
+    if not query.is_finished:
+        response.status_code = 202
+
+    return response
