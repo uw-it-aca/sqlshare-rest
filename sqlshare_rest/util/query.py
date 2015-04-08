@@ -8,8 +8,12 @@ def get_sample_data_for_query(query, username):
 
     if query.is_finished and not query.error:
         cursor = get_query_sample_data(user_obj, query.id)
-        return (cursor.fetchall(),
-                frontend_description_from_cursor(cursor))
+        data = cursor.fetchall()
+        columns = frontend_description_from_cursor(cursor)
+        cursor.close()
+
+        backend.close_user_connection(user_obj)
+        return (data, columns)
     return (None, None)
 
 

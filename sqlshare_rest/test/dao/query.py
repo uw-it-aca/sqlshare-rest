@@ -4,9 +4,18 @@ from django.test.utils import override_settings
 from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
+from django.db import connection
 
 @override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
 class TestQueryDAO(CleanUpTestCase):
+    def setUp(self):
+        self.remove_users = []
+        try:
+            cursor = connection.cursor()
+            cursor.execute("DROP DATABASE test_ss_query_db")
+        except Exception as ex:
+            pass
+
     def test_valid_query(self):
         owner = "dao_query_user1"
         self.remove_users.append(owner)

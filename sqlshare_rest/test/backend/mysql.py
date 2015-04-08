@@ -460,6 +460,7 @@ class TestMySQLBackend(TestCase):
         _run_query("drop user meta_ecbf2a2db0e")
         _run_query("drop user meta_dc1031bf6f0")
         _run_query("drop user meta_a64eaca0830")
+        _run_query("drop user meta_3bc4345f6be")
         _run_query("drop user ss_test_public")
         _run_query("drop database test_user_public_user")
         _run_query("drop database ss_test_public_db")
@@ -482,6 +483,7 @@ class TestMySQLBackend(TestCase):
         _run_query("drop database test_user_add_access_sql2")
         _run_query("drop database test_user_remove_access_sql2")
         _run_query("drop database test_user_public_grant1")
+        _run_query("drop database test_query_save1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...
