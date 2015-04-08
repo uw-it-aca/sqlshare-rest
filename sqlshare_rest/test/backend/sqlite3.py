@@ -5,6 +5,9 @@ import unittest
 
 @unittest.skipUnless(is_sqlite3(), "Only test with sqlite3")
 class TestSQLite3Backend(TestCase):
+    def test_dataset_preview_sql(self):
+        backend = get_backend()
+        self.assertEquals("SELECT * FROM (SELECT (1)) LIMIT 100", backend.get_preview_sql_for_query("SELECT (1)"))
 
     def test_create_user(self):
         backend = get_backend()

@@ -47,6 +47,9 @@ class DBInterface(object):
     def remove_access_to_dataset(self, dataset, owner, reader):
         self._not_implemented("remove_access_to_dataset")
 
+    def get_preview_sql_for_query(self, sql):
+        self._not_implemented("get_preview_for_query")
+
     def create_dataset_from_parser(self, dataset_name, parser, user):
         """
         Turns a parser object into a dataset.

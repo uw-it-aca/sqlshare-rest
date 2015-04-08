@@ -1,7 +1,11 @@
 from sqlshare_rest.test import CleanUpTestCase
 from django.db import connection
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from django.test.utils import override_settings
+from sqlshare_rest.util.query_queue import process_queue
+from sqlshare_rest.models import Query, Dataset
 
+@override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
 class TestDatasetDAO(CleanUpTestCase):
     def test_by_query(self):
         model = create_dataset_from_query(username="dao_user1", dataset_name="test1", sql="SELECT (1)")
@@ -10,6 +14,22 @@ class TestDatasetDAO(CleanUpTestCase):
         self.assertEquals(model.name, "test1")
 
         self.assertRaises(Exception, create_dataset_from_query, "dao_user1", "test2", "SELECT (")
+
+    def test_preview(self):
+        owner = "dataset_dao_user2"
+        self.remove_users.append(owner)
+        Query.objects.all().delete()
+
+        model = create_dataset_from_query(username=owner, dataset_name="test1", sql="SELECT (1)")
+
+        self.assertEquals(model.get_sample_data_status(), "working")
+
+        process_queue()
+
+        m2 = Dataset.objects.get(pk=model.pk)
+
+        self.assertEquals(m2.get_sample_data_status(), "success")
+
 
     @classmethod
     def setUpClass(cls):

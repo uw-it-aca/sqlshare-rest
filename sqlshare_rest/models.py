@@ -31,7 +31,6 @@ class Dataset(models.Model):
     owner = models.ForeignKey(User, db_index=True)
     sql = models.TextField(null=True)
     description = models.TextField(null=True)
-    data_preview = models.TextField(null=True)
     is_public = models.BooleanField(default=False)
     is_shared = models.BooleanField(default=False)
     shared_with = models.ManyToManyField(User, related_name="shared_with")
@@ -41,6 +40,8 @@ class Dataset(models.Model):
     date_modified = models.DateTimeField(auto_now=True, default=timezone.now)
     popularity = models.IntegerField(default=0)
     last_viewed = models.DateTimeField(null=True)
+    preview_is_finished = models.BooleanField(default=False)
+    preview_error = models.TextField(null=True)
 
     class Meta:
         unique_together = (("name", "owner"),)
@@ -61,8 +62,16 @@ class Dataset(models.Model):
             "popularity": self.popularity,
             "tags": self.get_tags_data(),
             "url": self.get_url(),
-            "sample_data_status": "working",
+            "sample_data_status": self.get_sample_data_status(),
         }
+
+    def get_sample_data_status(self):
+        if self.preview_is_finished and not self.preview_error:
+            return "success"
+        elif not self.preview_is_finished:
+            return "working"
+        else:
+            return "error"
 
     def get_tags_data(self):
         by_user = []

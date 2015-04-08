@@ -1,5 +1,6 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User, SharingEmail, DatasetTag, Tag
+from sqlshare_rest.models import Query
 from sqlshare_rest.exceptions import InvalidAccountException
 
 
@@ -26,6 +27,12 @@ def create_dataset_from_query(username, dataset_name, sql):
                                                          owner=user)
         model.sql = sql
         model.save()
+
+        preview_sql = backend.get_preview_sql_for_query(sql)
+        query_obj = Query.objects.create(sql=preview_sql,
+                                         owner=user,
+                                         is_preview_for=model)
+
         return model
     except Exception:
         raise

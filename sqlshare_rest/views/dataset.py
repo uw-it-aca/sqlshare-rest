@@ -4,10 +4,11 @@ from oauth2_provider.decorators import protected_resource
 import json
 from datetime import datetime
 from django.utils import timezone
-from sqlshare_rest.models import Dataset, User
+from sqlshare_rest.models import Dataset, User, Query
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
+from sqlshare_rest.util.query import get_sample_data_for_query
 
 
 @csrf_exempt
@@ -41,7 +42,18 @@ def _get_dataset(request, owner, name):
     dataset.last_viewed = timezone.now()
     dataset.save()
 
-    return HttpResponse(json.dumps(dataset.json_data()))
+    data = dataset.json_data()
+
+    if dataset.preview_is_finished:
+        username = request.user.username
+        query = Query.objects.get(is_preview_for=dataset)
+        sample_data, columns = get_sample_data_for_query(query,
+                                                         username)
+
+        data["sample_data"] = sample_data
+        data["columns"] = columns
+
+    return HttpResponse(json.dumps(data))
 
 
 def _put_dataset(request, owner, name):

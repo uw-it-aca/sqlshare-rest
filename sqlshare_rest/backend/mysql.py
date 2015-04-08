@@ -72,6 +72,9 @@ class MySQLBackend(DBInterface):
         sql = "DROP VIEW `%s`" % (dataset_name)
         self.run_query(sql, owner)
 
+    def get_preview_sql_for_query(self, sql):
+        return "SELECT * FROM (%s) as x LIMIT 100" % sql
+
     def _create_snapshot_sql(self, source_dataset, destination_datset):
         """
         Requires the source to be quoted, the destination to not be.

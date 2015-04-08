@@ -33,3 +33,9 @@ def process_queue():
     oldest_query.is_finished = True
     oldest_query.date_finished = timezone.now()
     oldest_query.save()
+
+    if oldest_query.is_preview_for:
+        dataset = oldest_query.is_preview_for
+        dataset.preview_is_finished = True
+        dataset.preview_error = oldest_query.error
+        dataset.save()

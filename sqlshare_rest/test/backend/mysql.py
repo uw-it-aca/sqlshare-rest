@@ -345,6 +345,10 @@ class TestMySQLBackend(TestCase):
             backend.close_user_connection(user2)
             backend.close_user_connection(user3)
 
+    def test_dataset_preview_sql(self):
+        backend = get_backend()
+        self.assertEquals("SELECT * FROM (SELECT (1)) as x LIMIT 100", backend.get_preview_sql_for_query("SELECT (1)"))
+
     def test_public_datasets(self):
         with self.settings(SQLSHARE_PUBLIC_DB_CONNECTION_USERNAME="ss_test_public",
                            SQLSHARE_PUBLIC_DB_CONNECTION_PASSWORD="fm4i3oj5h",
