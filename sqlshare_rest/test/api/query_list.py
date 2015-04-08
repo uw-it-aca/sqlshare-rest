@@ -8,12 +8,13 @@ from django.utils import timezone
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
-from django.test.client import Client
+from django.test.client import Client, RequestFactory
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
+from django.contrib.auth.models import User
 
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
@@ -66,10 +67,13 @@ class QueryListAPITest(BaseAPITest):
 
         data = json.loads(response.content.decode("utf-8"))
 
+        request = RequestFactory().get("/")
+        request.user = User.objects.get(username=owner)
+
         full_data = [
-            query1.json_data(),
-            query2.json_data(),
-            query3.json_data(),
+            query1.json_data(request),
+            query2.json_data(request),
+            query3.json_data(request),
         ]
 
         self.assertEquals(data, full_data)
@@ -81,8 +85,8 @@ class QueryListAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
 
         full_data = [
-            query2.json_data(),
-            query3.json_data(),
+            query2.json_data(request),
+            query3.json_data(request),
         ]
 
         self.assertEquals(data, full_data)

@@ -1,0 +1,28 @@
+# This module exists to prevent circular imports.
+from sqlshare_rest.util.db import get_backend
+
+
+def get_sample_data_for_query(query, username):
+    backend = get_backend()
+    user_obj = backend.get_user(username)
+
+    if query.is_finished and not query.error:
+        cursor = get_query_sample_data(user_obj, query.id)
+        return (cursor.fetchall(),
+                frontend_description_from_cursor(cursor))
+    return (None, None)
+
+
+def get_query_sample_data(user, id):
+    backend = get_backend()
+    return backend.get_query_sample(user, id)
+
+
+def frontend_description_from_cursor(cursor):
+    columns = []
+    for col in cursor.description:
+        columns.append({
+            "name":  col[0],
+        })
+
+    return columns

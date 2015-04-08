@@ -38,6 +38,9 @@ class DBInterface(object):
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 
+    def add_read_access_to_query(self, query_id, user):
+        self._not_implemented("add_read_access_to_query")
+
     def add_read_access_to_dataset(self, dataset, owner, reader):
         self._not_implemented("add_read_access_to_dataset")
 
@@ -118,6 +121,14 @@ class DBInterface(object):
         and the type values for columns must be correct.
         """
         raise NotImplementedError("_load_table")
+
+    def get_query_sample_sql(query_id):
+        raise NotImplementedError("get_query_sample_sql")
+
+    def get_query_sample(self, user, id):
+        return self.run_query(self.get_query_sample_sql(id),
+                              user,
+                              return_cursor=True)
 
     def create_table_from_query_result(self, name, cursor):
         """

@@ -131,11 +131,17 @@ class Query(models.Model):
                                         default=timezone.now)
     date_finished = models.DateTimeField(null=True)
 
-    def json_data(self):
+    def json_data(self, request):
+        """
+        Needs to run a query as the current user, which comes from the request.
+        """
+
         finish_date = None
         if self.date_finished:
             finish_date = self.date_finished.strftime(JSON_DATE)
         create_date = self.date_created.strftime(JSON_DATE)
+
+        user = User.objects.get(username=request.user.username)
 
         return {
             "sql_code": self.sql,
@@ -145,7 +151,14 @@ class Query(models.Model):
             "date_created": create_date,
             "date_finished": finish_date,
             "url": self.get_url(),
+            "sample_data_status": self.get_sample_data_status(),
+            "sample_data": None,  # Comes in at the view level
+            "columns": None,  # Comes in at the view level
         }
+
+    def get_sample_data_status(self):
+        if self.is_finished and not self.error:
+            return "success"
 
     def get_url(self):
         return reverse("sqlshare_view_query", kwargs={'id': self.pk})

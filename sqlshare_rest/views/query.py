@@ -4,6 +4,7 @@ from oauth2_provider.decorators import protected_resource
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.query import create_query, get_recent_activity
 from sqlshare_rest.models import Query
+from sqlshare_rest.util.query import get_sample_data_for_query
 import json
 
 
@@ -20,4 +21,12 @@ def details(request, id):
     if query.owner.username != request.user.username:
         return get403()
 
-    return HttpResponse(json.dumps(query.json_data()))
+    data = query.json_data(request)
+
+    sample_data, columns = get_sample_data_for_query(query,
+                                                     request.user.username)
+
+    data["sample_data"] = sample_data
+    data["columns"] = columns
+
+    return HttpResponse(json.dumps(data))

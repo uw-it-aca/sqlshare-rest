@@ -94,6 +94,17 @@ class MySQLBackend(DBInterface):
                                                       dataset,
                                                       reader.db_username)
 
+    def _read_access_to_query_sql(self, query_id, user):
+        db = self.get_query_cache_db_name()
+        return "GRANT SELECT ON `%s`.`query_%s` TO `%s`" % (db,
+                                                            query_id,
+                                                            user.db_username)
+
+    def add_read_access_to_query(self, query_id, user):
+        sql = self._read_access_to_query_sql(query_id, user)
+        cursor = connection.cursor()
+        cursor.execute(sql)
+
     def add_read_access_to_dataset(self, dataset, owner, reader):
         sql = self._add_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner)
@@ -156,6 +167,10 @@ class MySQLBackend(DBInterface):
             row = source_cursor.fetchone()
 
         pass
+
+    def get_query_sample_sql(self, query_id):
+        QUERY_SCHEMA = self.get_query_cache_db_name()
+        return "SELECT * FROM %s.query_%s LIMIT 100" % (QUERY_SCHEMA, query_id)
 
     def _get_column_definitions_for_cursor(self, cursor):
         import pymysql
