@@ -19,7 +19,6 @@ def query_list(request):
 
 def _get_query_list(request):
     queries = get_recent_activity(request.user.username)
-
     data = list(map(lambda x: x.json_data(request), queries))
     return HttpResponse(json.dumps(data))
 

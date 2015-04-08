@@ -26,7 +26,8 @@ from django.contrib.auth.models import User
                                 'django.contrib.messages.middleware.MessageMiddleware',
                                 'django.middleware.clickjacking.XFrameOptionsMiddleware',
                                 ),
-                   AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
+                   AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',),
+                   SQLSHARE_QUERY_CACHE_DB="test_ss_query_db",
                    )
 
 class QueryListAPITest(BaseAPITest):

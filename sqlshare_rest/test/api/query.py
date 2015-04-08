@@ -42,7 +42,7 @@ class QueryAPITest(BaseAPITest):
 
         response = self.client.post(post_url, data=json.dumps(data), content_type='application/json', **auth_headers)
 
-        self.assertEquals(response.status_code, 201)
+        self.assertEquals(response.status_code, 202)
 
         values = json.loads(response.content.decode("utf-8"))
 
@@ -54,5 +54,5 @@ class QueryAPITest(BaseAPITest):
 
         response = self.client.get(url, **auth_headers)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 202)
         values = json.loads(response.content.decode("utf-8"))
