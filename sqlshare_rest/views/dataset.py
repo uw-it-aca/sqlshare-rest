@@ -4,6 +4,7 @@ from oauth2_provider.decorators import protected_resource
 import json
 from datetime import datetime
 from django.utils import timezone
+from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User, Query
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.dataset import create_dataset_from_query
@@ -53,6 +54,7 @@ def _get_dataset(request, owner, name):
         data["sample_data"] = sample_data
         data["columns"] = columns
 
+    data["qualified_name"] = get_backend().get_qualified_name(dataset)
     return HttpResponse(json.dumps(data))
 
 

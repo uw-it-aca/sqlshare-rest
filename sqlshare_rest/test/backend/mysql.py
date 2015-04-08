@@ -3,6 +3,7 @@ from sqlshare_rest.util.db import is_mysql, get_backend
 from sqlshare_rest.parser import Parser
 from django.db import connection
 from django.conf import settings
+from sqlshare_rest.models import Dataset
 import unittest
 import six
 if six.PY2:
@@ -130,6 +131,18 @@ class TestMySQLBackend(TestCase):
             raise
         finally:
             backend.close_user_connection(user)
+
+    def test_qualified_name(self):
+        backend = get_backend()
+        owner = "test_mysql_qualified_dataset_name"
+        self.remove_users.append(owner)
+        backend = get_backend()
+        user = backend.get_user(owner)
+        dataset = Dataset()
+        dataset.owner = user
+        dataset.name = "test_table1"
+
+        self.assertEquals(backend.get_qualified_name(dataset), "`test_mysql_qualified_dataset_name`.`test_table1`")
 
     def test_delete_dataset(self):
         from pymysql.err import ProgrammingError

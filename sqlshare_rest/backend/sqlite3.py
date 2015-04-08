@@ -23,6 +23,9 @@ class SQLite3Backend(DBInterface):
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) LIMIT 100" % sql
 
+    def get_qualified_name(self, dataset):
+        return dataset.name
+
     # Maybe this could become separate files at some point?
     def create_db_schema(self, db_username, schema_name):
         return

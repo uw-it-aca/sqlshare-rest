@@ -72,6 +72,9 @@ class MySQLBackend(DBInterface):
         sql = "DROP VIEW `%s`" % (dataset_name)
         self.run_query(sql, owner)
 
+    def get_qualified_name(self, dataset):
+        return "`%s`.`%s`" % (dataset.owner.schema, dataset.name)
+
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) as x LIMIT 100" % sql
 

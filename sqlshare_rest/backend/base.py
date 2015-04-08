@@ -196,6 +196,9 @@ class DBInterface(object):
     def _get_public_schema(self):
         return settings.SQLSHARE_PUBLIC_DB_CONNECTION_SCHEMA
 
+    def get_qualified_name(self, dataset):
+        return self._not_implemented("get_qualified_name")
+
     def create_db_user_password(self):
         chars = string.ascii_letters + string.digits
         return ''.join(random.choice(chars) for i in range(40))

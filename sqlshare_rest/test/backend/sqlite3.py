@@ -1,5 +1,5 @@
 from django.test import TestCase
-
+from sqlshare_rest.models import Dataset, User
 from sqlshare_rest.util.db import is_sqlite3, get_backend
 import unittest
 
@@ -8,6 +8,17 @@ class TestSQLite3Backend(TestCase):
     def test_dataset_preview_sql(self):
         backend = get_backend()
         self.assertEquals("SELECT * FROM (SELECT (1)) LIMIT 100", backend.get_preview_sql_for_query("SELECT (1)"))
+
+    def test_qualified_name(self):
+        backend = get_backend()
+        owner = "test_sqlite_qualified_dataset_name"
+        backend = get_backend()
+        user = backend.get_user(owner)
+        dataset = Dataset()
+        dataset.owner = user
+        dataset.name = "test_table1"
+
+        self.assertEquals(backend.get_qualified_name(dataset), "test_table1")
 
     def test_create_user(self):
         backend = get_backend()
