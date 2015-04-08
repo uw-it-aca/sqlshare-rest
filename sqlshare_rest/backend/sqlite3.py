@@ -30,3 +30,38 @@ class SQLite3Backend(DBInterface):
         if return_cursor:
             return cursor
         return cursor.fetchall()
+
+    def create_table_from_query_result(self, name, source_cursor):
+        cursor = connection.cursor()
+
+        column_def = self._get_column_definitions_for_cursor(source_cursor)
+
+        create_table = "CREATE TABLE %s (%s)" % (name, column_def)
+        cursor.execute(create_table)
+
+        row = source_cursor.fetchone()
+
+        placeholders = ", ".join(list(map(lambda x: "%s", row)))
+        insert = "INSERT INTO %s VALUES (%s)" % (name, placeholders)
+        while row:
+            cursor.execute(insert, row)
+            row = source_cursor.fetchone()
+
+    def add_read_access_to_query(*args, **kwargs):
+        pass
+
+    def _get_column_definitions_for_cursor(self, cursor):
+        index = 0
+        column_defs = []
+        for col in cursor.description:
+            index = index + 1
+            col_type = col[1]
+            col_len = col[3]
+            null_ok = col[6]
+
+            # We don't get type info from the query cursors, so just
+            # dump everything into text?
+            column_name = "COLUMN%s" % index
+            column_defs.append("%s TEXT" % column_name)
+
+        return ", ".join(column_defs)

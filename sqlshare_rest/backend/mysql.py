@@ -166,8 +166,6 @@ class MySQLBackend(DBInterface):
             cursor.execute(insert, row)
             row = source_cursor.fetchone()
 
-        pass
-
     def get_query_sample_sql(self, query_id):
         QUERY_SCHEMA = self.get_query_cache_db_name()
         return "SELECT * FROM %s.query_%s LIMIT 100" % (QUERY_SCHEMA, query_id)
