@@ -1,4 +1,4 @@
-from sqlshare_rest.views import RESTView, get_oauth_user
+from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.dao.dataset import get_datasets_owned_by_user
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt

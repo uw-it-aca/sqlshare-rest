@@ -2,6 +2,7 @@ from django.db import models
 from django.core.urlresolvers import reverse
 from datetime import datetime
 from django.utils import timezone
+import json
 # from django_fields.fields import EncryptedCharField
 
 JSON_DATE = "%a, %-d %b %Y %-H:%M:%S %Z"
@@ -175,3 +176,31 @@ class Query(models.Model):
 
     def get_url(self):
         return reverse("sqlshare_view_query", kwargs={'id': self.pk})
+
+
+class FileUpload(models.Model):
+    owner = models.ForeignKey(User, db_index=True)
+    has_parser_values = models.BooleanField(default=False)
+    has_column_header = models.NullBooleanField(null=True)
+    delimiter = models.CharField(null=True, max_length=5)
+    column_list = models.TextField(null=True)
+    sample_data = models.TextField(null=True)
+    user_file = models.FileField(upload_to="user_files/%Y/%m/%d")
+    date_created = models.DateTimeField(auto_now_add=True,
+                                        default=timezone.now)
+    dataset_created = models.BooleanField(default=False)
+    dataset = models.ForeignKey(Dataset, null=True)
+
+    def parser_json_data(self):
+        column_data = None
+        column_list = json.loads(self.column_list)
+        if column_list:
+            column_data = list(map(lambda x: {"name": x},
+                                   column_list))
+
+        return {
+            "parser": {"delimiter": self.delimiter,
+                       "has_column_header": self.has_column_header},
+            "columns": column_data,
+            "sample_data": json.loads(self.sample_data)
+        }

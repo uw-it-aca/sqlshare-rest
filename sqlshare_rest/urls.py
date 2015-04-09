@@ -1,9 +1,6 @@
 from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
 
-from sqlshare_rest.views.file_upload import FileUploadView
-from sqlshare_rest.views.file_parser import FileParserView
-
 urlpatterns = patterns(
     'sqlshare_rest.views',
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/permissions',
@@ -32,15 +29,19 @@ urlpatterns = patterns(
         'query_list.query_list',
         name="sqlshare_view_query_list"),
 
-    url('v3/db/file/(?P<id>[0-9]+)',
-        csrf_exempt(FileUploadView().run),
-        name="sqlshare_view_file_upload"),
+    url('v3/db/file/(?P<id>[0-9]+)/finalize',
+        'file_upload.finalize',
+        name="sqlshare_view_upload_finalize"),
 
     url('v3/db/file/(?P<id>[0-9]+)/parser',
-        csrf_exempt(FileParserView().run),
+        'file_parser.parser',
         name="sqlshare_view_file_parser"),
 
-    url('v3/db/file/',
-        csrf_exempt(FileUploadView().run),
+    url('v3/db/file/(?P<id>[0-9]+)',
+        'file_upload.upload',
         name="sqlshare_view_file_upload"),
+
+    url('v3/db/file/',
+        'file_upload.initialize',
+        name="sqlshare_view_file_upload_init"),
 )

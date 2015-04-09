@@ -18,13 +18,6 @@ def get_oauth_user(request):
             raise Exception("Invalid token - no client app")
 
 
-class RESTView(object):
-    def run(self, *args, **kwargs):
-        request = args[0]
-        if request.META['REQUEST_METHOD'] == "GET":
-            return self.GET(*args, **kwargs)
-
-
 def get404():
     response = HttpResponse("")
     response.status_code = 404
