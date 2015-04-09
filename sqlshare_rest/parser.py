@@ -206,7 +206,11 @@ class Parser(object):
         return self
 
     def next(self):
-        reader = csv.reader(self._handle, delimiter=self.delimiter())
+        if six.PY2:
+            delimiter = self.delimiter().encode("ascii")
+        elif six.PY3:
+            delimiter = self.delimiter()
+        reader = csv.reader(self._handle, delimiter=delimiter)
         return self._next(reader)
 
     # Python 3 version of next
