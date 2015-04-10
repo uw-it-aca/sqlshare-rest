@@ -12,3 +12,4 @@ from sqlshare_rest.test.api.tags import TagAPITest
 from sqlshare_rest.test.api.query import QueryAPITest
 from sqlshare_rest.test.api.query_list import QueryListAPITest
 from sqlshare_rest.test.api.file_upload import FileUploadAPITest
+from sqlshare_rest.test.api.user_search import UserSearchTest
