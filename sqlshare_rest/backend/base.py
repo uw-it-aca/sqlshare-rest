@@ -50,13 +50,7 @@ class DBInterface(object):
     def get_preview_sql_for_query(self, sql):
         self._not_implemented("get_preview_for_query")
 
-    def create_dataset_from_parser(self, dataset_name, parser, user):
-        """
-        Turns a parser object into a dataset.
-        # Creates a table based on the parser columns
-        # Loads the data that's in the handle for the parser
-        # Creates the view for the dataset
-        """
+    def create_table_from_parser(self, dataset_name, parser, user):
         table_name = self._get_table_name_for_dataset(dataset_name)
         self._create_table(table_name=table_name,
                            column_names=parser.column_names(),
@@ -64,9 +58,22 @@ class DBInterface(object):
                            user=user)
 
         self._load_table(table_name, parser.get_data_handle(), user)
+        return table_name
+
+    def create_dataset_from_parser(self, dataset_name, parser, user):
+        """
+        Turns a parser object into a dataset.
+        # Creates a table based on the parser columns
+        # Loads the data that's in the handle for the parser
+        # Creates the view for the dataset
+        """
+        table_name = self.create_table_from_parser(dataset_name, parser, user)
         self.create_view(dataset_name,
                          self._get_view_sql_for_dataset(table_name, user),
                          user)
+
+    def get_view_sql_for_dataset(self, table_name, user):
+        return self._get_view_sql_for_dataset(table_name, user)
 
     def delete_table(self, table_name, owner):
         self._not_implemented("delete_table")
@@ -125,7 +132,7 @@ class DBInterface(object):
         """
         raise NotImplementedError("_load_table")
 
-    def get_query_sample_sql(query_id):
+    def get_query_sample_sql(self, query_id):
         raise NotImplementedError("get_query_sample_sql")
 
     def get_query_sample(self, user, id):

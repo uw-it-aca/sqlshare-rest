@@ -44,6 +44,11 @@ def upload(request, id):
     if upload.owner.username != request.user.username:
         return get403()
 
+    file_path = upload.user_file.path
+    handle = open(file_path, "at")
+
+    handle.write(request.body.decode("utf-8"))
+
     return HttpResponse("")
 
 
@@ -65,7 +70,16 @@ def finalize(request, id):
         dataset_name = values["dataset_name"]
         description = values.get("description", "")
         is_public = values.get("is_public", False)
+        upload.dataset_name = dataset_name
+        upload.dataset_description = description
+        upload.dataset_is_public = is_public
+        upload.is_finalized = True
+        upload.save()
 
     response = HttpResponse("")
-    response.status_code = 202
+    if upload.dataset_created:
+        response.status_code = 201
+        response["location"] = upload.dataset.get_url()
+    else:
+        response.status_code = 202
     return response

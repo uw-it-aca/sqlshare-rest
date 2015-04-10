@@ -13,6 +13,9 @@ from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.util.dataset_queue import process_dataset_queue
+from sqlshare_rest.util.query_queue import process_queue
+from sqlshare_rest.models import FileUpload, Query
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -32,6 +35,11 @@ class FileUploadAPITest(BaseAPITest):
         self.client = Client()
 
     def test_full_upload(self):
+        # Clean up any other file uplaods, so the queue processing at the bottom finds ours
+        FileUpload.objects.all().delete()
+
+        # We also need to clear up Queries, so we can get the data preview
+        Query.objects.all().delete()
         owner = "upload_user1"
         other = "upload_faker1"
         self.remove_users.append(owner)
@@ -39,7 +47,7 @@ class FileUploadAPITest(BaseAPITest):
         auth_headers = self.get_auth_header_for_username(owner)
         other_auth_headers = self.get_auth_header_for_username(other)
 
-        data1 = "col1,col2,XXcol3\na,1,2\nb,2,3\nc,3,4"
+        data1 = "col1,col2,XXcol3\na,1,2\nb,2,3\nc,3,4\n"
         data2 = "z,999,2\ny,2,3\nx,30,41"
 
         init_url = reverse("sqlshare_view_file_upload_init")
@@ -117,3 +125,19 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(response10.status_code, 202)
 
         # Process the dataset...
+        process_dataset_queue()
+
+        response11 = self.client.get(finalize_url, **auth_headers)
+        self.assertEquals(response11.status_code, 201)
+
+        dataset_url = response11["Location"]
+        self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user1/test_dataset1")
+
+        process_queue()
+        response12 = self.client.get(dataset_url, **auth_headers)
+
+        self.assertEquals(response12.status_code, 200)
+
+        data = json.loads(response12.content.decode("utf-8"))
+
+        self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])

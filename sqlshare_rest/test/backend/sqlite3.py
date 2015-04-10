@@ -1,7 +1,14 @@
 from django.test import TestCase
 from sqlshare_rest.models import Dataset, User
+from sqlshare_rest.parser import Parser
 from sqlshare_rest.util.db import is_sqlite3, get_backend
 import unittest
+import six
+if six.PY2:
+    from StringIO import StringIO
+elif six.PY3:
+    from io import StringIO
+
 
 @unittest.skipUnless(is_sqlite3(), "Only test with sqlite3")
 class TestSQLite3Backend(TestCase):
@@ -53,3 +60,71 @@ class TestSQLite3Backend(TestCase):
         backend = get_backend()
         user = backend.get_user("test_query_save1")
         cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)
+
+    def test_create_dataset(self):
+        backend = get_backend()
+        user = backend.get_user("test_user_dataset1")
+
+        handle = StringIO("z,y,x\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("test_dataset1", parser, user)
+            result = backend.run_query("SELECT * FROM table_test_dataset1", user)
+            self.assertEquals([(1, 3, 4, ), (2, 10, 12, )], result)
+            result2 = backend.run_query("SELECT * FROM test_dataset1", user)
+            self.assertEquals([(1, 3, 4, ), (2, 10, 12, )], result2)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
+
+    def test_create_table_from_parser(self):
+        backend = get_backend()
+        user = backend.get_user("test_user_dataset2")
+
+        handle = StringIO("z,y,x\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_table_from_parser("test_dataset1", parser, user)
+            result = backend.run_query("SELECT * FROM table_test_dataset1", user)
+            self.assertEquals([(1, 3, 4, ), (2, 10, 12, )], result)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
+    def test_create_table_from_parser_with_values(self):
+        backend = get_backend()
+        user = backend.get_user("test_user_dataset2")
+
+        handle = StringIO("col1,col2,XXcol3\na,1,2\nb,2,3\nc,3,4")
+
+        parser = Parser()
+        parser.delimiter(",")
+        parser.has_header_row(True)
+      #  parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_table_from_parser("test_dataset1", parser, user)
+            result = backend.run_query("SELECT * FROM table_test_dataset1", user)
+            self.assertEquals([('a', 1, 2), ('b', 2, 3), ('c', 3, 4)], result)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
+
+

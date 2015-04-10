@@ -55,8 +55,18 @@ class Parser(object):
     def get_data_handle(self):
         return DataHandler(self)
 
+    def prep_data_load(self):
+        """ Resets the file index, and reads off the header row, if needed """
+        self._handle.seek(0)
+        if self.has_header_row():
+            self._get_headers_from_handle(self._handle)
+
     def _get_headers_from_handle(self, handle):
-        return self.make_unique_columns(self._next(csv.reader(handle)))
+        handle.seek(0)
+        values = self._next(csv.reader(handle))
+        unique = self.make_unique_columns(values)
+
+        return unique
 
     def make_unique_columns(self, names):
         seen_names = {}
@@ -103,8 +113,6 @@ class Parser(object):
             raise Exception("No handle to read from")
 
         current_index = self._handle.tell()
-        self._handle.seek(0)
-
         self._handle.seek(0)
 
         values = []
@@ -221,6 +229,7 @@ class DataHandler(object):
     def __init__(self, parser):
         self._parser = parser
         self._columns = parser.column_types()
+        parser.prep_data_load()
 
     def __iter__(self):
         return self

@@ -188,8 +188,14 @@ class FileUpload(models.Model):
     user_file = models.FileField(upload_to="user_files/%Y/%m/%d")
     date_created = models.DateTimeField(auto_now_add=True,
                                         default=timezone.now)
-    dataset_created = models.BooleanField(default=False)
+    dataset_created = models.BooleanField(default=False, db_index=True)
     dataset = models.ForeignKey(Dataset, null=True)
+    has_error = models.BooleanField(default=False)
+    error = models.TextField(null=True)
+    dataset_name = models.TextField(null=True)
+    dataset_description = models.TextField(null=True)
+    dataset_is_public = models.NullBooleanField()
+    is_finalized = models.NullBooleanField(db_index=True)
 
     def parser_json_data(self):
         column_data = None

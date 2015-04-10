@@ -32,10 +32,13 @@ class SQLite3Backend(DBInterface):
 
     def run_query(self, sql, username, params=None, return_cursor=False):
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, params)
         if return_cursor:
             return cursor
         return cursor.fetchall()
+
+    def get_query_sample_sql(self, query_id):
+        return "SELECT * FROM query_%s LIMIT 100" % (query_id)
 
     def create_table_from_query_result(self, name, source_cursor):
         cursor = connection.cursor()
@@ -71,3 +74,37 @@ class SQLite3Backend(DBInterface):
             column_defs.append("%s TEXT" % column_name)
 
         return ", ".join(column_defs)
+
+    def _create_table(self, table_name, column_names, column_types, user):
+        sql = self._create_table_sql(table_name, column_names, column_types)
+        self.run_query(sql, user)
+
+    def _create_table_sql(self, table_name, column_names, column_types):
+        def _column_sql(name, col_type):
+            if "int" == col_type["type"]:
+                return "`%s` INT" % name
+            if "float" == col_type["type"]:
+                return "`%s` FLOAT" % name
+            if "text" == col_type["type"]:
+                return "`%s` VARCHAR(%s)" % (name, col_type["max"])
+            # Fallback to text is hopefully good?
+            return "`%s` TEXT" % name
+
+        columns = []
+        for i in range(0, len(column_names)):
+            columns.append(_column_sql(column_names[i], column_types[i]))
+
+        return "CREATE TABLE `%s` (%s)" % (table_name, ", ".join(columns))
+
+    def _load_table_sql(self, table_name, row):
+        placeholders = map(lambda x: "?", row)
+        return "INSERT INTO `%s` VALUES (%s)" % (table_name,
+                                                 ", ".join(placeholders))
+
+    def _load_table(self, table_name, data_handle, user):
+        for row in data_handle:
+            sql = self._load_table_sql(table_name, row)
+            self.run_query(sql, user, row)
+
+    def _get_view_sql_for_dataset(self, table_name, user):
+        return "SELECT * FROM `%s`" % (table_name)
