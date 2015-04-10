@@ -10,7 +10,7 @@ from sqlshare_rest.models import User
 def search(request):
     users = User.objects.filter(username__icontains=request.GET['q'])
 
-    data = { "users": [] }
+    data = {"users": []}
 
     for user in users:
         data["users"].append({
