@@ -44,6 +44,28 @@ class DatsetAPITest(BaseAPITest):
 
         self.assertEquals(response.content.decode("utf-8"), '[]')
 
+    def test_no_description(self):
+        """
+        The dataset api needs to always have a description string, even if
+        the model value is null.
+        """
+        owner = "no_description_owner"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        # Should be None anyway, but why not...
+        ds1.description = None
+        ds1.save()
+
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': "ds1"})
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["description"], "")
+
+
     def test_popularity(self):
         owner = "mr_popular"
         other = "other_account"

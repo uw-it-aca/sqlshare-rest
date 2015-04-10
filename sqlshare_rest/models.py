@@ -50,10 +50,15 @@ class Dataset(models.Model):
     def json_data(self):
         mod_date = self.date_modified.strftime(JSON_DATE)
         create_date = self.date_created.strftime(JSON_DATE)
+
+        description = self.description
+        if not description:
+            description = ""
+
         return {
             "name": self.name,
             "owner": self.owner.username,
-            "description": self.description,
+            "description": description,
             "date_created": create_date,
             "date_modified": mod_date,
             "is_public": self.is_public,
