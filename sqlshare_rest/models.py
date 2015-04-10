@@ -206,7 +206,7 @@ class FileUpload(models.Model):
 
         return {
             "parser": {"delimiter": self.delimiter,
-                       "has_column_header": self.has_column_header},
+                       "has_column_headers": self.has_column_header},
             "columns": column_data,
             "sample_data": json.loads(self.sample_data)
         }

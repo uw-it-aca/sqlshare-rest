@@ -1,10 +1,10 @@
-from sqlshare_rest.util.query_queue import process_queue
+from sqlshare_rest.util.dataset_queue import process_dataset_queue
 from django.core.management.base import BaseCommand
 from optparse import make_option
 
 
 class Command(BaseCommand):
-    help = "This runs queries that users initiate in the front-end"
+    help = "This loads data into datasets from uploaded files."
 
     option_list = BaseCommand.option_list + (
         make_option('--run-once',
@@ -18,4 +18,4 @@ class Command(BaseCommand):
         if not options["run_once"]:
             raise Exception("Only handles --run-once for now")
 
-        process_queue()
+        process_dataset_queue()

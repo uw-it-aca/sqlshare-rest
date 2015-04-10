@@ -218,8 +218,17 @@ class MySQLBackend(DBInterface):
         return ", ".join(column_defs)
 
     def _create_table(self, table_name, column_names, column_types, user):
-        sql = self._create_table_sql(table_name, column_names, column_types)
-        self.run_query(sql, user)
+        try:
+            sql = self._create_table_sql(table_name, column_names, column_types)
+            self.run_query(sql, user)
+        except:
+            drop_sql = self._drop_exisisting_table_sql(table_name)
+            self.run_query(drop_sql, user)
+            self.run_query(sql, user)
+
+
+    def _drop_exisisting_table_sql(self, table_name):
+        return "DROP TABLE `%s`" % (table_name)
 
     def _create_table_sql(self, table_name, column_names, column_types):
         def _column_sql(name, col_type):
