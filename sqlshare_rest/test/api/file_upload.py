@@ -16,6 +16,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.dataset_queue import process_dataset_queue
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import FileUpload, Query
+from sqlshare_rest.util.db import is_mysql, is_sqlite3
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -140,4 +141,9 @@ class FileUploadAPITest(BaseAPITest):
 
         data = json.loads(response12.content.decode("utf-8"))
 
-        self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
+        if is_sqlite3():
+            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
+        else:
+            # Hoping that other db engines will also return typed data...
+            self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
+

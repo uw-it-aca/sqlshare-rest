@@ -105,6 +105,8 @@ class Parser(object):
         text)
 
         Currently the preferred matches goes int -> float -> text
+
+        Resets the handle to position 0.
         """
 
         if self._column_types:
@@ -112,7 +114,6 @@ class Parser(object):
         if not self._handle:
             raise Exception("No handle to read from")
 
-        current_index = self._handle.tell()
         self._handle.seek(0)
 
         values = []
@@ -123,7 +124,7 @@ class Parser(object):
         for row in self:
             self._guess_column_types_by_row(row, values)
 
-        self._handle.seek(current_index)
+        self._handle.seek(0)
         self._column_types = values
         return values
 
