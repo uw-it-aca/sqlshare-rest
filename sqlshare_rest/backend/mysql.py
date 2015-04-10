@@ -242,14 +242,14 @@ class MySQLBackend(DBInterface):
                     ", ".join(columns)
                )
 
-    def _load_table_sql(self, table_name, row):
+    def _load_table_sql(self, table_name, row, user):
         placeholders = map(lambda x: "%s", row)
-        return "INSERT INTO `%s` VALUES (%s)" % (table_name,
-                                                 ", ".join(placeholders))
+        return "INSERT INTO `%s`.`%s` VALUES (%s)" % (user.schema, table_name,
+                                                      ", ".join(placeholders))
 
     def _load_table(self, table_name, data_handle, user):
         for row in data_handle:
-            sql = self._load_table_sql(table_name, row)
+            sql = self._load_table_sql(table_name, row, user)
             self.run_query(sql, user, row)
 
     def _disconnect_connection(self, connection):

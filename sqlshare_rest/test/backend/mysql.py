@@ -228,9 +228,12 @@ class TestMySQLBackend(TestCase):
         self.assertEquals(sql, "SELECT * FROM `%s`.`table_';!@$`" % user.schema)
 
     def test_load_table_sql(self):
+        username = "test_user_load_table_sql"
+        self.remove_users.append(username)
         backend = get_backend()
-        sql = backend._load_table_sql("table1';", ["a", 1, 1.112, "';\\%@!!#\n@"])
-        self.assertEquals(sql, "INSERT INTO `table1';` VALUES (%s, %s, %s, %s)")
+        user = backend.get_user(username)
+        sql = backend._load_table_sql("table1';", ["a", 1, 1.112, "';\\%@!!#\n@"], user)
+        self.assertEquals(sql, "INSERT INTO `test_user_load_table_sql`.`table1';` VALUES (%s, %s, %s, %s)")
 
     def test_create_table_sql(self):
         backend = get_backend()

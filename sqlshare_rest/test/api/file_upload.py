@@ -18,6 +18,7 @@ from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import FileUpload, Query
 from sqlshare_rest.util.db import is_mysql, is_sqlite3
 
+@override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
                                 'django.contrib.sessions.middleware.SessionMiddleware',
