@@ -15,6 +15,9 @@ urlpatterns = patterns(
         'dataset.dataset',
         name="sqlshare_view_dataset"),
 
+    url('v3/db/dataset/shared', 'dataset_list.dataset_shared_list',
+        name="sqlshare_view_dataset_shared_list"),
+
     url('v3/db/dataset', 'dataset_list.dataset_list',
         name="sqlshare_view_dataset_list"),
 

@@ -11,6 +11,13 @@ def get_datasets_owned_by_user(user):
     return Dataset.objects.filter(owner=user_obj)
 
 
+def get_datasets_shared_with_user(user):
+    # Django auth user vs sqlshare user
+    backend = get_backend()
+    user_obj = backend.get_user(user.username)
+    return Dataset.objects.filter(shared_with__in=[user_obj])
+
+
 def get_dataset_by_owner_and_name(owner, name):
     user_obj = User.objects.get(username=owner)
     dataset = Dataset.objects.get(owner=user_obj, name=name)

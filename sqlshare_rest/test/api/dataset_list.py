@@ -6,7 +6,7 @@ from django.test.utils import override_settings
 from django.test.client import Client
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.test import missing_url
-from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.dao.dataset import create_dataset_from_query, set_dataset_accounts
 from django.utils import timezone
 import json
 
@@ -78,3 +78,27 @@ class DatsetListAPITest(BaseAPITest):
         response = self.client.get(url, **auth_headers)
 
         self.assertEquals(response.content.decode("utf-8"), "[]")
+
+
+    def test_shared_url(self):
+        owner = "ds_list_user3"
+        other = "ds_list_shared_with1"
+        self.remove_users.append(owner)
+        ds1 = create_dataset_from_query(owner, "ds_shared1", "SELECT(1)")
+
+        auth_headers = self.get_auth_header_for_username(other)
+        url = reverse("sqlshare_view_dataset_shared_list")
+        response = self.client.get(url, **auth_headers)
+
+        self.assertEquals(response.content.decode("utf-8"), "[]")
+
+        set_dataset_accounts(ds1, [ other ])
+
+        response = self.client.get(url, **auth_headers)
+
+        ds_list = json.loads(response.content.decode("utf-8"))
+
+        self.assertEquals(len(ds_list), 1)
+        self.assertEquals(ds_list[0]["owner"], "ds_list_user3")
+        self.assertEquals(ds_list[0]["name"], "ds_shared1")
+
