@@ -51,6 +51,14 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
     if len(user_models) != len(accounts):
         raise InvalidAccountException()
 
+    try:
+        query = Query.objects.get(is_preview_for=dataset)
+        if not query.is_finished:
+            # Don't try setting permissions on a query that might not
+            # exist yet.
+            query = None
+    except Query.DoesNotExist:
+        query = None
     # XXX - put this in a transaction?
     current_users = dataset.shared_with.all()
     for user in current_users:
@@ -58,11 +66,16 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
             backend.remove_access_to_dataset(dataset.name,
                                              owner=dataset.owner,
                                              reader=user)
+        if query:
+            backend.remove_read_access_to_query(query.pk, user)
 
     for user in user_models:
         backend.add_read_access_to_dataset(dataset.name,
                                            owner=dataset.owner,
                                            reader=user)
+
+        if query:
+            backend.add_read_access_to_query(query.pk, user)
 
     dataset.shared_with = user_models
     if save_dataset:

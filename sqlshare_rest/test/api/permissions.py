@@ -9,6 +9,9 @@ from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.util.query_queue import process_queue
+from sqlshare_rest.models import Query
+from sqlshare_rest.util.db import is_sqlite3
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -19,7 +22,8 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
                                 'django.contrib.messages.middleware.MessageMiddleware',
                                 'django.middleware.clickjacking.XFrameOptionsMiddleware',
                                 ),
-                   AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
+                   AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',),
+                   SQLSHARE_QUERY_CACHE_DB="test_ss_query_db"
                    )
 
 class DatasetPermissionsAPITest(BaseAPITest):
@@ -264,3 +268,39 @@ class DatasetPermissionsAPITest(BaseAPITest):
         self.assertEquals(data["accounts"], [])
         self.assertEquals(data["emails"], [])
 
+    def test_preview_table_permissions(self):
+        # We need to process the preview query - purge any existing queries
+        # to make sure we process ours.
+        Query.objects.all().delete()
+
+        owner = "permissions_preview_user1"
+        dataset_name = "ds1"
+        other_user1 = "permissions_preview_user2"
+        self.remove_users.append(owner)
+        self.remove_users.append(other_user1)
+
+        backend = get_backend()
+        backend.get_user(other_user1)
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': dataset_name})
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+        user1_auth_headers = self.get_auth_header_for_username(other_user1)
+
+        process_queue()
+
+        new_data = { "accounts": [ other_user1 ] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+
+        response = self.client.get(url, **user1_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+
+        if is_sqlite3():
+            self.assertEquals(data["sample_data"], [['1']])
+        else:
+            self.assertEquals(data["sample_data"], [[1]])

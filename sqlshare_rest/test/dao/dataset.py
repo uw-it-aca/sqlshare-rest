@@ -44,3 +44,4 @@ class TestDatasetDAO(CleanUpTestCase):
         # This is just an embarrassing list of things to cleanup if something fails.
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop user meta_ce52aaec1a0")
+        _run_query("drop database dao_user1")
