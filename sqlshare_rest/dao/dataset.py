@@ -112,7 +112,8 @@ def add_public_access(dataset):
 
 def remove_public_access(dataset):
     try:
-        get_backend().remove_public_access(dataset.name, dataset.owner.username)
+        username = dataset.owner.username
+        get_backend().remove_public_access(dataset.name, username)
     except AttributeError:
         pass
     dataset.is_public = False

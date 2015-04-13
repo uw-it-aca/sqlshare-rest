@@ -21,7 +21,6 @@ class SQLite3Backend(DBInterface):
     def remove_public_access(*args, **kwargs):
         pass
 
-
     def create_view(self, name, sql, user):
         view_sql = "CREATE VIEW %s AS %s" % (name, sql)
         self.run_query(view_sql, user)
