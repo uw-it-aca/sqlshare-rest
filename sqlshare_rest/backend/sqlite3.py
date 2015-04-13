@@ -21,6 +21,10 @@ class SQLite3Backend(DBInterface):
     def remove_public_access(*args, **kwargs):
         pass
 
+    def delete_dataset(self, dataset_name, owner):
+        sql = "DROP VIEW `%s`" % (dataset_name)
+        self.run_query(sql, owner)
+
     def create_view(self, name, sql, user):
         view_sql = "CREATE VIEW %s AS %s" % (name, sql)
         self.run_query(view_sql, user)
@@ -64,6 +68,11 @@ class SQLite3Backend(DBInterface):
 
     def add_read_access_to_query(*args, **kwargs):
         pass
+
+    def delete_query(self, query_id):
+        sql = "DROP TABLE query_%s" % (query_id)
+        cursor = connection.cursor()
+        cursor.execute(sql)
 
     def _get_column_definitions_for_cursor(self, cursor):
         index = 0

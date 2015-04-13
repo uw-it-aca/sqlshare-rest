@@ -115,6 +115,12 @@ class MySQLBackend(DBInterface):
                                                                        username
                                                                        )
 
+    def delete_query(self, query_id):
+        db = self.get_query_cache_db_name()
+        sql = "DROP TABLE `%s`.`query_%s`" % (db, query_id)
+        cursor = connection.cursor()
+        cursor.execute(sql)
+
     def remove_read_access_to_query(self, query_id, user):
         sql = self._remove_read_access_to_query_sql(query_id, user)
         cursor = connection.cursor()

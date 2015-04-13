@@ -132,6 +132,9 @@ class DBInterface(object):
         """
         raise NotImplementedError("_load_table")
 
+    def delete_query(self, query_id):
+        raise NotImplementedError("delete_query")
+
     def get_query_sample_sql(self, query_id):
         raise NotImplementedError("get_query_sample_sql")
 

@@ -40,12 +40,24 @@ def create_dataset_from_query(username, dataset_name, sql):
     backend = get_backend()
     user = backend.get_user(username)
     try:
-        backend.create_view(dataset_name, sql, user)
-
         (model, created) = Dataset.objects.get_or_create(name=dataset_name,
                                                          owner=user)
+
+        if not created:
+            # Clear out the existing dataset, so we can create
+            # the new view properly
+            backend.delete_dataset(dataset_name, user)
+
+        backend.create_view(dataset_name, sql, user)
+
         model.sql = sql
         model.save()
+
+        # Remove all existing sample data queries
+        previous = Query.objects.filter(is_preview_for=model)
+        for query in previous:
+            backend.delete_query(query.pk)
+            query.delete()
 
         preview_sql = backend.get_preview_sql_for_query(sql)
         query_obj = Query.objects.create(sql=preview_sql,
