@@ -18,6 +18,18 @@ def get_datasets_shared_with_user(user):
     return Dataset.objects.filter(shared_with__in=[user_obj])
 
 
+def get_public_datasets():
+    return Dataset.objects.filter(is_public=True)
+
+
+def get_all_datasets_for_user(user):
+    datasets = list(get_datasets_owned_by_user(user))
+    datasets.extend(list(get_datasets_shared_with_user(user)))
+    datasets.extend(list(get_public_datasets()))
+
+    return list(set(datasets))
+
+
 def get_dataset_by_owner_and_name(owner, name):
     user_obj = User.objects.get(username=owner)
     dataset = Dataset.objects.get(owner=user_obj, name=name)
@@ -87,6 +99,24 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
     dataset.shared_with = user_models
     if save_dataset:
         dataset.save()
+
+
+def add_public_access(dataset):
+    try:
+        get_backend().add_public_access(dataset.name, dataset.owner.username)
+    except AttributeError:
+        pass
+    dataset.is_public = True
+    dataset.save()
+
+
+def remove_public_access(dataset):
+    try:
+        get_backend().remove_public_access(dataset.name, dataset.owner.username)
+    except AttributeError:
+        pass
+    dataset.is_public = False
+    dataset.save()
 
 
 def reset_dataset_account_access(dataset):

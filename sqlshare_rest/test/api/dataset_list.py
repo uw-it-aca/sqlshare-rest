@@ -7,6 +7,10 @@ from django.test.client import Client
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.test import missing_url
 from sqlshare_rest.dao.dataset import create_dataset_from_query, set_dataset_accounts
+from sqlshare_rest.dao.dataset import set_dataset_accounts, add_public_access
+from sqlshare_rest.dao.dataset import remove_public_access
+from sqlshare_rest.models import Query
+from sqlshare_rest.util.query_queue import process_queue
 from django.utils import timezone
 import json
 
@@ -84,6 +88,7 @@ class DatsetListAPITest(BaseAPITest):
         owner = "ds_list_user3"
         other = "ds_list_shared_with1"
         self.remove_users.append(owner)
+        self.remove_users.append(other)
         ds1 = create_dataset_from_query(owner, "ds_shared1", "SELECT(1)")
 
         auth_headers = self.get_auth_header_for_username(other)
@@ -101,4 +106,67 @@ class DatsetListAPITest(BaseAPITest):
         self.assertEquals(len(ds_list), 1)
         self.assertEquals(ds_list[0]["owner"], "ds_list_user3")
         self.assertEquals(ds_list[0]["name"], "ds_shared1")
+
+
+    def test_all_url(self):
+        owner1 = "ds_list_user4"
+        owner2 = "ds_list_user5"
+        owner3 = "ds_list_user6"
+        self.remove_users.append(owner1)
+        self.remove_users.append(owner2)
+        self.remove_users.append(owner3)
+
+        # Purge queries, so we can build samples for the 3 below
+        Query.objects.all().delete()
+        auth_headers = self.get_auth_header_for_username(owner1)
+        url = reverse("sqlshare_view_dataset_all_list")
+
+        ds1 = create_dataset_from_query(owner1, "ds_owned", "SELECT(1)")
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+
+        def build_lookup(data):
+            lookup = {}
+            for item in data:
+                owner = item["owner"]
+                name = item["name"]
+                if not owner in lookup:
+                    lookup[owner] = {}
+                lookup[owner][name] = True
+            return lookup
+
+        lookup = build_lookup(data)
+        self.assertTrue(lookup["ds_list_user4"]["ds_owned"])
+
+        ds2 = create_dataset_from_query(owner2, "ds_shared", "SELECT(1)")
+        set_dataset_accounts(ds2, [ owner1 ])
+
+        response = self.client.get(url, **auth_headers)
+
+        data = json.loads(response.content.decode("utf-8"))
+        lookup = build_lookup(data)
+        self.assertTrue(lookup["ds_list_user4"]["ds_owned"])
+        self.assertTrue(lookup["ds_list_user5"]["ds_shared"])
+
+        ds3 = create_dataset_from_query(owner3, "ds_public", "SELECT(1)")
+        # Make dataset public??
+        add_public_access(ds3)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        lookup = build_lookup(data)
+        self.assertTrue(lookup["ds_list_user4"]["ds_owned"])
+        self.assertTrue(lookup["ds_list_user5"]["ds_shared"])
+        self.assertTrue(lookup["ds_list_user6"]["ds_public"])
+
+        # What happens with the sample data queries?
+        process_queue()
+        process_queue()
+        process_queue()
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        lookup = build_lookup(data)
+        self.assertTrue(lookup["ds_list_user4"]["ds_owned"])
+        self.assertTrue(lookup["ds_list_user5"]["ds_shared"])
+        self.assertTrue(lookup["ds_list_user6"]["ds_public"])
 
