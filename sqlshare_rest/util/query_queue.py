@@ -1,5 +1,6 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Query
+from sqlshare_rest.dao.dataset import reset_dataset_account_access
 from django.utils import timezone
 
 
@@ -38,4 +39,6 @@ def process_queue():
         dataset = oldest_query.is_preview_for
         dataset.preview_is_finished = True
         dataset.preview_error = oldest_query.error
+        # Make sure all current users can see the preview table
+        reset_dataset_account_access(dataset)
         dataset.save()

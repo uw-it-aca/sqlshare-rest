@@ -31,6 +31,11 @@ class DatasetPermissionsAPITest(BaseAPITest):
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
+        try:
+            cursor = connection.cursor()
+            cursor.execute("DROP DATABASE test_ss_query_db")
+        except Exception as ex:
+            pass
 
     def test_unauthenticated(self):
         url = reverse("sqlshare_view_dataset_permissions", kwargs={"owner":"foo", "name":"bar"})
@@ -295,6 +300,50 @@ class DatasetPermissionsAPITest(BaseAPITest):
         new_data = { "accounts": [ other_user1 ] }
         response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
 
+        response = self.client.get(url, **user1_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+
+        if is_sqlite3():
+            self.assertEquals(data["sample_data"], [['1']])
+        else:
+            self.assertEquals(data["sample_data"], [[1]])
+
+    def test_preview_table_permissions_pre_process(self):
+        # We need to process the preview query - purge any existing queries
+        # to make sure we process ours.
+        Query.objects.all().delete()
+
+        owner = "permissions_preview_user5"
+        dataset_name = "ds1"
+        other_user1 = "permissions_preview_user6"
+        self.remove_users.append(owner)
+        self.remove_users.append(other_user1)
+
+        backend = get_backend()
+        backend.get_user(other_user1)
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': dataset_name})
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+        user1_auth_headers = self.get_auth_header_for_username(other_user1)
+
+        new_data = { "accounts": [ other_user1 ] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+
+        # Test that we get a 200 while the preview is being built
+        response = self.client.get(url, **user1_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["sample_data_status"], "working")
+
+        process_queue()
+        # Test that permission was added after the query is finished.
         response = self.client.get(url, **user1_auth_headers)
         self.assertEquals(response.status_code, 200)
 
