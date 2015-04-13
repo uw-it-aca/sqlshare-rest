@@ -8,10 +8,10 @@ from django.test.utils import override_settings
 from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
-from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.dao.dataset import create_dataset_from_query, add_public_access
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
-from sqlshare_rest.util.db import is_sqlite3
+from sqlshare_rest.util.db import is_sqlite3, is_mysql
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -351,5 +351,49 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         if is_sqlite3():
             self.assertEquals(data["sample_data"], [['1']])
+        else:
+            self.assertEquals(data["sample_data"], [[1]])
+
+    def test_preview_table_permissions_public(self):
+        # We need to process the preview query - purge any existing queries
+        # to make sure we process ours.
+        Query.objects.all().delete()
+
+        owner = "permissions_preview_user7"
+        dataset_name = "ds1"
+        other_user1 = "permissions_preview_user8"
+        self.remove_users.append(owner)
+        self.remove_users.append(other_user1)
+
+        backend = get_backend()
+        backend.get_user(other_user1)
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': dataset_name})
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+        user1_auth_headers = self.get_auth_header_for_username(other_user1)
+
+        add_public_access(ds1)
+
+        # Test that we get a 200 while the preview is being built
+        response = self.client.get(url, **user1_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["sample_data_status"], "working")
+
+        process_queue()
+        # Test that permission was added after the query is finished.
+        response = self.client.get(url, **user1_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+
+        if is_sqlite3():
+            self.assertEquals(data["sample_data"], [['1']])
+        elif is_mysql():
+            # :(
+            self.assertEquals(data["sample_data"], None)
         else:
             self.assertEquals(data["sample_data"], [[1]])
