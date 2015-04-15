@@ -24,6 +24,7 @@ from sqlshare_rest.util.query_queue import process_queue
                                 'django.contrib.messages.middleware.MessageMiddleware',
                                 'django.middleware.clickjacking.XFrameOptionsMiddleware',
                                 ),
+                   SQLSHARE_QUERY_CACHE_DB="test_ss_query_db",
                    AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
                    )
 
@@ -399,7 +400,7 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["description"], "")
 
     def test_delete(self):
-        owner = "patch_adams"
+        owner = "test_dataset_delete"
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
 

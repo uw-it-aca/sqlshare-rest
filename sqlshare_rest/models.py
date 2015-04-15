@@ -69,6 +69,7 @@ class Dataset(models.Model):
             "tags": self.get_tags_data(),
             "url": self.get_url(),
             "sample_data_status": self.get_sample_data_status(),
+            "sample_data_error": self.preview_error,
         }
 
     def get_sample_data_status(self):
