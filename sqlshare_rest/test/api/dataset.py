@@ -237,6 +237,14 @@ class DatsetAPITest(BaseAPITest):
         response = self.client.put(url, data=json_data, **auth_headers)
         self.assertEquals(response.status_code, 201)
 
+        response = self.client.get(url, **auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+
+        self.assertEquals(data["sample_data_status"], "working")
+
+
         process_queue()
         # Test that the GET returns data after the second PUT too...
         response = self.client.get(url, **auth_headers)
@@ -245,6 +253,7 @@ class DatsetAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
 
         self.assertEquals(data["owner"], owner)
+        self.assertEquals(data["sample_data_status"], "success")
         self.assertEquals(data["description"], "This is a test dataset")
 
     def test_repeated_puts_no_queue_run(self):

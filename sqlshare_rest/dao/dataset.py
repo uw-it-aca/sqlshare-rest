@@ -42,7 +42,6 @@ def create_dataset_from_query(username, dataset_name, sql):
     try:
         (model, created) = Dataset.objects.get_or_create(name=dataset_name,
                                                          owner=user)
-
         if not created:
             # Clear out the existing dataset, so we can create
             # the new view properly
@@ -50,6 +49,8 @@ def create_dataset_from_query(username, dataset_name, sql):
 
         backend.create_view(dataset_name, sql, user)
 
+        model.preview_is_finished = False
+        model.preview_error = None
         model.sql = sql
         model.save()
 
