@@ -22,12 +22,38 @@ def get_public_datasets():
     return Dataset.objects.filter(is_public=True)
 
 
-def get_all_datasets_for_user(user):
-    datasets = list(get_datasets_owned_by_user(user))
-    datasets.extend(list(get_datasets_shared_with_user(user)))
-    datasets.extend(list(get_public_datasets()))
+def _get_all_dataset_querysets(user):
+    return (get_datasets_owned_by_user(user),
+            get_datasets_shared_with_user(user),
+            get_public_datasets())
+
+
+def _dataset_unique_list(mine, shared, public):
+    datasets = list(mine)
+    datasets.extend(list(shared))
+    datasets.extend(list(public))
 
     return list(set(datasets))
+
+
+def get_all_datasets_for_user(user):
+    mine, shared, public = _get_all_dataset_querysets(user)
+    return _dataset_unique_list(mine, shared, public)
+
+
+def get_all_datasets_tagged_for_user(user, tag_label):
+    try:
+        tags = Tag.objects.filter(tag__iexact=tag_label)
+    except Tag.DoesNotExist:
+        return []
+    datasets = get_all_datasets_for_user(user)
+
+    dataset_tags = DatasetTag.objects.filter(dataset__in=datasets,
+                                             tag__in=tags)
+
+    values = list(map(lambda x: x.dataset, dataset_tags))
+
+    return values
 
 
 def get_dataset_by_owner_and_name(owner, name):

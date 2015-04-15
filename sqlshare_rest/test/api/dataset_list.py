@@ -170,3 +170,84 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue(lookup["ds_list_user5"]["ds_shared"])
         self.assertTrue(lookup["ds_list_user6"]["ds_public"])
 
+    def test_tagged_list(self):
+        owner1 = "ds_list_user7"
+        owner2 = "ds_list_user8"
+        owner3 = "ds_list_user9"
+        self.remove_users.append(owner1)
+        self.remove_users.append(owner2)
+        self.remove_users.append(owner3)
+
+        auth_headers = self.get_auth_header_for_username(owner1)
+        auth_headers2 = self.get_auth_header_for_username(owner2)
+        auth_headers3 = self.get_auth_header_for_username(owner3)
+        url = reverse("sqlshare_view_dataset_tagged_list", kwargs={"tag": "__test_tag_api__" })
+
+        ds1 = create_dataset_from_query(owner1, "ds_owned", "SELECT(1)")
+        ds2 = create_dataset_from_query(owner2, "ds_shared", "SELECT(1)")
+        ds3 = create_dataset_from_query(owner3, "ds_public", "SELECT(1)")
+
+        ds4 = create_dataset_from_query(owner1, "ds_owned_tagged", "SELECT(1)")
+        ds5 = create_dataset_from_query(owner2, "ds_shared_tagged", "SELECT(1)")
+        ds6 = create_dataset_from_query(owner3, "ds_public_tagged", "SELECT(1)")
+
+        # Share the shared datasets...
+        set_dataset_accounts(ds2, [ owner1 ])
+        set_dataset_accounts(ds5, [ owner1 ])
+
+        # Make dataset public
+        add_public_access(ds3)
+        add_public_access(ds6)
+
+        def build_lookup(data):
+            lookup = {}
+            for item in data:
+                owner = item["owner"]
+                name = item["name"]
+                if not owner in lookup:
+                    lookup[owner] = {}
+                lookup[owner][name] = True
+            return lookup
+
+        response = self.client.get(url, **auth_headers)
+
+        # No tags added yet - should be an empty list
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data, [])
+
+        # Add the tag to 3 datasets:
+        tag_url = reverse("sqlshare_view_dataset_tags", kwargs={ 'owner': owner1, 'name': "ds_owned_tagged"})
+        data = [ { "name": owner1, "tags": [ "tag1", "__test_tag_api__" ] } ]
+        self.client.put(tag_url, data=json.dumps(data), **auth_headers)
+
+        tag_url = reverse("sqlshare_view_dataset_tags", kwargs={ 'owner': owner2, 'name': "ds_shared_tagged"})
+        data = [ { "name": owner2, "tags": [ "tag2", "__test_tag_api__" ] } ]
+        self.client.put(tag_url, data=json.dumps(data), **auth_headers2)
+
+        tag_url = reverse("sqlshare_view_dataset_tags", kwargs={ 'owner': owner3, 'name': "ds_public_tagged"})
+        data = [ { "name": owner1, "tags": [ "tag3", "__test_tag_api__" ] } ]
+        self.client.put(tag_url, data=json.dumps(data), **auth_headers)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        lookup = build_lookup(data)
+        self.assertTrue(lookup["ds_list_user7"]["ds_owned_tagged"])
+        self.assertTrue(lookup["ds_list_user8"]["ds_shared_tagged"])
+        self.assertTrue(lookup["ds_list_user9"]["ds_public_tagged"])
+        self.assertTrue("ds_public" not in lookup["ds_list_user9"])
+        self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
+        self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
+
+        # Test case-insensitivity
+        url = reverse("sqlshare_view_dataset_tagged_list", kwargs={"tag": "__TEST_TAG_API__" })
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        lookup = build_lookup(data)
+        self.assertTrue(lookup["ds_list_user7"]["ds_owned_tagged"])
+        self.assertTrue(lookup["ds_list_user8"]["ds_shared_tagged"])
+        self.assertTrue(lookup["ds_list_user9"]["ds_public_tagged"])
+        self.assertTrue("ds_public" not in lookup["ds_list_user9"])
+        self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
+        self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
+
+

@@ -1,6 +1,7 @@
 from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.dao.dataset import get_datasets_owned_by_user
 from sqlshare_rest.dao.dataset import get_datasets_shared_with_user
+from sqlshare_rest.dao.dataset import get_all_datasets_tagged_for_user
 from sqlshare_rest.dao.dataset import get_all_datasets_for_user
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -27,6 +28,19 @@ def dataset_shared_list(request):
     get_oauth_user(request)
 
     datasets = get_datasets_shared_with_user(request.user)
+
+    data = []
+    for dataset in datasets:
+        data.append(dataset.json_data())
+    return HttpResponse(json.dumps(data))
+
+
+@csrf_exempt
+@protected_resource()
+def dataset_tagged_list(request, tag):
+    get_oauth_user(request)
+
+    datasets = get_all_datasets_tagged_for_user(request.user, tag_label=tag)
 
     data = []
     for dataset in datasets:
