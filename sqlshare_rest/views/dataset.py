@@ -25,6 +25,9 @@ def dataset(request, owner, name):
     if request.META['REQUEST_METHOD'] == "PATCH":
         return _patch_dataset(request, owner, name)
 
+    if request.META['REQUEST_METHOD'] == "DELETE":
+        return _delete_dataset(request, owner, name)
+
 
 def _get_dataset(request, owner, name):
     try:
@@ -99,3 +102,20 @@ def _patch_dataset(request, owner, name):
     dataset.save()
 
     return HttpResponse(json.dumps(dataset.json_data()))
+
+
+def _delete_dataset(request, owner, name):
+    username = request.user.username
+    if username != owner:
+        raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
+
+    response = HttpResponse("")
+    try:
+        dataset = get_dataset_by_owner_and_name(owner, name)
+        Query.objects.filter(is_preview_for=dataset).delete()
+    except Dataset.DoesNotExist:
+        response.status_code = 404
+        return response
+
+    dataset.delete()
+    return response
