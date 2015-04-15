@@ -363,6 +363,43 @@ class DatsetAPITest(BaseAPITest):
 
         self.assertEquals(response.status_code, 200)
 
+    def test_patch(self):
+        owner = "patch_adams"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        # Should be None anyway, but why not...
+        ds1.description = None
+        ds1.save()
+
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': "ds1"})
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["description"], "")
+
+        self.client.patch(url, '{"description": "VIA PATCH"}', content_type="application/json", **auth_headers)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["description"], "VIA PATCH")
+
+        self.client.patch(url, '{"rando-field": "MEH"}', content_type="application/json", **auth_headers)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["description"], "VIA PATCH")
+
+        self.client.patch(url, '{"description": null}', content_type="application/json", **auth_headers)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["description"], "")
+
+
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):

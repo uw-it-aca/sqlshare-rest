@@ -22,6 +22,9 @@ def dataset(request, owner, name):
     if request.META['REQUEST_METHOD'] == "PUT":
         return _put_dataset(request, owner, name)
 
+    if request.META['REQUEST_METHOD'] == "PATCH":
+        return _patch_dataset(request, owner, name)
+
 
 def _get_dataset(request, owner, name):
     try:
@@ -77,3 +80,22 @@ def _put_dataset(request, owner, name):
     response.status_code = 201
 
     return response
+
+
+def _patch_dataset(request, owner, name):
+    username = request.user.username
+    if username != owner:
+        raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
+
+    dataset = get_dataset_by_owner_and_name(owner, name)
+
+    data = json.loads(request.body.decode("utf-8"))
+
+    updated = False
+    if "description" in data:
+        dataset.description = data["description"]
+        updated = True
+
+    dataset.save()
+
+    return HttpResponse(json.dumps(dataset.json_data()))
