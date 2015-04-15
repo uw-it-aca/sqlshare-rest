@@ -247,6 +247,58 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["owner"], owner)
         self.assertEquals(data["description"], "This is a test dataset")
 
+    def test_repeated_puts_no_queue_run(self):
+        """
+        This *should* update the dataset initially created
+        """
+        Query.objects.all().delete()
+        owner = "put_user1b"
+        ds1_name = "dataset_1b"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                        'name': ds1_name})
+
+        data = {
+            "sql_code": "SELECT(1)",
+            "is_public": False,
+            "is_snapshot": False,
+            "description": "This is a test dataset",
+        }
+
+        json_data = json.dumps(data)
+
+        # Test the right response from the PUT
+        response = self.client.put(url, data=json_data, **auth_headers)
+        self.assertEquals(response.status_code, 201)
+
+        data = json.loads(response.content.decode("utf-8"))
+
+        self.assertEquals(data["name"], ds1_name)
+
+
+        # Test that the GET returns data too...
+        response = self.client.get(url, **auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        # Make sure we have a new schema:
+        data["sql_code"] = "SELECT (1), (2)"
+
+        response = self.client.put(url, data=json_data, **auth_headers)
+        self.assertEquals(response.status_code, 201)
+
+        process_queue()
+        # Test that the GET returns data after the second PUT too...
+        response = self.client.get(url, **auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+
+        self.assertEquals(data["owner"], owner)
+        self.assertEquals(data["description"], "This is a test dataset")
+
+
+
 
     def test_valid_no_permissions(self):
         owner = "put_user2"
