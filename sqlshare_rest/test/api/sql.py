@@ -50,10 +50,14 @@ class RunQueryAPITest(BaseAPITest):
 
         response = self.client.get(url, **auth_headers)
         self.assertEquals(response.status_code, 405)
-        response = self.client.post(url, "SELECT (1", content_type="text/sql", **auth_headers)
+        response = self.client.post(url, { "sql": "SELECT (1" }, **auth_headers)
         self.assertEquals(response.status_code, 400)
 
-        response = self.client.post(url, "SELECT (1), (2)", content_type="text/sql", **auth_headers)
+
+        response = self.client.post(url, { }, **auth_headers)
+        self.assertEquals(response.status_code, 400)
+
+        response = self.client.post(url, { "sql": "SELECT (1), (2)" }, **auth_headers)
         self.assertEquals(response.status_code, 200)
 
         data = StringIO(response.content.decode("utf-8"))
@@ -66,7 +70,7 @@ class RunQueryAPITest(BaseAPITest):
         self.assertEquals(values[1][0], "1")
         self.assertEquals(values[1][1], "2")
 
-        response = self.client.post(url, "SELECT ('\",;\na')", content_type="text/sql", **auth_headers)
+        response = self.client.post(url, { "sql": "SELECT ('\",;\na')" }, **auth_headers)
         self.assertEquals(response.status_code, 200)
 
         data = StringIO(response.content.decode("utf-8"))
@@ -77,3 +81,6 @@ class RunQueryAPITest(BaseAPITest):
 
         self.assertEquals(len(values), 2)
         self.assertEquals(values[1][0], '",;\na')
+
+        self.assertEquals(response["Content-Disposition"],  'attachment; filename="query_results.csv"')
+        self.assertEquals(response["Content-Type"],  'text/csv')

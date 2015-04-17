@@ -21,17 +21,17 @@ def run(request):
     backend = get_backend()
     user = backend.get_user(request.user.username)
 
-    sql = request.body.decode("utf-8")
+    sql = request.POST.get("sql", "")
     try:
         cursor = backend.run_query(sql, user, return_cursor=True)
-        return HttpResponse(stream_query(cursor))
+        disposition = 'attachment; filename="query_results.csv"'
+        response = HttpResponse(stream_query(cursor), content_type='text/csv')
+        response['Content-Disposition'] = disposition
+        return response
     except Exception as ex:
         response = HttpResponse(str(ex))
         response.status_code = 400
         return response
-
-    query = request.body.decode("utf-8")
-    return HttpResponse("")
 
 
 def stream_query(cursor):
