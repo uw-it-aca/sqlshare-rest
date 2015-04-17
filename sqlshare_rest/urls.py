@@ -54,8 +54,11 @@ urlpatterns = patterns(
         'file_upload.initialize',
         name="sqlshare_view_file_upload_init"),
 
-
     url('v3/users',
         'users.search',
         name="sqlshare_view_user_search"),
+
+    url('v3/db/sql',
+        'sql.run',
+        name="sqlshare_view_run_query"),
 )
