@@ -75,6 +75,9 @@ class MySQLBackend(DBInterface):
     def get_qualified_name(self, dataset):
         return "`%s`.`%s`" % (dataset.owner.schema, dataset.name)
 
+    def get_download_sql_for_dataset(self, dataset):
+        return "SELECT * FROM %s" % self.get_qualified_name(dataset)
+
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) as x LIMIT 100" % sql
 

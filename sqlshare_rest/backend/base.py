@@ -47,6 +47,9 @@ class DBInterface(object):
     def remove_access_to_dataset(self, dataset, owner, reader):
         self._not_implemented("remove_access_to_dataset")
 
+    def get_download_sql_for_dataset(self, dataset):
+        self._not_implemented("get_download_sql_for_dataset")
+
     def get_preview_sql_for_query(self, sql):
         self._not_implemented("get_preview_for_query")
 

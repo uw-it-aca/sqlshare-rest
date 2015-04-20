@@ -7,9 +7,40 @@ from django.utils import timezone
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User, Query
 from sqlshare_rest.views import get_oauth_user, get403, get404
+from sqlshare_rest.views.sql import response_for_query
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.util.query import get_sample_data_for_query
+
+
+@csrf_exempt
+@protected_resource()
+def download(request, owner, name):
+    get_oauth_user(request)
+
+    if request.META['REQUEST_METHOD'] != "POST":
+        response = HttpResponse("")
+        response.status_code = 405
+        return response
+
+    try:
+        dataset = get_dataset_by_owner_and_name(owner, name)
+    except Dataset.DoesNotExist:
+        return get404()
+    except User.DoesNotExist:
+        return get404()
+    except Exception as ex:
+        raise
+
+    if not dataset.user_has_read_access(request.user):
+        return get403()
+
+    backend = get_backend()
+    user = backend.get_user(request.user.username)
+    sql = backend.get_download_sql_for_dataset(dataset)
+
+    download_name = "%s.csv" % name
+    return response_for_query(sql, user, download_name)
 
 
 @csrf_exempt

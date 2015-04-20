@@ -14,6 +14,13 @@ from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.models import Query
 from sqlshare_rest.util.query_queue import process_queue
+import csv
+
+import six
+if six.PY2:
+    from StringIO import StringIO
+elif six.PY3:
+    from io import StringIO
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -417,6 +424,35 @@ class DatsetAPITest(BaseAPITest):
 
         response = self.client.get(url, **auth_headers)
         self.assertEquals(response.status_code, 404)
+
+    def test_download(self):
+        owner = "test_dataset_download"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        # Should be None anyway, but why not...
+
+        url = reverse("sqlshare_view_download_dataset", kwargs={ 'owner': owner,
+                                                                 'name': "ds1"})
+
+        response = self.client.get(url, **auth_headers)
+        self.assertEquals(response.status_code, 405)
+
+        response = self.client.post(url, {}, **auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(response["Content-Disposition"],  'attachment; filename="ds1.csv"')
+        self.assertEquals(response["Content-Type"],  'text/csv')
+
+        data = StringIO(response.content.decode("utf-8"))
+        reader = csv.reader(data, delimiter=",")
+        values = []
+        for row in reader:
+            values.append(row)
+
+        self.assertEquals(len(values), 2)
+        self.assertEquals(values[1][0], "1")
 
     @classmethod
     def setUpClass(cls):
