@@ -12,7 +12,7 @@ from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
-from sqlshare_rest.models import Query
+from sqlshare_rest.models import Query, Dataset
 from sqlshare_rest.util.query_queue import process_queue
 import csv
 
@@ -405,6 +405,21 @@ class DatsetAPITest(BaseAPITest):
         response = self.client.get(url, **auth_headers)
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(data["description"], "")
+
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertFalse(ds1.is_public)
+
+        self.client.patch(url, '{"is_public": true }', content_type="application/json", **auth_headers)
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertTrue(ds1.is_public)
+
+        self.client.patch(url, '{"rando-2": true }', content_type="application/json", **auth_headers)
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertTrue(ds1.is_public)
+
+        self.client.patch(url, '{"is_public": false }', content_type="application/json", **auth_headers)
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertFalse(ds1.is_public)
 
     def test_delete(self):
         owner = "test_dataset_delete"

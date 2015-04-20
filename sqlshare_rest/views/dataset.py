@@ -130,6 +130,10 @@ def _patch_dataset(request, owner, name):
         dataset.description = data["description"]
         updated = True
 
+    if "is_public" in data:
+        dataset.is_public = data["is_public"]
+        updated = True
+
     dataset.save()
 
     return HttpResponse(json.dumps(dataset.json_data()))
