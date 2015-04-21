@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from datetime import datetime
 from django.utils import timezone
 import json
+from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 # from django_fields.fields import EncryptedCharField
 
 JSON_DATE = "%a, %-d %b %Y %-H:%M:%S %Z"
@@ -146,6 +147,10 @@ class Query(models.Model):
     date_created = models.DateTimeField(auto_now_add=True,
                                         default=timezone.now)
     date_finished = models.DateTimeField(null=True)
+
+    def save(self, *args, **kwargs):
+        super(Query, self).save(*args, **kwargs)
+        trigger_query_queue_processing()
 
     def json_data(self, request):
         """

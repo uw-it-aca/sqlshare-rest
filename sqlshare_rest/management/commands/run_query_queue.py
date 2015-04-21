@@ -15,7 +15,7 @@ class Command(BaseCommand):
                     )
 
     def handle(self, *args, **options):
-        if not options["run_once"]:
-            raise Exception("Only handles --run-once for now")
-
-        process_queue()
+        if options["run_once"]:
+            process_queue()
+        else:
+            process_queue(run_once=False, thread_count=10)
