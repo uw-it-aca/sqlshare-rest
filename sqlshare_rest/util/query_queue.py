@@ -7,7 +7,13 @@ from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 
 import socket
 from threading import Thread
-from Queue import Queue
+
+import six
+
+if six.PY2:
+    from Queue import Queue
+elif six.PY3:
+    from queue import Queue
 
 PORT_NUMBER = 1999
 
