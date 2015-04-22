@@ -1,5 +1,7 @@
 from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
+from oauth2_provider import views as oa_views
+from sqlshare_rest.views.oauth import SSAuthorizationView
 
 urlpatterns = patterns(
     'sqlshare_rest.views',
@@ -65,4 +67,31 @@ urlpatterns = patterns(
     url('v3/db/sql',
         'sql.run',
         name="sqlshare_view_run_query"),
+
+    # This needs to be outside the block below, to keep it from
+    # being namespaced.
+    url(r'^access_code/$',
+        'oauth.access_code',
+        name="oauth_access_code"),
+
+)
+
+# OAuth urls.  Doing this instead of including the oauth2_provider urls so we
+# can override the authorization view to allow oob access.
+oauth_patterns = patterns(
+    '',
+    url(r'^authorize/$',
+        SSAuthorizationView.as_view(),
+        name="authorize"),
+    url(r'^token/$',
+        oa_views.TokenView.as_view(),
+        name="token"),
+    url(r'^revoke_token/$',
+        oa_views.RevokeTokenView.as_view(),
+        name="revoke-token"),
+)
+
+urlpatterns += patterns(
+    '',
+    url(r'^o/', include(oauth_patterns, namespace="oauth2_provider")),
 )
