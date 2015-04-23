@@ -67,6 +67,10 @@ def _set_dataset_permissions(request, dataset):
     set_dataset_emails(dataset, emails, save_dataset=False)
 
     dataset.is_shared = is_shared
+
+    if "is_public" in data:
+        dataset.is_public = data["is_public"]
+
     dataset.save()
 
     return HttpResponse()

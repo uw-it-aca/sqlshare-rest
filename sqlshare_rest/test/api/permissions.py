@@ -397,3 +397,33 @@ class DatasetPermissionsAPITest(BaseAPITest):
             self.assertEquals(data["sample_data"], None)
         else:
             self.assertEquals(data["sample_data"], [[1]])
+
+    def test_public_to_shared(self):
+        owner = "permissions_xpublic_user1"
+        other_user1 = "permissions_xpublic_user2"
+        dataset_name = "ds1"
+
+        self.remove_users.append(owner)
+        self.remove_users.append(other_user1)
+
+        backend = get_backend()
+        backend.get_user(other_user1)
+
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+
+        add_public_access(ds1)
+
+
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+        new_data = { "accounts": [ other_user1 ], "is_public": False }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(permissions_url, **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["is_public"], False)
+        self.assertEquals(data["is_shared"], True)
+        self.assertEquals(data["emails"], [])
+        self.assertEquals(data["accounts"], [{'login': 'permissions_xpublic_user2'}])
