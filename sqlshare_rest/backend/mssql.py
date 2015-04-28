@@ -15,7 +15,8 @@ class MSSQLBackend(DBInterface):
     def create_db_user(self, username, password):
         pass
         # cursor = connection.cursor()
-        # cursor.execute("CREATE USER %s IDENTIFIED BY %s", (username, password))
+        # cursor.execute("CREATE USER %s IDENTIFIED BY %s",
+        #                (username, password))
         # return
 
     def get_db_username(self, user):
