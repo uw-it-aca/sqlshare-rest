@@ -4,6 +4,7 @@ from sqlshare_rest.dao.dataset import reset_dataset_account_access
 from django.utils import timezone
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
+import signal
 
 import socket
 from threading import Thread
@@ -18,7 +19,7 @@ elif six.PY3:
 PORT_NUMBER = 1999
 
 
-def process_queue(thread_count=0, run_once=True):
+def process_queue(thread_count=0, run_once=True, verbose=False):
     q = Queue()
 
     def worker():
@@ -29,6 +30,8 @@ def process_queue(thread_count=0, run_once=True):
         keep_looping = True
         while keep_looping:
             oldest_query = q.get()
+            if verbose:
+                print ("Processing query id %s." % oldest_query.pk)
             user = oldest_query.owner
             try:
                 cursor = backend.run_query(oldest_query.sql,
@@ -63,6 +66,8 @@ def process_queue(thread_count=0, run_once=True):
                 print("Error: %s" % str(ex))
 
             q.task_done()
+            if verbose:
+                print ("Finished query id %s." % oldest_query.pk)
             if run_once:
                 keep_looping = False
 
@@ -73,6 +78,8 @@ def process_queue(thread_count=0, run_once=True):
         """
         while True:
             sleep(5)
+            if verbose:
+                print ("Triggering periodic processing.")
             trigger_query_queue_processing()
 
     filtered = Query.objects.filter(is_finished=False)
@@ -96,6 +103,8 @@ def process_queue(thread_count=0, run_once=True):
         for query in filtered:
             if query.pk > newest_pk:
                 newest_pk = query.pk
+            if verbose:
+                print ("Adding query ID %s to the queue." % query.pk)
             q.put(query)
 
         # Just in case things get off the rails - maybe a connection to the
@@ -108,6 +117,13 @@ def process_queue(thread_count=0, run_once=True):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind(('localhost', PORT_NUMBER))
 
+        # Make sure we close our socket when we're killed.
+        def sig_handler(signal, frame):
+            server.close()
+
+        signal.signal(signal.SIGINT, sig_handler)
+
+
         server.listen(5)
         while True:
             (clientsocket, address) = server.accept()
@@ -117,6 +133,8 @@ def process_queue(thread_count=0, run_once=True):
             for query in queries:
                 if query.pk > newest_pk:
                     newest_pk = query.pk
+                if verbose:
+                    print ("Adding query ID %s to the queue." % query.pk)
                 q.put(query)
 
     q.join()
