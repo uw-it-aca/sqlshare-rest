@@ -150,6 +150,8 @@ class DBInterface(object):
         """
         Create a table based on the values in:
         https://www.python.org/dev/peps/pep-0249/#cursor-objects
+
+        Implementations will return a rowcount.
         """
         raise NotImplementedError("create_table_from_query_result")
 

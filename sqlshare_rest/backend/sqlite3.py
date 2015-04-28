@@ -65,9 +65,12 @@ class SQLite3Backend(DBInterface):
 
         placeholders = ", ".join(list(map(lambda x: "%s", row)))
         insert = "INSERT INTO %s VALUES (%s)" % (name, placeholders)
+        row_count = 0
         while row:
             cursor.execute(insert, row)
             row = source_cursor.fetchone()
+            row_count += 1
+        return row_count
 
     def add_read_access_to_query(*args, **kwargs):
         pass

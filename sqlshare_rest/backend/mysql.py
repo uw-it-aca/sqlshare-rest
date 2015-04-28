@@ -191,9 +191,12 @@ class MySQLBackend(DBInterface):
 
         placeholders = ", ".join(list(map(lambda x: "%s", row)))
         insert = "INSERT INTO %s VALUES (%s)" % (full_name, placeholders)
+        row_count = 0
         while row:
             cursor.execute(insert, row)
             row = source_cursor.fetchone()
+            row_count += 1
+        return row_count
 
     def get_query_sample_sql(self, query_id):
         QUERY_SCHEMA = self.get_query_cache_db_name()

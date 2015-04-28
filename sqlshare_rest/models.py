@@ -167,6 +167,7 @@ class Query(models.Model):
     date_created = models.DateTimeField(auto_now_add=True,
                                         default=timezone.now)
     date_finished = models.DateTimeField(null=True)
+    rows_total = models.IntegerField(null=True)
 
     def save(self, *args, **kwargs):
         super(Query, self).save(*args, **kwargs)
@@ -195,6 +196,7 @@ class Query(models.Model):
             "sample_data_status": self.get_sample_data_status(),
             "sample_data": None,  # Comes in at the view level
             "columns": None,  # Comes in at the view level
+            "rows_total": self.rows_total,
         }
 
     def get_sample_data_status(self):

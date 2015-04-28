@@ -31,8 +31,9 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         while keep_looping:
             oldest_query = q.get()
             if verbose:
-                print ("Processing query id %s." % oldest_query.pk)
+                print("Processing query id %s." % oldest_query.pk)
             user = oldest_query.owner
+            row_count = 0
             try:
                 cursor = backend.run_query(oldest_query.sql,
                                            user,
@@ -40,7 +41,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
                 name = "query_%s" % oldest_query.pk
                 try:
-                    backend.create_table_from_query_result(name, cursor)
+                    row_count = backend.create_table_from_query_result(name,
+                                                                       cursor)
                     backend.add_read_access_to_query(oldest_query.pk, user)
                 except:
                     raise
@@ -53,6 +55,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             try:
                 oldest_query.is_finished = True
                 oldest_query.date_finished = timezone.now()
+                oldest_query.rows_total = row_count
                 oldest_query.save()
 
                 if oldest_query.is_preview_for:
@@ -67,7 +70,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
             q.task_done()
             if verbose:
-                print ("Finished query id %s." % oldest_query.pk)
+                print("Finished query id %s." % oldest_query.pk)
             if run_once:
                 keep_looping = False
 
@@ -79,7 +82,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         while True:
             sleep(5)
             if verbose:
-                print ("Triggering periodic processing.")
+                print("Triggering periodic processing.")
             trigger_query_queue_processing()
 
     filtered = Query.objects.filter(is_finished=False)
@@ -104,7 +107,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             if query.pk > newest_pk:
                 newest_pk = query.pk
             if verbose:
-                print ("Adding query ID %s to the queue." % query.pk)
+                print("Adding query ID %s to the queue." % query.pk)
             q.put(query)
 
         # Just in case things get off the rails - maybe a connection to the
@@ -123,7 +126,6 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
         signal.signal(signal.SIGINT, sig_handler)
 
-
         server.listen(5)
         while True:
             (clientsocket, address) = server.accept()
@@ -134,7 +136,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 if query.pk > newest_pk:
                     newest_pk = query.pk
                 if verbose:
-                    print ("Adding query ID %s to the queue." % query.pk)
+                    print("Adding query ID %s to the queue." % query.pk)
                 q.put(query)
 
     q.join()
