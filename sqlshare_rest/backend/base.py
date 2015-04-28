@@ -2,6 +2,7 @@ from sqlshare_rest.models import User
 import os
 import random
 import string
+from django.conf import settings
 
 
 class DBInterface(object):
@@ -11,7 +12,7 @@ class DBInterface(object):
     def __init__(self):
         self.username = None
 
-    def run_query(self, sql, user):
+    def run_query(self, sql, user, params=None, return_cursor=False):
         self._not_implemented("run_query")
 
     def create_view(self, name, sql, user):
@@ -22,6 +23,9 @@ class DBInterface(object):
 
     def create_db_schema(self, username, schema):
         self._not_implemented("create_db_schema")
+
+    def create_snapshot(self, source_dataset, destination_datset, user):
+        self._not_implemented("create_snapshot")
 
     def remove_db_user(self, db_username):
         self._not_implemented("remove_db_user")
@@ -34,7 +38,22 @@ class DBInterface(object):
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 
-    def create_dataset_from_parser(self, dataset_name, parser, user):
+    def add_read_access_to_query(self, query_id, user):
+        self._not_implemented("add_read_access_to_query")
+
+    def add_read_access_to_dataset(self, dataset, owner, reader):
+        self._not_implemented("add_read_access_to_dataset")
+
+    def remove_access_to_dataset(self, dataset, owner, reader):
+        self._not_implemented("remove_access_to_dataset")
+
+    def get_download_sql_for_dataset(self, dataset):
+        self._not_implemented("get_download_sql_for_dataset")
+
+    def get_preview_sql_for_query(self, sql):
+        self._not_implemented("get_preview_for_query")
+
+    def create_table_from_parser(self, dataset_name, parser, user):
         table_name = self._get_table_name_for_dataset(dataset_name)
         self._create_table(table_name=table_name,
                            column_names=parser.column_names(),
@@ -42,11 +61,30 @@ class DBInterface(object):
                            user=user)
 
         self._load_table(table_name, parser.get_data_handle(), user)
+        return table_name
+
+    def create_dataset_from_parser(self, dataset_name, parser, user):
+        """
+        Turns a parser object into a dataset.
+        # Creates a table based on the parser columns
+        # Loads the data that's in the handle for the parser
+        # Creates the view for the dataset
+        """
+        table_name = self.create_table_from_parser(dataset_name, parser, user)
         self.create_view(dataset_name,
-                         self._get_view_sql_for_dataset(table_name),
+                         self._get_view_sql_for_dataset(table_name, user),
                          user)
 
-    def _get_view_sql_for_dataset(self, table_name):
+    def get_view_sql_for_dataset(self, table_name, user):
+        return self._get_view_sql_for_dataset(table_name, user)
+
+    def delete_table(self, table_name, owner):
+        self._not_implemented("delete_table")
+
+    def delete_dataset(self, dataset_name, owner):
+        self._not_implemented("delete_dataset")
+
+    def _get_view_sql_for_dataset(self, table_name, user):
         """
         The SQL statement that creates a view of the given table of data
         """
@@ -97,6 +135,24 @@ class DBInterface(object):
         """
         raise NotImplementedError("_load_table")
 
+    def delete_query(self, query_id):
+        raise NotImplementedError("delete_query")
+
+    def get_query_sample_sql(self, query_id):
+        raise NotImplementedError("get_query_sample_sql")
+
+    def get_query_sample(self, user, id):
+        return self.run_query(self.get_query_sample_sql(id),
+                              user,
+                              return_cursor=True)
+
+    def create_table_from_query_result(self, name, cursor):
+        """
+        Create a table based on the values in:
+        https://www.python.org/dev/peps/pep-0249/#cursor-objects
+        """
+        raise NotImplementedError("create_table_from_query_result")
+
     def _create_table(self, table_name, column_names, column_types, user):
         """
         Create a table, building the definition from the column names and
@@ -115,6 +171,46 @@ class DBInterface(object):
     # Just their username by default?
     def get_db_schema(self, user):
         return user
+
+    def add_public_access(self, dataset, owner):
+        self._not_implemented("add_public_access")
+
+    def remove_public_access(self, dataset, owner):
+        self._not_implemented("add_public_access")
+
+    def run_public_query(self, sql, params=None):
+        """
+        This is intended as a fall-back for database engines that don't allow
+        a view to be readable by all users.  If there's an error running a
+        query as the current user, and the dataset is public, this will be
+        called.
+        """
+        user = self.get_public_user()
+        return self.run_query(sql, user, params)
+
+    def get_public_user(self):
+        """
+        Returns a stubbed out user for connecting to the database.  This
+        account should be "public", that is, shouldn't have any rights in the
+        database, except for specific "public" grants.
+        """
+        user = User()
+        user.db_username = self._get_public_username()
+        user.db_password = self._get_public_password()
+        user.schema = self._get_public_schema()
+        return user
+
+    def _get_public_username(self):
+        return settings.SQLSHARE_PUBLIC_DB_CONNECTION_USERNAME
+
+    def _get_public_password(self):
+        return settings.SQLSHARE_PUBLIC_DB_CONNECTION_PASSWORD
+
+    def _get_public_schema(self):
+        return settings.SQLSHARE_PUBLIC_DB_CONNECTION_SCHEMA
+
+    def get_qualified_name(self, dataset):
+        return self._not_implemented("get_qualified_name")
 
     def create_db_user_password(self):
         chars = string.ascii_letters + string.digits

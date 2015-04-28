@@ -6,4 +6,5 @@ urlpatterns = patterns('',
     # url(r'^$', 'project.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
     url(r'^', include('sqlshare_rest.urls')),
+    url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 )

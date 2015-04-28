@@ -11,26 +11,34 @@ class Parser(object):
     def __init__(self):
         self._has_header = None
         self._delimiter = None
-        self._headers = None
+        self._column_names = None
         self._handle = None
         self._column_types = None
 
     def set_defaults(self):
         self._has_header = False
-        self._headers = []
+        self._column_names = []
         self._delimiter = ','
 
     def guess(self, content):
         self.set_defaults()
-        self._has_header = csv.Sniffer().has_header(content)
-        self._delimiter = csv.Sniffer().sniff(content).delimiter
+        try:
+            self._has_header = csv.Sniffer().has_header(content)
+            self._delimiter = csv.Sniffer().sniff(content,
+                                                  delimiters=",\t").delimiter
+        except Exception as ex:
+            # In some non-square datasets, csv fails to detect "," as the
+            # delimiter, even if it seems like a pretty clear choice
+            self._delimiter = ","
+            # This can also mess up header detection :(
+            self._has_header = False
 
         data = StringIO(content)
         if self._has_header:
-            self._headers = self._get_headers_from_handle(data)
+            self._column_names = self._get_headers_from_handle(data)
         else:
             count = len(self._next(csv.reader(data)))
-            self._headers = self.generate_column_names(count)
+            self._column_names = self.generate_column_names(count)
 
     def parse(self, handle):
         if self._has_header is None:
@@ -42,13 +50,23 @@ class Parser(object):
         self._handle = handle
         if self.has_header_row():
             # XXX - make this overridable?
-            self._headers = self._get_headers_from_handle(handle)
+            self._column_names = self._get_headers_from_handle(handle)
 
     def get_data_handle(self):
         return DataHandler(self)
 
+    def prep_data_load(self):
+        """ Resets the file index, and reads off the header row, if needed """
+        self._handle.seek(0)
+        if self.has_header_row():
+            self._get_headers_from_handle(self._handle)
+
     def _get_headers_from_handle(self, handle):
-        return self.make_unique_columns(self._next(csv.reader(handle)))
+        handle.seek(0)
+        values = self._next(csv.reader(handle))
+        unique = self.make_unique_columns(values)
+
+        return unique
 
     def make_unique_columns(self, names):
         seen_names = {}
@@ -87,13 +105,15 @@ class Parser(object):
         text)
 
         Currently the preferred matches goes int -> float -> text
+
+        Resets the handle to position 0.
         """
+
         if self._column_types:
             return self._column_types
         if not self._handle:
             raise Exception("No handle to read from")
 
-        current_index = self._handle.tell()
         self._handle.seek(0)
 
         values = []
@@ -104,7 +124,7 @@ class Parser(object):
         for row in self:
             self._guess_column_types_by_row(row, values)
 
-        self._handle.seek(current_index)
+        self._handle.seek(0)
         self._column_types = values
         return values
 
@@ -174,8 +194,8 @@ class Parser(object):
             self._has_header = value
         return self._has_header
 
-    def headers(self):
-        return self._headers
+    def column_names(self):
+        return self._column_names
 
     def delimiter(self, value=None):
         if value is not None:
@@ -195,7 +215,11 @@ class Parser(object):
         return self
 
     def next(self):
-        reader = csv.reader(self._handle, delimiter=self.delimiter())
+        if six.PY2:
+            delimiter = self.delimiter().encode("ascii")
+        elif six.PY3:
+            delimiter = self.delimiter()
+        reader = csv.reader(self._handle, delimiter=delimiter)
         return self._next(reader)
 
     # Python 3 version of next
@@ -206,6 +230,7 @@ class DataHandler(object):
     def __init__(self, parser):
         self._parser = parser
         self._columns = parser.column_types()
+        parser.prep_data_load()
 
     def __iter__(self):
         return self
@@ -214,16 +239,20 @@ class DataHandler(object):
         typed = []
         raw = self._parser.next()
 
-        for i in range(0, len(raw)):
-            value = raw[i]
+        for i in range(0, len(self._columns)):
             col_type = self._columns[i]["type"]
 
-            if "int" == col_type:
-                typed.append(int(value))
-            elif "float" == col_type:
-                typed.append(float(value))
+            if len(raw) <= i:
+                # Make the data square!
+                typed.append(None)
             else:
-                typed.append(value)
+                value = raw[i]
+                if "int" == col_type:
+                    typed.append(int(value))
+                elif "float" == col_type:
+                    typed.append(float(value))
+                else:
+                    typed.append(value)
         return typed
 
     __next__ = next

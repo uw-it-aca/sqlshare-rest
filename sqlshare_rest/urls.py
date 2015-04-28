@@ -1,51 +1,101 @@
 from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
-
-from sqlshare_rest.views.dataset_list import DatasetListView
-from sqlshare_rest.views.dataset import DatasetView
-from sqlshare_rest.views.dataset_permissions import DatasetPermissionsView
-from sqlshare_rest.views.dataset_tags import DatasetTagsView
-
-from sqlshare_rest.views.query_list import QueryListView
-from sqlshare_rest.views.query import QueryView
-
-from sqlshare_rest.views.file_upload import FileUploadView
-from sqlshare_rest.views.file_parser import FileParserView
+from oauth2_provider import views as oa_views
+from sqlshare_rest.views.oauth import SSAuthorizationView
 
 urlpatterns = patterns(
-    url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
-        csrf_exempt(DatasetView().run),
-        name="sqlshare_view_dataset"),
-
+    'sqlshare_rest.views',
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/permissions',
-        csrf_exempt(DatasetPermissionsView().run),
+        'dataset_permissions.permissions',
         name="sqlshare_view_dataset_permissions"),
 
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/tags',
-        csrf_exempt(DatasetTagsView().run),
+        'dataset_tags.tags',
         name="sqlshare_view_dataset_tags"),
 
-    url('v3/db/dataset',
-        csrf_exempt(DatasetListView().run),
+    url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/result',
+        'dataset.download',
+        name="sqlshare_view_download_dataset"),
+
+    url('v3/db/dataset/tagged/(?P<tag>.*)', 'dataset_list.dataset_tagged_list',
+        name="sqlshare_view_dataset_tagged_list"),
+
+    url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
+        'dataset.dataset',
+        name="sqlshare_view_dataset"),
+
+    url('v3/db/dataset/shared', 'dataset_list.dataset_shared_list',
+        name="sqlshare_view_dataset_shared_list"),
+
+    url('v3/db/dataset/all', 'dataset_list.dataset_all_list',
+        name="sqlshare_view_dataset_all_list"),
+
+    url('v3/db/dataset', 'dataset_list.dataset_list',
         name="sqlshare_view_dataset_list"),
 
+    url('v3/db/token/(?P<token>.*)',
+        'dataset_permissions.add_token_access',
+        name="sqlshare_token_access"),
+
+    url('v3/user/me', 'user.user',
+        name="sqlshare_view_user"),
+
     url('v3/db/query/(?P<id>[0-9]+)',
-        csrf_exempt(QueryView().run),
+        'query.details',
         name="sqlshare_view_query"),
 
     url('v3/db/query',
-        csrf_exempt(QueryListView().run),
+        'query_list.query_list',
         name="sqlshare_view_query_list"),
 
-    url('v3/db/file/(?P<id>[0-9]+)',
-        csrf_exempt(FileUploadView().run),
-        name="sqlshare_view_file_upload"),
+    url('v3/db/file/(?P<id>[0-9]+)/finalize',
+        'file_upload.finalize',
+        name="sqlshare_view_upload_finalize"),
 
     url('v3/db/file/(?P<id>[0-9]+)/parser',
-        csrf_exempt(FileParserView().run),
+        'file_parser.parser',
         name="sqlshare_view_file_parser"),
 
-    url('v3/db/file/',
-        csrf_exempt(FileUploadView().run),
+    url('v3/db/file/(?P<id>[0-9]+)',
+        'file_upload.upload',
         name="sqlshare_view_file_upload"),
+
+    url('v3/db/file/',
+        'file_upload.initialize',
+        name="sqlshare_view_file_upload_init"),
+
+    url('v3/users',
+        'users.search',
+        name="sqlshare_view_user_search"),
+
+    url('v3/db/sql',
+        'sql.run',
+        name="sqlshare_view_run_query"),
+
+    # This needs to be outside the block below, to keep it from
+    # being namespaced.
+    url(r'^access_code/$',
+        'oauth.access_code',
+        name="oauth_access_code"),
+
+)
+
+# OAuth urls.  Doing this instead of including the oauth2_provider urls so we
+# can override the authorization view to allow oob access.
+oauth_patterns = patterns(
+    '',
+    url(r'^authorize/$',
+        SSAuthorizationView.as_view(),
+        name="authorize"),
+    url(r'^token/$',
+        oa_views.TokenView.as_view(),
+        name="token"),
+    url(r'^revoke_token/$',
+        oa_views.RevokeTokenView.as_view(),
+        name="revoke-token"),
+)
+
+urlpatterns += patterns(
+    '',
+    url(r'^o/', include(oauth_patterns, namespace="oauth2_provider")),
 )
