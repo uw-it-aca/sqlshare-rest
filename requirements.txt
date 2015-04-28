@@ -1,4 +1,4 @@
-Django==1.7
+Django>=1.7.1,<1.8
 # django-fields
 unittest2
 django-oauth-toolkit
