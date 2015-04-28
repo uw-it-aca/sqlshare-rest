@@ -12,6 +12,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query, add_public_acce
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
 from sqlshare_rest.util.db import is_sqlite3, is_mysql
+from sqlshare_rest.models import Dataset, DatasetSharingEmail
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -427,3 +428,99 @@ class DatasetPermissionsAPITest(BaseAPITest):
         self.assertEquals(data["is_shared"], True)
         self.assertEquals(data["emails"], [])
         self.assertEquals(data["accounts"], [{'login': 'permissions_xpublic_user2'}])
+
+    def test_sharing_tokens(self):
+        owner = "permissions_token_user1"
+        other = "permissions_token_taker"
+        other2 = "permissions_token_taker2"
+        dataset_name = "ds1"
+
+        self.remove_users.append(owner)
+        self.remove_users.append(other)
+        self.remove_users.append(other2)
+
+        backend = get_backend()
+        owner_obj = backend.get_user(owner)
+        backend.get_user(other)
+        backend.get_user(other2)
+
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+        other_auth_headers = self.get_auth_header_for_username(other)
+        other_auth_headers2 = self.get_auth_header_for_username(other2)
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+
+        new_data = { "emails": [ "test_user1@example.com" ] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        obj = Dataset.objects.get(owner=owner_obj, name=dataset_name)
+
+        sharing = DatasetSharingEmail.objects.filter(dataset=obj)[0]
+        email = sharing.email
+        access_token1 = sharing.access_token
+
+        self.assertEquals(email.email, "test_user1@example.com")
+
+        # Clear the emails, then put the same one back - make sure we get a
+        # different token
+        new_data = { "emails": [] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+
+        obj = Dataset.objects.get(owner=owner_obj, name=dataset_name)
+        self.assertEquals(len(DatasetSharingEmail.objects.filter(dataset=obj)), 0)
+
+        new_data = { "emails": [ "test_user1@example.com" ] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        obj = Dataset.objects.get(owner=owner_obj, name=dataset_name)
+
+        sharing = DatasetSharingEmail.objects.filter(dataset=obj)[0]
+        email = sharing.email
+        self.assertEquals(email.email, "test_user1@example.com")
+
+        access_token2 = sharing.access_token
+        self.assertNotEqual(access_token1, access_token2)
+
+        # Make sure that token 1 doesn't give access
+        token1_url = reverse("sqlshare_token_access", kwargs={"token": access_token1})
+        response = self.client.post(token1_url, data=None, **other_auth_headers)
+        self.assertEquals(response.status_code, 404)
+
+        # Make sure that token 2 does give access
+        token2_url = reverse("sqlshare_token_access", kwargs={"token": access_token2})
+        response = self.client.post(token2_url, data=None, **other_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["owner"], "permissions_token_user1")
+        self.assertEquals(data["name"], "ds1")
+
+        # the token is reusable - if someone emails a mailing list, say:
+        response = self.client.post(token2_url, data=None, **other_auth_headers2)
+        self.assertEquals(response.status_code, 200)
+
+        # Make sure if we try to add the user a second time, nothing weird happens
+        token2_url = reverse("sqlshare_token_access", kwargs={"token": access_token2})
+        response = self.client.post(token2_url, data=None, **other_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        # Make sure that if we add the owner this way, they don't end up in the list
+        token2_url = reverse("sqlshare_token_access", kwargs={"token": access_token2})
+        response = self.client.post(token2_url, data=None, **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        # Now, make sure the email is still in the permissions api document,
+        # But also the 2 new users.
+        response = self.client.get(permissions_url, **owner_auth_headers)
+
+        data = json.loads(response.content.decode("utf-8"))
+        accounts = list(map(lambda x: x["login"], data["accounts"]))
+
+        self.assertEquals(len(accounts), 2)
+        self.assertTrue(other in accounts)
+        self.assertTrue(other2 in accounts)
+
+        emails = data["emails"]
+        self.assertEquals(emails, ["test_user1@example.com"])

@@ -3,11 +3,12 @@ from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.decorators import protected_resource
 import json
 from sqlshare_rest.exceptions import InvalidAccountException
-from sqlshare_rest.models import Dataset, User
+from sqlshare_rest.models import Dataset, User, DatasetSharingEmail
 from sqlshare_rest.views import get_oauth_user, get400, get403, get404
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.dao.dataset import set_dataset_accounts, set_dataset_emails
+from sqlshare_rest.dao.dataset import add_account_to_dataset
 
 
 @csrf_exempt
@@ -36,12 +37,13 @@ def permissions(request, owner, name):
 
 def _get_dataset_permissions(request, dataset):
     # The list() is needed for python3
+    emails = DatasetSharingEmail.objects.filter(dataset=dataset)
     data = {
         "is_public": dataset.is_public,
         "is_shared": dataset.is_shared,
         "accounts": list(map(lambda x: x.json_data(),
                              dataset.shared_with.all())),
-        "emails": list(map(lambda x: x.email, dataset.email_shares.all())),
+        "emails": list(map(lambda x: x.email.email, emails)),
     }
 
     return HttpResponse(json.dumps(data))
@@ -74,3 +76,19 @@ def _set_dataset_permissions(request, dataset):
     dataset.save()
 
     return HttpResponse()
+
+
+@csrf_exempt
+@protected_resource()
+def add_token_access(request, token):
+    get_oauth_user(request)
+    try:
+        sharing_email = DatasetSharingEmail.objects.get(access_token=token)
+    except DatasetSharingEmail.DoesNotExist:
+        response = HttpResponse("")
+        response.status_code = 404
+        return response
+
+    dataset = sharing_email.dataset
+    add_account_to_dataset(dataset, request.user.username)
+    return HttpResponse(json.dumps(dataset.json_data()))

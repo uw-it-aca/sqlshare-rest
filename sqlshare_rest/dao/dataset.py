@@ -1,5 +1,6 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User, SharingEmail, DatasetTag, Tag
+from sqlshare_rest.models import DatasetSharingEmail
 from sqlshare_rest.models import Query
 from sqlshare_rest.exceptions import InvalidAccountException
 
@@ -112,14 +113,8 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
     if len(user_models) != len(accounts):
         raise InvalidAccountException()
 
-    try:
-        query = Query.objects.get(is_preview_for=dataset)
-        if not query.is_finished:
-            # Don't try setting permissions on a query that might not
-            # exist yet.
-            query = None
-    except Query.DoesNotExist:
-        query = None
+    query = get_preview_query(dataset)
+
     # XXX - put this in a transaction?
     current_users = dataset.shared_with.all()
     for user in current_users:
@@ -141,6 +136,38 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
     dataset.shared_with = user_models
     if save_dataset:
         dataset.save()
+
+
+def get_preview_query(dataset):
+    try:
+        query = Query.objects.get(is_preview_for=dataset)
+        if not query.is_finished:
+            # Don't try setting permissions on a query that might not
+            # exist yet.
+            query = None
+    except Query.DoesNotExist:
+        query = None
+
+    return query
+
+
+def add_account_to_dataset(dataset, account):
+    if account == dataset.owner.username:
+        return
+
+    backend = get_backend()
+
+    user = User.objects.get(username=account)
+    query = get_preview_query(dataset)
+
+    backend.add_read_access_to_dataset(dataset.name,
+                                       owner=dataset.owner,
+                                       reader=user)
+
+    if query:
+        backend.add_read_access_to_query(query.pk, user)
+
+    dataset.shared_with.add(user)
 
 
 def add_public_access(dataset):
@@ -186,18 +213,36 @@ def reset_dataset_account_access(dataset):
 def set_dataset_emails(dataset, emails, save_dataset=True):
     # Get a unique list...
     emails = list(set(emails))
-    existing_models = list(SharingEmail.objects.filter(email__in=emails))
+    existing_email_models = list(SharingEmail.objects.filter(email__in=emails))
 
-    # Fill in the gaps
-    if len(existing_models) != len(emails):
-        existing_set = set(map(lambda x: x.email, existing_models))
+    remove_list = []
+    existing_shares = DatasetSharingEmail.objects.filter(dataset=dataset)
+    existing_shares_lookup = {}
+    for share in existing_shares:
+        existing_shares_lookup[share.email.email] = share
 
-        for email in emails:
-            if email not in existing_set:
-                new = SharingEmail.objects.create(email=email)
-                existing_models.append(new)
+    # Make sure there's an Email object for each email:
+    # Add any new DatasetSharingEmail objects needed
+    existing_email_lookup = {}
+    for obj in existing_email_models:
+        existing_email_lookup[obj.email] = obj
 
-    dataset.email_shares = existing_models
+    for email in emails:
+        if email not in existing_email_lookup:
+            new = SharingEmail.objects.create(email=email)
+            existing_email_lookup[email] = new
+
+        if email not in existing_shares_lookup:
+            email_obj = existing_email_lookup[email]
+            new_share = DatasetSharingEmail.objects.create(dataset=dataset,
+                                                           email=email_obj)
+
+    # Delete any DatasetSharingEmail objects that aren't currently valid
+    # Keep the SharingEmail objects though
+    for share_email in existing_shares_lookup:
+        if share_email not in emails:
+            existing_shares_lookup[share_email].delete()
+
     if save_dataset:
         dataset.save()
 

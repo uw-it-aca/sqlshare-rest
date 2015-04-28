@@ -4,13 +4,10 @@ from datetime import datetime
 from django.utils import timezone
 import json
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
+import uuid
 # from django_fields.fields import EncryptedCharField
 
 JSON_DATE = "%a, %-d %b %Y %-H:%M:%S %Z"
-
-
-class SharingEmail(models.Model):
-    email = models.CharField(max_length=200)
 
 
 class User(models.Model):
@@ -36,7 +33,6 @@ class Dataset(models.Model):
     is_public = models.BooleanField(default=False)
     is_shared = models.BooleanField(default=False)
     shared_with = models.ManyToManyField(User, related_name="shared_with")
-    email_shares = models.ManyToManyField(SharingEmail)
     date_created = models.DateTimeField(auto_now_add=True,
                                         default=timezone.now)
     date_modified = models.DateTimeField(auto_now=True, default=timezone.now)
@@ -120,6 +116,30 @@ class Dataset(models.Model):
             return val
 
         return False
+
+
+class SharingEmail(models.Model):
+    email = models.CharField(max_length=200)
+
+
+class DatasetSharingEmail(models.Model):
+    """
+    Connects a dataset with the sharing email.
+    This level is needed, so a unique per dataset/email access token
+    can be created.
+    """
+    email = models.ForeignKey(SharingEmail)
+    dataset = models.ForeignKey(Dataset)
+    access_token = models.CharField(max_length=100, null=True)
+
+    def generate_token(self):
+        return uuid.uuid4().hex
+
+    def save(self, *args, **kwargs):
+        if not self.access_token:
+            self.access_token = self.generate_token()
+
+        super(DatasetSharingEmail, self).save(*args, **kwargs)
 
 
 class Tag(models.Model):

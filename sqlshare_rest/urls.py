@@ -33,6 +33,10 @@ urlpatterns = patterns(
     url('v3/db/dataset', 'dataset_list.dataset_list',
         name="sqlshare_view_dataset_list"),
 
+    url('v3/db/token/(?P<token>.*)',
+        'dataset_permissions.add_token_access',
+        name="sqlshare_token_access"),
+
     url('v3/user/me', 'user.user',
         name="sqlshare_view_user"),
 
