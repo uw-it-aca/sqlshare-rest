@@ -2,3 +2,4 @@ Django==1.7
 # django-fields
 unittest2
 django-oauth-toolkit
+django-mssql
