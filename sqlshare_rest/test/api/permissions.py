@@ -1,6 +1,7 @@
 from django.test import TestCase
 from unittest2 import skipIf
 from django.db import connection
+from django.core import mail
 import json
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test import missing_url
@@ -10,6 +11,7 @@ from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query, add_public_access
 from sqlshare_rest.util.query_queue import process_queue
+from sqlshare_rest.util.dataset_emails import send_new_emails
 from sqlshare_rest.models import Query
 from sqlshare_rest.util.db import is_sqlite3, is_mysql
 from sqlshare_rest.models import Dataset, DatasetSharingEmail
@@ -273,6 +275,57 @@ class DatasetPermissionsAPITest(BaseAPITest):
         self.assertEquals(data["is_shared"], False)
         self.assertEquals(data["accounts"], [])
         self.assertEquals(data["emails"], [])
+
+    def test_send_emails(self):
+        owner = "email_permissions_user3"
+        dataset_name = "ds1"
+        self.remove_users.append(owner)
+        owner_obj = get_backend().get_user(owner)
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+
+        # Add 2 emails:
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+        new_data = { "emails": [ "user1@example.com"] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode("utf-8"), "")
+
+        # empty out the memory outbox:
+        mail.outbox = []
+        # Now make sure we send 1 email
+        send_new_emails()
+
+        self.assertEquals(len(mail.outbox), 1)
+
+        obj = Dataset.objects.get(owner=owner_obj, name=dataset_name)
+        sharing = DatasetSharingEmail.objects.filter(dataset=obj)[0]
+
+        self.assertEquals(mail.outbox[0].to, ["user1@example.com"])
+        self.assertEquals(mail.outbox[0].from_email, "sqlshare-noreply@uw.edu")
+
+        self.assertTrue(mail.outbox[0].body.find(sharing.access_token) > 0)
+
+        new_data = { "emails": [ "user2@example.com"] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+
+        # Make sure we send a new email
+        send_new_emails()
+        self.assertEquals(len(mail.outbox), 2)
+
+
+        new_data = { "emails": [ "user2@example.com", "user1@example.com"] }
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+
+        # Make sure we send a replacement email for user1
+        send_new_emails()
+        self.assertEquals(len(mail.outbox), 3)
+
+
+        # Now make sure we don't send any more emails:
+        send_new_emails()
+        self.assertEquals(len(mail.outbox), 3)
 
     def test_preview_table_permissions(self):
         # We need to process the preview query - purge any existing queries

@@ -18,6 +18,10 @@ class User(models.Model):
     # db_password = EncryptedCharField(max_length=200)
     db_password = models.CharField(max_length=200)
 
+    def get_full_name(self):
+        # TODO
+        return ""
+
     def json_data(self):
         return {
             "login": self.username,
@@ -133,6 +137,8 @@ class DatasetSharingEmail(models.Model):
     email = models.ForeignKey(SharingEmail)
     dataset = models.ForeignKey(Dataset)
     access_token = models.CharField(max_length=100, null=True)
+    email_sent = models.BooleanField(default=False)
+    date_sent = models.DateTimeField(null=True)
 
     def generate_token(self):
         return uuid.uuid4().hex
