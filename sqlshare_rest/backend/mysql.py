@@ -294,7 +294,10 @@ class MySQLBackend(DBInterface):
     def create_view(self, name, sql, user):
         view_sql = self._create_view_sql(name, sql)
         self.run_query(view_sql, user)
-        return
+
+        count_sql = "SELECT COUNT(*) FROM `%s`" % (name)
+        result = self.run_query(count_sql, user)
+        return result[0][0]
 
     def _create_view_sql(self, name, sql):
         return "CREATE OR REPLACE VIEW `%s` AS %s" % (name, sql)

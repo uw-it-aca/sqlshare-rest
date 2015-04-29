@@ -40,6 +40,7 @@ class Dataset(models.Model):
     last_viewed = models.DateTimeField(null=True)
     preview_is_finished = models.BooleanField(default=False)
     preview_error = models.TextField(null=True)
+    rows_total = models.IntegerField(null=True)
 
     class Meta:
         unique_together = (("name", "owner"),)
@@ -67,6 +68,7 @@ class Dataset(models.Model):
             "url": self.get_url(),
             "sample_data_status": self.get_sample_data_status(),
             "sample_data_error": self.preview_error,
+            "rows_total": self.rows_total,
         }
 
     def get_sample_data_status(self):

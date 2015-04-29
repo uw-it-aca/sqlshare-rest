@@ -28,7 +28,10 @@ class SQLite3Backend(DBInterface):
     def create_view(self, name, sql, user):
         view_sql = "CREATE VIEW %s AS %s" % (name, sql)
         self.run_query(view_sql, user)
-        return
+
+        count_sql = "SELECT COUNT(*) FROM %s" % (name)
+        result = self.run_query(count_sql, user)
+        return result[0][0]
 
     def get_download_sql_for_dataset(self, dataset):
         return "SELECT * FROM %s" % self.get_qualified_name(dataset)
