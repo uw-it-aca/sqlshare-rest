@@ -12,10 +12,19 @@ class Command(BaseCommand):
                     default=False,
                     action="store_true",
                     help='This will only process one item in the queue'),
+
+        make_option('--verbose',
+                    dest='verbose',
+                    default=False,
+                    action="store_true",
+                    help='Prints status info to standard out'),
                     )
 
     def handle(self, *args, **options):
-        if not options["run_once"]:
-            raise Exception("Only handles --run-once for now")
-
-        process_dataset_queue()
+        verbose = options["verbose"]
+        if options["run_once"]:
+            process_queue(verbose=verbose)
+        else:
+            process_dataset_queue(run_once=False,
+                                  thread_count=10,
+                                  verbose=verbose)

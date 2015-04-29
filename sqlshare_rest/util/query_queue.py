@@ -4,7 +4,8 @@ from sqlshare_rest.dao.dataset import reset_dataset_account_access
 from django.utils import timezone
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
-import signal
+from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
+import atexit
 
 import socket
 from threading import Thread
@@ -15,8 +16,6 @@ if six.PY2:
     from Queue import Queue
 elif six.PY3:
     from queue import Queue
-
-PORT_NUMBER = 1999
 
 
 def process_queue(thread_count=0, run_once=True, verbose=False):
@@ -118,13 +117,15 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
         # Start the socket server for getting notifications of new queries
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(('localhost', PORT_NUMBER))
+        # Make it so we can run the server right away after killing it
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(('localhost', QUERY_QUEUE_PORT_NUMBER))
 
         # Make sure we close our socket when we're killed.
-        def sig_handler(signal, frame):
+        def close_socket():
             server.close()
 
-        signal.signal(signal.SIGINT, sig_handler)
+        atexit.register(close_socket)
 
         server.listen(5)
         while True:
