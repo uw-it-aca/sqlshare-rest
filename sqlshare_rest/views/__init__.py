@@ -25,7 +25,7 @@ def get404():
 
 
 def get403():
-    response = HttpResponse("")
+    response = HttpResponse("SQLShare: Access Denied")
     response.status_code = 403
     return response
 
