@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider import views as oa_views
-from sqlshare_rest.views.oauth import SSAuthorizationView
+from sqlshare_rest.views import oauth as ss_oa_views
 
 urlpatterns = patterns(
     'sqlshare_rest.views',
@@ -82,10 +82,14 @@ urlpatterns = patterns(
 
 # OAuth urls.  Doing this instead of including the oauth2_provider urls so we
 # can override the authorization view to allow oob access.
+LIST_TEMPLATE = "oauth_access_code/application_list.html"
+DETAIL_TEMPLATE = "oauth_apps/application_detail.html"
+DELETE_TEMPLATE = "oauth_apps/application_confirm_delete.html"
+
 oauth_patterns = patterns(
     '',
     url(r'^authorize/$',
-        SSAuthorizationView.as_view(),
+        ss_oa_views.SSAuthorizationView.as_view(),
         name="authorize"),
     url(r'^token/$',
         oa_views.TokenView.as_view(),
@@ -93,6 +97,23 @@ oauth_patterns = patterns(
     url(r'^revoke_token/$',
         oa_views.RevokeTokenView.as_view(),
         name="revoke-token"),
+
+    url(r'^applications/$',
+        oa_views.ApplicationList.as_view(template_name=LIST_TEMPLATE),
+        name="list"),
+    url(r'^applications/register/$',
+        ss_oa_views.SSApplicationRegistration.as_view(),
+        name="register"),
+    url(r'^applications/(?P<pk>\d+)/$',
+        oa_views.ApplicationDetail.as_view(template_name=DETAIL_TEMPLATE),
+        name="detail"),
+    url(r'^applications/(?P<pk>\d+)/delete/$',
+        oa_views.ApplicationDelete.as_view(template_name=DELETE_TEMPLATE),
+        name="delete"),
+    url(r'^applications/(?P<pk>\d+)/update/$',
+        ss_oa_views.SSApplicationUpdate.as_view(),
+        name="update"),
+
 )
 
 urlpatterns += patterns(
