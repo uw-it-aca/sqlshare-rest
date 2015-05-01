@@ -87,7 +87,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
     if run_once:
         try:
             oldest = filtered.order_by('id')[:1].get()
-        except Query.DoesNotExist:
+        except FileUpload.DoesNotExist:
             return
         q.put(oldest)
         worker()
@@ -102,10 +102,10 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
         # Start with any queries already in the queue:
         for upload in filtered:
             if upload.pk > newest_pk:
-                newest_pk = query.pk
+                newest_pk = upload.pk
             if verbose:
-                print("Adding file upload ID %s to the queue." % query.pk)
-            q.put(query)
+                print("Adding file upload ID %s to the queue." % upload.pk)
+            q.put(upload)
 
         # Just in case things get off the rails - maybe a connection to the
         # server gets blocked? - periodically trigger a check for new queries
