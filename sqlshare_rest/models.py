@@ -6,6 +6,7 @@ from oauth2client.django_orm import CredentialsField, FlowField
 import json
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 import uuid
+from six import add_metaclass
 # from django_fields.fields import EncryptedCharField
 
 JSON_DATE = "%a, %-d %b %Y %-H:%M:%S %Z"
@@ -255,11 +256,13 @@ class FileUpload(models.Model):
 
 
 # Python3 shims.
-class Py3FlowField(FlowField, metaclass=models.SubfieldBase):
+@add_metaclass(models.SubfieldBase)
+class Py3FlowField(FlowField):
     pass
 
 
-class Py3CredentialsField(CredentialsField, metaclass=models.SubfieldBase):
+@add_metaclass(models.SubfieldBase)
+class Py3CredentialsField(CredentialsField):
     pass
 
 
