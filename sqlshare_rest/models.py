@@ -6,6 +6,7 @@ from oauth2client.django_orm import CredentialsField, FlowField
 import json
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 import uuid
+import six
 from six import add_metaclass
 # from django_fields.fields import EncryptedCharField
 
@@ -255,15 +256,26 @@ class FileUpload(models.Model):
         }
 
 
-# Python3 shims.
-@add_metaclass(models.SubfieldBase)
-class Py3FlowField(FlowField):
-    pass
+if six.PY3:
+    # Python3 shims.
+    # Still need to use add_metaclass, so the python2 parser doesn't break
+    # on metaclass=...
 
+    # But - in python2 this breaks.  so double shimmed.
+    @add_metaclass(models.SubfieldBase)
+    class Py3FlowField(FlowField):
+        pass
 
-@add_metaclass(models.SubfieldBase)
-class Py3CredentialsField(CredentialsField):
-    pass
+    @add_metaclass(models.SubfieldBase)
+    class Py3CredentialsField(CredentialsField):
+        pass
+
+if six.PY2:
+    class Py3FlowField(FlowField):
+        pass
+
+    class Py3CredentialsField(CredentialsField):
+        pass
 
 
 # These are for the google logins
