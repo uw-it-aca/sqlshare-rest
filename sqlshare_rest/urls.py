@@ -78,6 +78,9 @@ urlpatterns = patterns(
         'oauth.access_code',
         name="oauth_access_code"),
 
+    url(r'^google_return', 'auth.google_return'),
+    url(r'^google', 'auth.require_google_login'),
+    url(r'^uw/', 'auth.require_uw_login'),
 )
 
 # OAuth urls.  Doing this instead of including the oauth2_provider urls so we

@@ -2,6 +2,7 @@ from django.db import models
 from django.core.urlresolvers import reverse
 from datetime import datetime
 from django.utils import timezone
+from oauth2client.django_orm import CredentialsField, FlowField
 import json
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 import uuid
@@ -251,3 +252,23 @@ class FileUpload(models.Model):
             "columns": column_data,
             "sample_data": json.loads(self.sample_data)
         }
+
+
+# Python3 shims.
+class Py3FlowField(FlowField, metaclass=models.SubfieldBase):
+    pass
+
+
+class Py3CredentialsField(CredentialsField, metaclass=models.SubfieldBase):
+    pass
+
+
+# These are for the google logins
+class CredentialsModel(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)
+    credential = Py3CredentialsField()
+
+
+class FlowModel(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)
+    flow = Py3FlowField()
