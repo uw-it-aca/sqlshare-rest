@@ -191,9 +191,12 @@ class MySQLBackend(DBInterface):
 
         placeholders = ", ".join(list(map(lambda x: "%s", row)))
         insert = "INSERT INTO %s VALUES (%s)" % (full_name, placeholders)
+        row_count = 0
         while row:
             cursor.execute(insert, row)
             row = source_cursor.fetchone()
+            row_count += 1
+        return row_count
 
     def get_query_sample_sql(self, query_id):
         QUERY_SCHEMA = self.get_query_cache_db_name()
@@ -291,7 +294,10 @@ class MySQLBackend(DBInterface):
     def create_view(self, name, sql, user):
         view_sql = self._create_view_sql(name, sql)
         self.run_query(view_sql, user)
-        return
+
+        count_sql = "SELECT COUNT(*) FROM `%s`" % (name)
+        result = self.run_query(count_sql, user)
+        return result[0][0]
 
     def _create_view_sql(self, name, sql):
         return "CREATE OR REPLACE VIEW `%s` AS %s" % (name, sql)

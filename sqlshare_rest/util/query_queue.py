@@ -4,6 +4,8 @@ from sqlshare_rest.dao.dataset import reset_dataset_account_access
 from django.utils import timezone
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
+from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
+import atexit
 
 import socket
 from threading import Thread
@@ -15,10 +17,8 @@ if six.PY2:
 elif six.PY3:
     from queue import Queue
 
-PORT_NUMBER = 1999
 
-
-def process_queue(thread_count=0, run_once=True):
+def process_queue(thread_count=0, run_once=True, verbose=False):
     q = Queue()
 
     def worker():
@@ -29,7 +29,10 @@ def process_queue(thread_count=0, run_once=True):
         keep_looping = True
         while keep_looping:
             oldest_query = q.get()
+            if verbose:
+                print("Processing query id %s." % oldest_query.pk)
             user = oldest_query.owner
+            row_count = 0
             try:
                 cursor = backend.run_query(oldest_query.sql,
                                            user,
@@ -37,7 +40,8 @@ def process_queue(thread_count=0, run_once=True):
 
                 name = "query_%s" % oldest_query.pk
                 try:
-                    backend.create_table_from_query_result(name, cursor)
+                    row_count = backend.create_table_from_query_result(name,
+                                                                       cursor)
                     backend.add_read_access_to_query(oldest_query.pk, user)
                 except:
                     raise
@@ -50,6 +54,7 @@ def process_queue(thread_count=0, run_once=True):
             try:
                 oldest_query.is_finished = True
                 oldest_query.date_finished = timezone.now()
+                oldest_query.rows_total = row_count
                 oldest_query.save()
 
                 if oldest_query.is_preview_for:
@@ -63,6 +68,8 @@ def process_queue(thread_count=0, run_once=True):
                 print("Error: %s" % str(ex))
 
             q.task_done()
+            if verbose:
+                print("Finished query id %s." % oldest_query.pk)
             if run_once:
                 keep_looping = False
 
@@ -73,6 +80,8 @@ def process_queue(thread_count=0, run_once=True):
         """
         while True:
             sleep(5)
+            if verbose:
+                print("Triggering periodic processing.")
             trigger_query_queue_processing()
 
     filtered = Query.objects.filter(is_finished=False)
@@ -96,6 +105,8 @@ def process_queue(thread_count=0, run_once=True):
         for query in filtered:
             if query.pk > newest_pk:
                 newest_pk = query.pk
+            if verbose:
+                print("Adding query ID %s to the queue." % query.pk)
             q.put(query)
 
         # Just in case things get off the rails - maybe a connection to the
@@ -106,7 +117,15 @@ def process_queue(thread_count=0, run_once=True):
 
         # Start the socket server for getting notifications of new queries
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(('localhost', PORT_NUMBER))
+        # Make it so we can run the server right away after killing it
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(('localhost', QUERY_QUEUE_PORT_NUMBER))
+
+        # Make sure we close our socket when we're killed.
+        def close_socket():
+            server.close()
+
+        atexit.register(close_socket)
 
         server.listen(5)
         while True:
@@ -117,6 +136,8 @@ def process_queue(thread_count=0, run_once=True):
             for query in queries:
                 if query.pk > newest_pk:
                     newest_pk = query.pk
+                if verbose:
+                    print("Adding query ID %s to the queue." % query.pk)
                 q.put(query)
 
     q.join()

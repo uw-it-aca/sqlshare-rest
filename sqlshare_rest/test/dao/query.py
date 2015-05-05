@@ -35,6 +35,7 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q2.is_finished, True)
         self.assertEquals(q2.error, None)
         self.assertEquals(q2.has_error, False)
+        self.assertEquals(q2.rows_total, 1)
 
     def test_order(self):
         owner = "dao_query_user2"

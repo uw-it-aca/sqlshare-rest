@@ -142,6 +142,8 @@ class FileUploadAPITest(BaseAPITest):
 
         data = json.loads(response12.content.decode("utf-8"))
 
+        self.assertEquals(data["rows_total"], 6)
+
         if is_sqlite3():
             self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
         else:
