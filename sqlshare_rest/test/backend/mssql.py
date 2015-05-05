@@ -1,15 +1,18 @@
 from django.test import TestCase
 
+from django.db import connection
 from sqlshare_rest.util.db import is_mssql, get_backend
 import unittest
 
-@unittest.skipUnless(is_sqlite3(), "Only test with sqlite3")
+@unittest.skipUnless(is_mssql(), "Only test with mssql")
 class TestMSSQLBackend(TestCase):
 
     def test_create_user(self):
-        pass
-        # backend = get_backend()
-        # user = backend.get_user("test_user_tcu1")
+        backend = get_backend()
+        self.remove_users.append("test_user_tcu1")
+        self.remove_users.append("test_user_tcu1@idp.example.edu")
+        user1 = backend.get_user("test_user_tcu1")
+        user2 = backend.get_user("test_user_tcu1@idp.example.edu")
 
     # def test_run_query(self):
     #     backend = get_backend()
@@ -35,3 +38,34 @@ class TestMSSQLBackend(TestCase):
     #         print ("E: ", ex)
     #
     #     backend.close_user_connection(user)
+
+
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop login test_user_tcu1@idp_example_edu")
+
+    def setUp(self):
+        # Try to cleanup from any previous test runs...
+        self.remove_users = []
+
+    def tearDown(self):
+        backend = get_backend()
+
+        for user in self.remove_users:
+            try:
+                print "Dropping: ", user
+                backend.remove_user(user)
+            except Exception as ex:
+                print ("Error deleting user: ", ex)
+
+        self.remove_users = []

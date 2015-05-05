@@ -13,15 +13,13 @@ import hashlib
 
 class MSSQLBackend(DBInterface):
     def create_db_user(self, username, password):
-        pass
-        # cursor = connection.cursor()
-        # cursor.execute("CREATE USER %s IDENTIFIED BY %s",
-        #                (username, password))
-        # return
+        cursor = connection.cursor()
+        sql = "CREATE LOGIN %s WITH PASSWORD = '%s'" % (username, password)
+        cursor.execute(sql)
 
     def get_db_username(self, user):
-        pass
-        # MySQL only allows 16 character names.  Take the md5sum of the
+        # Periods aren't allowed in MS SQL usernames.  Take the md5sum of the
+        return re.sub('[.]', '_', user)
         # username, and hope it's unique enough.
         # hash_val = hashlib.md5(user.encode("utf-8")).hexdigest()[:11]
         # test_value = "meta_%s" % (hash_val)
@@ -40,25 +38,17 @@ class MSSQLBackend(DBInterface):
 
     def get_db_schema(self, user):
         # stripped down schema name - prevent quoting issues
-        # return re.sub('[^a-zA-Z0-9]', '_', user)
-        pass
+        return re.sub('[^a-zA-Z0-9@]', '_', user)
 
     # Maybe this could become separate files at some point?
     def create_db_schema(self, username, schema):
-        pass
-        # cursor = connection.cursor()
-        # # MySQL doesn't allow placeholders on the db name here.
-        # # This is protected by the get_db_schema method, which only allows
-        # # a-z, 0-9, and _.
-        # cursor.execute("CREATE DATABASE %s" % schema)
-        #
-        # # Using placeholders here results in bad syntax
-        # cursor.execute("GRANT ALL on %s.* to %s" % (schema, username))
+        cursor = connection.cursor()
+        cursor.execute("CREATE SCHEMA %s" % (schema))
 
     def remove_db_user(self, user):
-        # cursor = connection.cursor()
-        # # MySQL doesn't let the username be a placeholder in DROP USER.
-        # cursor.execute("DROP USER %s" % (user))
+        cursor = connection.cursor()
+        # MSSQL doesn't let the username be a placeholder in DROP USER.
+        cursor.execute("DROP LOGIN %s" % (user))
         return
 
     def remove_schema(self, schema):

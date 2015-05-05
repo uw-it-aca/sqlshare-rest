@@ -16,7 +16,7 @@ def get_backend():
     if is_sqlite3():
         return SQLite3Backend()
     if is_mssql():
-        return MSSQLBackend
+        return MSSQLBackend()
     else:
         raise BackendNotImplemented(engine)
     pass
@@ -31,7 +31,7 @@ def is_sqlite3():
 
 
 def is_mssql():
-    return _get_basic_settings()['ENGINE'] == "sqlserver_ado"
+    return _get_basic_settings()['ENGINE'] == "django_pyodbc"
 
 
 class BackendNotImplemented(Exception):
