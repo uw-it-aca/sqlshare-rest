@@ -48,11 +48,18 @@ class MSSQLBackend(DBInterface):
     # Maybe this could become separate files at some point?
     def create_db_schema(self, username, schema):
         with closing(connection.cursor()) as cursor:
-            cursor.execute("CREATE SCHEMA %s" % (schema))
+            cursor.execute("CREATE SCHEMA %s AUTHORIZATION %s" % (schema,
+                                                                  username))
             cursor.execute("GRANT CONNECT TO %s" % (username))
+            cursor.execute("GRANT CREATE VIEW TO %s" % (username))
 
     def remove_db_user(self, user):
         with closing(connection.cursor()) as cursor:
+            model = User.objects.get(db_username=user)
+            # without this you can't drop the user, because they own an
+            # object in the db.
+            sql = "ALTER AUTHORIZATION ON SCHEMA::%s TO dbo" % (model.schema)
+            cursor.execute(sql)
             # MSSQL doesn't let the username be a placeholder in DROP USER.
             cursor.execute("DROP USER %s" % (user))
             cursor.execute("DROP LOGIN %s" % (user))
@@ -71,9 +78,17 @@ class MSSQLBackend(DBInterface):
     def _disconnect_connection(self, connection):
         connection["connection"].close()
 
-    def create_view(self, name, sql, user):
-        # view_sql = "CREATE OR REPLACE VIEW %s AS %s" % (name, sql)
-        # self.run_query(view_sql, user)
+    def create_view(self, name, sql, user, column_names=None):
+        if column_names:
+            columns = ",".join(column_names)
+            view_sql = "CREATE VIEW [%s].[%s] (%s) AS %s" % (user.schema,
+                                                             name,
+                                                             columns,
+                                                             sql)
+        else:
+            view_sql = "CREATE VIEW [%s].[%s] AS %s" % (user.schema, name, sql)
+        cursor = self.run_query(view_sql, user, return_cursor=True)
+        cursor.close()
         return
 
     def run_query(self, sql, user, params=None, return_cursor=False):

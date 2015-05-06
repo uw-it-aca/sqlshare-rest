@@ -27,32 +27,33 @@ class TestMSSQLBackend(TestCase):
         self.assertEquals(len(result), 2)
         self.assertEquals(result[0][0], "10")
         self.assertEquals(result[1][0], "a")
-#
-    def test_xx(self):
-        self.assertEquals(1, 1)
-#        print "In xx"
-#        backend = get_backend()
-#        print "Has backend"
-#        try:
-#            user1 = backend.get_user("test_user_tcu1")
-#            print "U1"
-#            user2 = backend.get_user("test_user_tcu1@idp.example.edu")
-#        except Exception as ex:
-#            print ex
-#        print "U2"
-    #
-    # def test_create_view(self):
-    #     backend = get_backend()
-    #     user = backend.get_user("test_user_view1")
-    #     backend.create_view("test_view", "SELECT (1) UNION SELECT ('a')", user)
-    #
-    #     try:
-    #         result = backend.run_query("SELECT * FROM test_view", user)
-    #         self.assertEquals([(1,),(u'a',)], result)
-    #     except Exception as ex:
-    #         print ("E: ", ex)
-    #
-    #     backend.close_user_connection(user)
+
+    def test_create_view(self):
+        backend = get_backend()
+        self.remove_users.append("test_user_view1")
+        user = backend.get_user("test_user_view1")
+        backend.create_view("test_view", "SELECT ('1') UNION SELECT ('a')", user, column_names=["Column1"])
+
+        try:
+            result = backend.run_query("SELECT * FROM [test_user_view1].[test_view]", user)
+
+            self.assertEquals(result[0][0], "1")
+            self.assertEquals(result[1][0], "a")
+        except Exception as ex:
+            print ("E: ", ex)
+
+
+    def test_bad_permissions_view(self):
+        backend = get_backend()
+        self.remove_users.append("test_user_view2")
+        user = backend.get_user("test_user_view2")
+        self.remove_users.append("test_user_view3")
+        user2 = backend.get_user("test_user_view3")
+
+        import pyodbc
+
+        with self.assertRaises(pyodbc.ProgrammingError):
+            cursor = backend.run_query("CREATE VIEW [test_user_view3].[test_view] (Column1) AS SELECT ('1') UNION SELECT ('a')", user, return_cursor=True)
 
 
     @classmethod
@@ -70,6 +71,7 @@ class TestMSSQLBackend(TestCase):
         _run_query("drop login test_user_tcu1@idp_example_edu")
         _run_query("drop login test_user_tcu1")
         _run_query("drop login test_user_trq1")
+        _run_query("drop login test_user_view1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

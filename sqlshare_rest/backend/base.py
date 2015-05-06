@@ -15,7 +15,7 @@ class DBInterface(object):
     def run_query(self, sql, user, params=None, return_cursor=False):
         self._not_implemented("run_query")
 
-    def create_view(self, name, sql, user):
+    def create_view(self, name, sql, user, column_names=None):
         self._not_implemented("create_view")
 
     def create_db_user(self, username, password):
