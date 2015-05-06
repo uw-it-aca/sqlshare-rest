@@ -21,10 +21,6 @@ class User(models.Model):
     # db_password = EncryptedCharField(max_length=200)
     db_password = models.CharField(max_length=200)
 
-    def delete(self):
-        print "Someone wants to delete ", self.username
-        raise Exception("Boo on that")
-
     def get_full_name(self):
         # TODO
         return ""
