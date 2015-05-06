@@ -35,6 +35,7 @@ class DBInterface(object):
 
     def remove_user(self, username):
         model = User.objects.get(username=username)
+        self.close_user_connection(model)
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 

@@ -1,7 +1,9 @@
 from sqlshare_rest.backend.base import DBInterface
 from sqlshare_rest.models import User
+from django import db
 from django.db import connection
 from django.conf import settings
+from contextlib import closing
 import re
 import hashlib
 
@@ -12,29 +14,32 @@ import hashlib
 
 
 class MSSQLBackend(DBInterface):
+    def remove_user(self, username):
+        """
+        Overriding this method to force a DB reset.  Seems like a bad sign,
+        perhaps connections are being pooled improperly.
+        """
+        db.close_connection()
+        return super(MSSQLBackend, self).remove_user(username)
+
+    def get_user(self, user):
+        """
+        Overriding this method to force a DB reset.  Seems like a bad sign,
+        perhaps connections are being pooled improperly.
+        """
+        db.close_connection()
+        return super(MSSQLBackend, self).get_user(user)
+
     def create_db_user(self, username, password):
-        cursor = connection.cursor()
-        sql = "CREATE LOGIN %s WITH PASSWORD = '%s'" % (username, password)
-        cursor.execute(sql)
+        with closing(connection.cursor()) as cursor:
+            sql = "CREATE LOGIN %s WITH PASSWORD = '%s'" % (username, password)
+            cursor.execute(sql)
+            sql = "CREATE USER %s FROM LOGIN %s" % (username, username)
+            cursor.execute(sql)
 
     def get_db_username(self, user):
-        # Periods aren't allowed in MS SQL usernames.  Take the md5sum of the
+        # Periods aren't allowed in MS SQL usernames.
         return re.sub('[.]', '_', user)
-        # username, and hope it's unique enough.
-        # hash_val = hashlib.md5(user.encode("utf-8")).hexdigest()[:11]
-        # test_value = "meta_%s" % (hash_val)
-        #
-        # try:
-        #     existing = User.objects.get(db_username=test_value)
-        #     msg = "Hashed DB Username already exists! " \
-        #           "Existing: %s, New: %s" % (exists.username, user)
-        #     raise Exception(msg)
-        #
-        # except User.DoesNotExist:
-        #     # Perfect!
-        #     pass
-        #
-        # return test_value
 
     def get_db_schema(self, user):
         # stripped down schema name - prevent quoting issues
@@ -42,13 +47,15 @@ class MSSQLBackend(DBInterface):
 
     # Maybe this could become separate files at some point?
     def create_db_schema(self, username, schema):
-        cursor = connection.cursor()
-        cursor.execute("CREATE SCHEMA %s" % (schema))
+        with closing(connection.cursor()) as cursor:
+            cursor.execute("CREATE SCHEMA %s" % (schema))
+            cursor.execute("GRANT CONNECT TO %s" % (username))
 
     def remove_db_user(self, user):
-        cursor = connection.cursor()
-        # MSSQL doesn't let the username be a placeholder in DROP USER.
-        cursor.execute("DROP LOGIN %s" % (user))
+        with closing(connection.cursor()) as cursor:
+            # MSSQL doesn't let the username be a placeholder in DROP USER.
+            cursor.execute("DROP USER %s" % (user))
+            cursor.execute("DROP LOGIN %s" % (user))
         return
 
     def remove_schema(self, schema):
@@ -62,23 +69,49 @@ class MSSQLBackend(DBInterface):
         # cursor.execute("DROP DATABASE %s" % schema)
 
     def _disconnect_connection(self, connection):
-        pass
-        # connection["connection"].close()
+        connection["connection"].close()
 
     def create_view(self, name, sql, user):
         # view_sql = "CREATE OR REPLACE VIEW %s AS %s" % (name, sql)
         # self.run_query(view_sql, user)
         return
 
-    def run_query(self, sql, user):
-        pass
-        # connection = self.get_connection_for_user(user)
-        # cursor = connection.cursor()
-        # cursor.execute(sql)
-        # return cursor.fetchall()
+    def run_query(self, sql, user, params=None, return_cursor=False):
+        connection = self.get_connection_for_user(user)
+        cursor = connection.cursor()
+        if params:
+            # Because, seriously:
+            # 'The SQL contains 0 parameter markers,
+            # but 1 parameters were supplied'
+            cursor.execute(sql, params)
+        else:
+            cursor.execute(sql)
+
+        if return_cursor:
+            return cursor
+        data = cursor.fetchall()
+        cursor.close()
+        return data
 
     def _create_user_connection(self, user):
-        pass
+        import pyodbc
+
+        username = user.db_username
+        password = user.db_password
+        schema = user.schema
+
+        string = "DSN=%s;UID=%s;PWD=%s;DATABASE=%s;%s" % (
+            settings.DATABASES['default']['OPTIONS']['dsn'],
+            username,
+            password,
+            settings.DATABASES['default']['NAME'],
+            settings.DATABASES['default']['OPTIONS']['extra_params'],
+            )
+
+        from django import db
+        db.close_connection()
+        return pyodbc.connect(string)
+        # return get_new_connection(**args)
         # username = user.db_username
         # password = user.db_password
         # schema = user.schema

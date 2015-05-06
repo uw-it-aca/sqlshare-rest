@@ -8,23 +8,38 @@ import unittest
 class TestMSSQLBackend(TestCase):
 
     def test_create_user(self):
+        self.assertEquals(1, 1)
         backend = get_backend()
         self.remove_users.append("test_user_tcu1")
         self.remove_users.append("test_user_tcu1@idp.example.edu")
         user1 = backend.get_user("test_user_tcu1")
         user2 = backend.get_user("test_user_tcu1@idp.example.edu")
 
-    # def test_run_query(self):
-    #     backend = get_backend()
-    #     user = backend.get_user("test_user_trq1")
-    #     result = backend.run_query("select (5)", user)
-    #     self.assertEquals(len(result), 1)
-    #     self.assertEquals(result[0][0], 5)
-    #
-    #     result = backend.run_query('select (10) union select ("a")', user)
-    #     self.assertEquals(len(result), 2)
-    #     self.assertEquals(result[0][0], 10)
-    #     self.assertEquals(result[1][0], "a")
+    def test_run_query(self):
+        backend = get_backend()
+        self.remove_users.append("test_user_trq1")
+        user = backend.get_user("test_user_trq1")
+
+        result = backend.run_query("select (5)", user)
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0][0], 5)
+        result = backend.run_query("select ('10') union select ('a')", user)
+        self.assertEquals(len(result), 2)
+        self.assertEquals(result[0][0], "10")
+        self.assertEquals(result[1][0], "a")
+#
+    def test_xx(self):
+        self.assertEquals(1, 1)
+#        print "In xx"
+#        backend = get_backend()
+#        print "Has backend"
+#        try:
+#            user1 = backend.get_user("test_user_tcu1")
+#            print "U1"
+#            user2 = backend.get_user("test_user_tcu1@idp.example.edu")
+#        except Exception as ex:
+#            print ex
+#        print "U2"
     #
     # def test_create_view(self):
     #     backend = get_backend()
@@ -53,6 +68,8 @@ class TestMSSQLBackend(TestCase):
         # This is just an embarrassing list of things to cleanup if something fails.
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop login test_user_tcu1@idp_example_edu")
+        _run_query("drop login test_user_tcu1")
+        _run_query("drop login test_user_trq1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...
@@ -63,8 +80,7 @@ class TestMSSQLBackend(TestCase):
 
         for user in self.remove_users:
             try:
-                print "Dropping: ", user
-                backend.remove_user(user)
+                 backend.remove_user(user)
             except Exception as ex:
                 print ("Error deleting user: ", ex)
 
