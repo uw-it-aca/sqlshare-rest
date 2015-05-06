@@ -35,6 +35,51 @@ class TestMSSQLBackend(TestCase):
         self.assertEquals(result[0][0], "10")
         self.assertEquals(result[1][0], "a")
 
+    def test_table_from_query(self):
+        self.remove_users.append("test_query_save1")
+        tmp_db_name = "test_ss_query_db"
+        with self.settings(SQLSHARE_QUERY_CACHE_DB=tmp_db_name):
+            try:
+                backend = get_backend()
+
+                user = backend.get_user("test_query_save1")
+                cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)
+
+                coldef = backend._get_column_definitions_for_cursor(cursor1)
+                self.assertEquals(coldef, "COLUMN1 INT NOT NULL, COLUMN2 VARCHAR(5) NOT NULL, COLUMN3 INT NOT NULL, COLUMN4 FLOAT, COLUMN5 INT")
+
+                backend.create_table_from_query_result("test_query1", cursor1)
+
+                cursor = connection.cursor()
+                # See if we have the data in the table!
+                db_name = backend.get_query_cache_db_name()
+                cursor.execute("SELECT * FROM %s.dbo.test_query1" % db_name)
+                data = cursor.fetchall()
+                self.assertEquals(data[0][0], 1)
+                self.assertEquals(data[0][1], 'a1234')
+                self.assertEquals(data[0][2], 1)
+                self.assertEquals(data[0][3], 1.2)
+                self.assertEquals(data[0][4], None)
+                self.assertEquals(data[1][0], 2)
+                self.assertEquals(data[1][1], 'b')
+                self.assertEquals(data[1][2], 4)
+                self.assertEquals(data[1][3], None)
+                self.assertEquals(data[1][4], 3)
+
+                cursor.execute("DROP TABLE [%s].dbo.[test_query1]" % db_name)
+
+            except Exception as ex:
+                print "EX: ", ex
+                raise
+            finally:
+                backend.close_user_connection(user)
+                cursor = connection.cursor()
+                try:
+                    cursor.execute("DROP DATABASE %s" % tmp_db_name)
+                except Exception:
+                    pass
+
+
     def test_create_view(self):
         backend = get_backend()
         self.remove_users.append("test_user_view1")
@@ -127,6 +172,7 @@ class TestMSSQLBackend(TestCase):
         _run_query("drop login test_user_trq1")
         _run_query("drop login test_user_view1")
         _run_query("drop login test_user_view2")
+        _run_query("drop login test_query_save1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

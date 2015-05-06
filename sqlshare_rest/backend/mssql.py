@@ -4,6 +4,7 @@ from django import db
 from django.db import connection
 from django.conf import settings
 from contextlib import closing
+from decimal import Decimal
 import re
 import hashlib
 
@@ -112,6 +113,7 @@ class MSSQLBackend(DBInterface):
 
     def _create_user_connection(self, user):
         import pyodbc
+        pyodbc.pooling = False
 
         username = user.db_username
         password = user.db_password
@@ -177,3 +179,73 @@ class MSSQLBackend(DBInterface):
 
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
+
+    def _get_column_definitions_for_cursor(self, cursor):
+        import pyodbc
+        index = 0
+        column_defs = []
+
+        int_type = type(1)
+        float_type = type(0.0)
+        decimal_type = type(Decimal(0.0))
+        str_type = type("")
+
+        for col in cursor.description:
+            index = index + 1
+            col_type = col[1]
+            col_len = col[3]
+            null_ok = col[6]
+
+            column_name = "COLUMN%s" % index
+            if (col_type == float_type) or (col_type == decimal_type):
+                if null_ok:
+                    column_defs.append("%s FLOAT" % column_name)
+                else:
+                    column_defs.append("%s FLOAT NOT NULL" % column_name)
+            elif col_type == int_type:
+                if null_ok:
+                    column_defs.append("%s INT" % column_name)
+                else:
+                    column_defs.append("%s INT NOT NULL" % column_name)
+
+            elif col_type == str_type and col_len:
+                if null_ok:
+                    column_defs.append("%s VARCHAR(%s)" % (column_name,
+                                                           col_len))
+                else:
+                    base_str = "%s VARCHAR(%s) NOT NULL"
+                    column_defs.append(base_str % (column_name, col_len))
+            else:
+                column_defs.append("%s TEXT" % column_name)
+
+        return ", ".join(column_defs)
+
+    def create_table_from_query_result(self, name, source_cursor):
+        # Make sure the db exists to stash query results into
+        QUERY_SCHEMA = self.get_query_cache_db_name()
+        cursor = connection.cursor()
+        sql = "SELECT name FROM master.sys.databases WHERE name = ?"
+        cursor.execute(sql, (QUERY_SCHEMA, ))
+
+        if not cursor.rowcount:
+            cursor.execute("CREATE DATABASE %s" % (QUERY_SCHEMA))
+
+        column_def = self._get_column_definitions_for_cursor(source_cursor)
+
+        full_name = "[%s].dbo.[%s]" % (QUERY_SCHEMA, name)
+        create_table = "CREATE TABLE %s (%s)" % (full_name, column_def)
+        cursor.execute(create_table)
+
+        row = source_cursor.fetchone()
+
+        placeholders = ", ".join(list(map(lambda x: "?", row)))
+        insert = "INSERT INTO %s VALUES (%s)" % (full_name, placeholders)
+        row_count = 0
+        while row:
+            cursor.execute(insert, row)
+            row = source_cursor.fetchone()
+            row_count += 1
+        return row_count
+
+    def get_query_cache_db_name(self):
+        return getattr(settings, "SQLSHARE_QUERY_CACHE_DB", "ss_query_db")
