@@ -249,3 +249,11 @@ class MSSQLBackend(DBInterface):
 
     def get_query_cache_db_name(self):
         return getattr(settings, "SQLSHARE_QUERY_CACHE_DB", "ss_query_db")
+
+    def delete_table(self, table, owner):
+        sql = "DROP TABLE [%s].[%s]" % (owner.schema, table)
+        self.run_query(sql, owner, return_cursor=True).close()
+
+    def delete_dataset(self, dataset_name, owner):
+        sql = "DROP VIEW [%s].[%s]" % (owner.schema, dataset_name)
+        self.run_query(sql, owner, return_cursor=True).close()

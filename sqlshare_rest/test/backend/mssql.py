@@ -69,7 +69,7 @@ class TestMSSQLBackend(TestCase):
                 cursor.execute("DROP TABLE [%s].dbo.[test_query1]" % db_name)
 
             except Exception as ex:
-                print "EX: ", ex
+                print ("EX: ", ex)
                 raise
             finally:
                 backend.close_user_connection(user)
@@ -154,6 +154,53 @@ class TestMSSQLBackend(TestCase):
         import pyodbc
         with self.assertRaises(pyodbc.ProgrammingError):
             backend.run_query("CREATE TABLE [test_user_bad_schema2].[test_table2] (c1 int)", user1, return_cursor=True).close()
+
+    def test_delete_dataset(self):
+        self.remove_users.append("test_user_delete_dataset1")
+        backend = get_backend()
+        user = backend.get_user("test_user_delete_dataset1")
+
+        handle = StringIO("z,y,x\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("soon_to_be_gone", parser, user)
+            result = backend.run_query("SELECT * FROM %s.soon_to_be_gone" % user.schema, user)
+            self.assertEquals(result[0][0], 1)
+            self.assertEquals(result[0][1], 3)
+            self.assertEquals(result[0][2], 4)
+            self.assertEquals(result[1][0], 2)
+            self.assertEquals(result[1][1], 10)
+            self.assertEquals(result[1][2], 12)
+
+            backend.delete_dataset("soon_to_be_gone", user)
+
+            import pyodbc
+            with self.assertRaises(pyodbc.ProgrammingError):
+                backend.run_query("SELECT * FROM %s.soon_to_be_gone" % user.schema, user)
+
+            result = backend.run_query("SELECT * FROM %s.table_soon_to_be_gone" % user.schema, user)
+            self.assertEquals(result[0][0], 1)
+            self.assertEquals(result[0][1], 3)
+            self.assertEquals(result[0][2], 4)
+            self.assertEquals(result[1][0], 2)
+            self.assertEquals(result[1][1], 10)
+            self.assertEquals(result[1][2], 12)
+
+            backend.delete_table("table_soon_to_be_gone", user)
+            with self.assertRaises(pyodbc.ProgrammingError):
+                backend.run_query("SELECT * FROM %s.table_soon_to_be_gone" % user.schema, user)
+
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
+
 
     @classmethod
     def setUpClass(cls):
