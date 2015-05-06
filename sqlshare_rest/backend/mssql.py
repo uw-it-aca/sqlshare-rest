@@ -51,7 +51,9 @@ class MSSQLBackend(DBInterface):
             cursor.execute("CREATE SCHEMA %s AUTHORIZATION %s" % (schema,
                                                                   username))
             cursor.execute("GRANT CONNECT TO %s" % (username))
-            cursor.execute("GRANT CREATE VIEW TO %s" % (username))
+
+            sql = "GRANT CREATE VIEW, CREATE TABLE TO %s" % (username)
+            cursor.execute(sql)
 
     def remove_db_user(self, user):
         with closing(connection.cursor()) as cursor:
@@ -126,27 +128,53 @@ class MSSQLBackend(DBInterface):
         from django import db
         db.close_connection()
         return pyodbc.connect(string)
-        # return get_new_connection(**args)
-        # username = user.db_username
-        # password = user.db_password
-        # schema = user.schema
-        #
-        # host = settings.DATABASES['default']['HOST']
-        # port = settings.DATABASES['default']['PORT']
-        #
-        # kwargs = {
-        #     "user": username,
-        #     "passwd": password,
-        #     "db": schema,
-        # }
-        #
-        # if host:
-        #     kwargs["host"] = host
-        #
-        # if port:
-        #     kwargs["port"] = port
-        #
-        # import pymysql
-        # conn = pymysql.connect(**kwargs)
-        #
-        # return conn
+
+    def _create_table(self, table_name, column_names, column_types, user):
+        try:
+            sql = self._create_table_sql(user,
+                                         table_name,
+                                         column_names,
+                                         column_types)
+            self.run_query(sql, user, return_cursor=True).close()
+        except Exception as ex:
+            print "E: ", ex
+            drop_sql = self._drop_exisisting_table_sql(user, table_name)
+            self.run_query(drop_sql, user, return_cursor=True).close()
+            self.run_query(sql, user, return_cursor=True).close()
+
+    def _drop_exisisting_table_sql(self, user, table_name):
+        return "DROP TABLE [%s].[%s]" % (user.schema, table_name)
+
+    def _create_table_sql(self, user, table_name, column_names, column_types):
+        def _column_sql(name, col_type):
+            if "int" == col_type["type"]:
+                return "[%s] int" % name
+            if "float" == col_type["type"]:
+                return "[%s] float" % name
+            if "text" == col_type["type"]:
+                return "[%s] varchar(%s)" % (name, col_type["max"])
+            # Fallback to text is hopefully good?
+            return "[%s] text" % name
+
+        columns = []
+        for i in range(0, len(column_names)):
+            columns.append(_column_sql(column_names[i], column_types[i]))
+
+        return "CREATE TABLE [%s].[%s] (%s)" % (
+                    user.schema,
+                    table_name,
+                    ", ".join(columns)
+               )
+
+    def _load_table_sql(self, table_name, row, user):
+        placeholders = map(lambda x: "?", row)
+        return "INSERT INTO [%s].[%s] VALUES (%s)" % (user.schema, table_name,
+                                                      ", ".join(placeholders))
+
+    def _load_table(self, table_name, data_handle, user):
+        for row in data_handle:
+            sql = self._load_table_sql(table_name, row, user)
+            self.run_query(sql, user, row, return_cursor=True).close()
+
+    def _get_view_sql_for_dataset(self, table_name, user):
+        return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
