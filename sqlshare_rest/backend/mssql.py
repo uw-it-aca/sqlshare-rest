@@ -137,7 +137,6 @@ class MSSQLBackend(DBInterface):
                                          column_types)
             self.run_query(sql, user, return_cursor=True).close()
         except Exception as ex:
-            print "E: ", ex
             drop_sql = self._drop_exisisting_table_sql(user, table_name)
             self.run_query(drop_sql, user, return_cursor=True).close()
             self.run_query(sql, user, return_cursor=True).close()
