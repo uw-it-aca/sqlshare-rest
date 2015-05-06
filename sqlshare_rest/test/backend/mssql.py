@@ -200,6 +200,35 @@ class TestMSSQLBackend(TestCase):
         finally:
             backend.close_user_connection(user)
 
+    def test_basic_permissions(self):
+        try:
+            self.remove_users.append("test_user_perm1")
+            self.remove_users.append("test_user_perm2")
+            backend = get_backend()
+            user1 = backend.get_user("test_user_perm1")
+            user2 = backend.get_user("test_user_perm2")
+
+            backend.run_query("create table test_user_perm1.test1 (id int)", user1, return_cursor=True).close()
+            r2 = backend.run_query("insert into test_user_perm1.test1 (id) values (1)", user1, return_cursor=True).close()
+
+            r3 = backend.run_query("SELECT * from %s.test1" % user1.schema, user1)
+            self.assertEquals(len(r3), 1)
+            self.assertEquals(r3[0][0], 1)
+
+            backend.close_user_connection(user1)
+            import pyodbc
+            # User2 doesn't have access to user1!
+            with self.assertRaises(pyodbc.ProgrammingError):
+                backend.run_query("SELECT * from %s.test1" % user1.schema, user2)
+
+        except Exception as ex:
+            print ("EX: ", ex)
+            raise
+        finally:
+            backend.close_user_connection(user1)
+            backend.close_user_connection(user2)
+
+
 
 
     @classmethod
@@ -215,11 +244,15 @@ class TestMSSQLBackend(TestCase):
         # This is just an embarrassing list of things to cleanup if something fails.
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop login test_user_tcu1@idp_example_edu")
+        _run_query("drop login test_user_bad_schema2")
+        _run_query("drop login test_user_delete_dataset1")
         _run_query("drop login test_user_tcu1")
         _run_query("drop login test_user_trq1")
         _run_query("drop login test_user_view1")
         _run_query("drop login test_user_view2")
         _run_query("drop login test_query_save1")
+        _run_query("drop login test_user_perm1")
+        _run_query("drop login test_user_perm2")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...
@@ -235,3 +268,6 @@ class TestMSSQLBackend(TestCase):
                 print ("Error deleting user: ", ex)
 
         self.remove_users = []
+
+
+

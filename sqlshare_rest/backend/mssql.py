@@ -5,6 +5,8 @@ from django.db import connection
 from django.conf import settings
 from contextlib import closing
 from decimal import Decimal
+import string
+import random
 import re
 import hashlib
 
@@ -30,6 +32,23 @@ class MSSQLBackend(DBInterface):
         """
         db.close_connection()
         return super(MSSQLBackend, self).get_user(user)
+
+    def create_db_user_password(self):
+        # Added complexity for windows security rules...
+        # make sure we have upper and lower case letters, digits and
+        # other chars.  then add another 40 of randomly selected chars.
+        lower = string.ascii_lowercase
+        upper = string.ascii_uppercase
+        digits = string.digits
+        others = "_-*&^$#!@"
+        base = ''.join(random.choice(lower) for i in range(2))
+        base += ''.join(random.choice(upper) for i in range(2))
+        base += ''.join(random.choice(digits) for i in range(2))
+        base += ''.join(random.choice(others) for i in range(2))
+
+        chars = string.ascii_letters + string.digits + others
+        password = base + ''.join(random.choice(chars) for i in range(40))
+        return password
 
     def create_db_user(self, username, password):
         with closing(connection.cursor()) as cursor:
