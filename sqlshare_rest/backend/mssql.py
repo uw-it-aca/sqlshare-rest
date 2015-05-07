@@ -299,3 +299,19 @@ class MSSQLBackend(DBInterface):
     def remove_access_to_dataset(self, dataset, owner, reader):
         sql = self._remove_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
+
+    def _add_public_access_sql(self, dataset, owner):
+        return "GRANT SELECT ON [%s].[%s] TO PUBLIC" % (owner.schema,
+                                                        dataset)
+
+    def add_public_access(self, dataset, owner):
+        sql = self._add_public_access_sql(dataset, owner)
+        self.run_query(sql, owner, return_cursor=True).close()
+
+    def _remove_public_access_sql(self, dataset, owner):
+        return "REVOKE ALL ON [%s].[%s] FROM PUBLIC" % (owner.schema,
+                                                        dataset)
+
+    def remove_public_access(self, dataset, owner):
+        sql = self._remove_public_access_sql(dataset, owner)
+        self.run_query(sql, owner, return_cursor=True).close()
