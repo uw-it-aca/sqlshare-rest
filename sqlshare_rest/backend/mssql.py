@@ -104,6 +104,7 @@ class MSSQLBackend(DBInterface):
         connection["connection"].close()
 
     def create_view(self, name, sql, user, column_names=None):
+        import pyodbc
         if column_names:
             columns = ",".join(column_names)
             view_sql = "CREATE VIEW [%s].[%s] (%s) AS %s" % (user.schema,
@@ -112,8 +113,22 @@ class MSSQLBackend(DBInterface):
                                                              sql)
         else:
             view_sql = "CREATE VIEW [%s].[%s] AS %s" % (user.schema, name, sql)
-        cursor = self.run_query(view_sql, user, return_cursor=True)
-        cursor.close()
+        try:
+            self.run_query(view_sql, user, return_cursor=True).close()
+        except pyodbc.ProgrammingError as ex:
+            # If this is due to not having column names, let's go ahead and
+            # make some column names
+            problem = str(ex)
+            if not re.match('.*no column name was specified', problem):
+                raise
+
+            if not column_names:
+                cursor = self.run_query(sql, user, return_cursor=True)
+                row1 = cursor.fetchone()
+                cursor.close()
+
+                columns = map(lambda x: "COLUMN%s" % (x+1), range(len(row1)))
+                return self.create_view(name, sql, user, columns)
         return
 
     def run_query(self, sql, user, params=None, return_cursor=False):
