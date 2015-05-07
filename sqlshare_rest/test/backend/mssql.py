@@ -326,6 +326,9 @@ class TestMSSQLBackend(TestCase):
             backend.close_user_connection(user2)
             backend.close_user_connection(user3)
 
+    def test_dataset_preview_sql(self):
+        backend = get_backend()
+        self.assertEquals("SELECT TOP 100 * FROM (SELECT (1)) as x", backend.get_preview_sql_for_query("SELECT (1)"))
 
     def test_public_permissions_control(self):
         import pyodbc

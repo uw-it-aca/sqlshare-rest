@@ -276,6 +276,9 @@ class MSSQLBackend(DBInterface):
     def get_qualified_name(self, dataset):
         return "[%s].[%s]" % (dataset.owner.schema, dataset.name)
 
+    def get_preview_sql_for_query(self, sql):
+        return "SELECT TOP 100 * FROM (%s) as x" % sql
+
     def delete_table(self, table, owner):
         sql = "DROP TABLE [%s].[%s]" % (owner.schema, table)
         self.run_query(sql, owner, return_cursor=True).close()

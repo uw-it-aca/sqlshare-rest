@@ -52,7 +52,7 @@ class DBInterface(object):
         self._not_implemented("get_download_sql_for_dataset")
 
     def get_preview_sql_for_query(self, sql):
-        self._not_implemented("get_preview_for_query")
+        self._not_implemented("get_preview_sql_for_query")
 
     def create_table_from_parser(self, dataset_name, parser, user):
         table_name = self._get_table_name_for_dataset(dataset_name)
