@@ -229,6 +229,91 @@ class TestMSSQLBackend(TestCase):
             backend.close_user_connection(user2)
 
 
+    def test_permissions_control(self):
+        import pyodbc
+        self.remove_users.append("test_user_permissions1")
+        self.remove_users.append("test_user_permissions2")
+        self.remove_users.append("test_user_permissions3")
+
+        backend = get_backend()
+
+        user1 = backend.get_user("test_user_permissions1")
+        user2 = backend.get_user("test_user_permissions2")
+        user3 = backend.get_user("test_user_permissions3")
+
+        handle = StringIO("A,B,C\n1,3,4\n2,10,12")
+
+        parser = Parser()
+        parser.guess(handle.read(1024*20))
+        handle.seek(0)
+        parser.parse(handle)
+
+        try:
+            backend.create_dataset_from_parser("share_me", parser, user1)
+
+            # Just check that it's there:
+            result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
+            self.assertEquals(result[1][2], 12)
+
+            # Not shared yet - no access
+            backend.close_user_connection(user1)
+            self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user2)
+
+            # Share it
+            backend.close_user_connection(user2)
+            backend.add_read_access_to_dataset("share_me", user1, user2)
+
+            backend.close_user_connection(user1)
+            # Check the new person has access
+            result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user2)
+            self.assertEquals(result[0][0], 1)
+            self.assertEquals(result[0][1], 3)
+            self.assertEquals(result[0][2], 4)
+            self.assertEquals(result[1][0], 2)
+            self.assertEquals(result[1][1], 10)
+            self.assertEquals(result[1][2], 12)
+
+            backend.close_user_connection(user2)
+            # Check that the owner still has access
+            result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
+            self.assertEquals(result[0][0], 1)
+            self.assertEquals(result[0][1], 3)
+            self.assertEquals(result[0][2], 4)
+            self.assertEquals(result[1][0], 2)
+            self.assertEquals(result[1][1], 10)
+            self.assertEquals(result[1][2], 12)
+
+            backend.close_user_connection(user1)
+            # Make sure only user2 has access, not user3
+            self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user3)
+
+            # Drop the sharing from user2
+            backend.close_user_connection(user3)
+            backend.remove_access_to_dataset("share_me", user1, user2)
+
+            # Make sure user2 and user3 don't have access
+            backend.close_user_connection(user1)
+            self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user2)
+            backend.close_user_connection(user2)
+            self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user3)
+            backend.close_user_connection(user3)
+
+            # Make sure the owner does have access
+            result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
+            self.assertEquals(result[0][0], 1)
+            self.assertEquals(result[0][1], 3)
+            self.assertEquals(result[0][2], 4)
+            self.assertEquals(result[1][0], 2)
+            self.assertEquals(result[1][1], 10)
+            self.assertEquals(result[1][2], 12)
+
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user1)
+            backend.close_user_connection(user2)
+            backend.close_user_connection(user3)
+
 
 
     @classmethod
@@ -253,6 +338,11 @@ class TestMSSQLBackend(TestCase):
         _run_query("drop login test_query_save1")
         _run_query("drop login test_user_perm1")
         _run_query("drop login test_user_perm2")
+        _run_query("drop login test_user_permissions1")
+        _run_query("drop login test_user_permissions2")
+        _run_query("drop login test_user_permissions3")
+        _run_query("drop login test_user_bad_schema1")
+        _run_query("drop login test_user_dataset1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

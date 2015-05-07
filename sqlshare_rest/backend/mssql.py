@@ -74,6 +74,9 @@ class MSSQLBackend(DBInterface):
 
             sql = "GRANT CREATE VIEW, CREATE TABLE TO %s" % (username)
             cursor.execute(sql)
+            sql = ("GRANT SELECT ON SCHEMA::%s "
+                   "TO %s WITH GRANT OPTION" % (schema, username))
+            cursor.execute(sql)
 
     def remove_db_user(self, user):
         with closing(connection.cursor()) as cursor:
@@ -148,7 +151,8 @@ class MSSQLBackend(DBInterface):
 
         from django import db
         db.close_connection()
-        return pyodbc.connect(string)
+        conn = pyodbc.connect(string, autocommit=True)
+        return conn
 
     def _create_table(self, table_name, column_names, column_types, user):
         try:
@@ -275,4 +279,23 @@ class MSSQLBackend(DBInterface):
 
     def delete_dataset(self, dataset_name, owner):
         sql = "DROP VIEW [%s].[%s]" % (owner.schema, dataset_name)
+        self.run_query(sql, owner, return_cursor=True).close()
+
+    def _add_read_access_sql(self, dataset, owner, reader):
+        return "GRANT SELECT ON [%s].[%s] TO %s" % (owner.schema,
+                                                    dataset,
+                                                    reader.db_username)
+
+    def _remove_read_access_sql(self, dataset, owner, reader):
+        return "REVOKE ALL ON [%s].[%s] FROM %s" % (owner.schema,
+                                                    dataset,
+                                                    reader.db_username)
+
+    def add_read_access_to_dataset(self, dataset, owner, reader):
+        # test round one:
+        sql = self._add_read_access_sql(dataset, owner, reader)
+        self.run_query(sql, owner, return_cursor=True).close()
+
+    def remove_access_to_dataset(self, dataset, owner, reader):
+        sql = self._remove_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
