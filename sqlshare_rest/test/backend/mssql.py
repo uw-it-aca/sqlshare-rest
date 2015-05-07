@@ -1,5 +1,5 @@
 from django.test import TestCase
-
+from sqlshare_rest.models import Dataset
 from sqlshare_rest.parser import Parser
 from django.db import connection
 from sqlshare_rest.util.db import is_mssql, get_backend
@@ -154,6 +154,18 @@ class TestMSSQLBackend(TestCase):
         import pyodbc
         with self.assertRaises(pyodbc.ProgrammingError):
             backend.run_query("CREATE TABLE [test_user_bad_schema2].[test_table2] (c1 int)", user1, return_cursor=True).close()
+
+    def test_qualified_name(self):
+        backend = get_backend()
+        owner = "test_mysql_qualified_dataset_name"
+        self.remove_users.append(owner)
+        backend = get_backend()
+        user = backend.get_user(owner)
+        dataset = Dataset()
+        dataset.owner = user
+        dataset.name = "test_table1"
+
+        self.assertEquals(backend.get_qualified_name(dataset), "[test_mysql_qualified_dataset_name].[test_table1]")
 
     def test_delete_dataset(self):
         self.remove_users.append("test_user_delete_dataset1")
