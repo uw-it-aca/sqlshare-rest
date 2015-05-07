@@ -23,7 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         verbose = options["verbose"]
         if options["run_once"]:
-            process_queue(verbose=verbose)
+            process_dataset_queue(verbose=verbose)
         else:
             process_dataset_queue(run_once=False,
                                   thread_count=10,
