@@ -1,4 +1,4 @@
-from django.test import TestCase
+from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.models import Dataset
 from sqlshare_rest.parser import Parser
 from django.db import connection
@@ -12,7 +12,26 @@ elif six.PY3:
 
 
 @unittest.skipUnless(is_mssql(), "Only test with mssql")
-class TestMSSQLBackend(TestCase):
+class TestMSSQLBackend(CleanUpTestCase):
+    def test_remove_user(self):
+        backend = get_backend()
+        user1 = backend.get_user("test_remove_user1")
+        user2 = backend.get_user("test_remove_user2")
+
+        backend.run_query("SELECT (1)", user1)
+        backend.remove_user("test_remove_user1")
+        backend.remove_user("test_remove_user2")
+
+        user3 = backend.get_user("test_remove_user3")
+        backend.run_query("SELECT (1)", user3)
+
+        backend.remove_user("test_remove_user3")
+        backend.close_user_connection(user1)
+        backend.close_user_connection(user2)
+        backend.close_user_connection(user3)
+
+    def test_thing2(self):
+        self.assertEquals(1, 1)
 
     def test_create_user(self):
         self.assertEquals(1, 1)
@@ -52,8 +71,8 @@ class TestMSSQLBackend(TestCase):
 
                 cursor = connection.cursor()
                 # See if we have the data in the table!
-                db_name = backend.get_query_cache_db_name()
-                cursor.execute("SELECT * FROM %s.dbo.test_query1" % db_name)
+                schema_name = backend.get_query_cache_schema_name()
+                cursor.execute("SELECT * FROM %s.test_query1" % schema_name)
                 data = cursor.fetchall()
                 self.assertEquals(data[0][0], 1)
                 self.assertEquals(data[0][1], 'a1234')
@@ -66,7 +85,7 @@ class TestMSSQLBackend(TestCase):
                 self.assertEquals(data[1][3], None)
                 self.assertEquals(data[1][4], 3)
 
-                cursor.execute("DROP TABLE [%s].dbo.[test_query1]" % db_name)
+                cursor.execute("DROP TABLE [%s].[test_query1]" % schema_name)
 
             except Exception as ex:
                 print ("EX: ", ex)
@@ -227,7 +246,6 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(len(r3), 1)
             self.assertEquals(r3[0][0], 1)
 
-            backend.close_user_connection(user1)
             import pyodbc
             # User2 doesn't have access to user1!
             with self.assertRaises(pyodbc.ProgrammingError):
@@ -268,14 +286,11 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(result[1][2], 12)
 
             # Not shared yet - no access
-            backend.close_user_connection(user1)
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user2)
 
             # Share it
-            backend.close_user_connection(user2)
             backend.add_read_access_to_dataset("share_me", user1, user2)
 
-            backend.close_user_connection(user1)
             # Check the new person has access
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user2)
             self.assertEquals(result[0][0], 1)
@@ -285,7 +300,6 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(result[1][1], 10)
             self.assertEquals(result[1][2], 12)
 
-            backend.close_user_connection(user2)
             # Check that the owner still has access
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
             self.assertEquals(result[0][0], 1)
@@ -295,20 +309,15 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(result[1][1], 10)
             self.assertEquals(result[1][2], 12)
 
-            backend.close_user_connection(user1)
             # Make sure only user2 has access, not user3
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user3)
 
             # Drop the sharing from user2
-            backend.close_user_connection(user3)
             backend.remove_access_to_dataset("share_me", user1, user2)
 
             # Make sure user2 and user3 don't have access
-            backend.close_user_connection(user1)
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user2)
-            backend.close_user_connection(user2)
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user3)
-            backend.close_user_connection(user3)
 
             # Make sure the owner does have access
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
@@ -357,14 +366,11 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(result[1][2], 12)
 
             # Not shared yet - no access
-            backend.close_user_connection(user1)
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_public_permissions1.share_me", user2)
 
             # Share it
-            backend.close_user_connection(user2)
             backend.add_public_access("share_me", user1)
 
-            backend.close_user_connection(user1)
             # Check the new person has access
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user2)
             self.assertEquals(result[0][0], 1)
@@ -374,7 +380,6 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(result[1][1], 10)
             self.assertEquals(result[1][2], 12)
 
-            backend.close_user_connection(user2)
             # Check that the owner still has access
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user1)
             self.assertEquals(result[0][0], 1)
@@ -384,7 +389,6 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(result[1][1], 10)
             self.assertEquals(result[1][2], 12)
 
-            backend.close_user_connection(user1)
 
             # Check that user3 also has access owner
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user3)
@@ -395,17 +399,13 @@ class TestMSSQLBackend(TestCase):
             self.assertEquals(result[1][1], 10)
             self.assertEquals(result[1][2], 12)
 
-            backend.close_user_connection(user3)
 
             # Drop the public sharing
             backend.remove_public_access("share_me", user1)
 
             # Make sure user2 and user3 don't have access
-            backend.close_user_connection(user1)
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_public_permissions1.share_me", user2)
-            backend.close_user_connection(user2)
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_public_permissions1.share_me", user3)
-            backend.close_user_connection(user3)
 
             # Make sure the owner does have access
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user1)
@@ -422,7 +422,6 @@ class TestMSSQLBackend(TestCase):
             backend.close_user_connection(user1)
             backend.close_user_connection(user2)
             backend.close_user_connection(user3)
-
 
 
     @classmethod
@@ -452,6 +451,12 @@ class TestMSSQLBackend(TestCase):
         _run_query("drop login test_user_permissions3")
         _run_query("drop login test_user_bad_schema1")
         _run_query("drop login test_user_dataset1")
+        _run_query("drop login test_user_public_permissions1")
+        _run_query("drop login test_user_public_permissions2")
+        _run_query("drop login test_user_public_permissions3")
+        _run_query("drop login test_remove_user2")
+        _run_query("drop login test_remove_user1")
+        _run_query("drop login test_remove_user3")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

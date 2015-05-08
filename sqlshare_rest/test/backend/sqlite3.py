@@ -1,4 +1,4 @@
-from django.test import TestCase
+from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.models import Dataset, User
 from sqlshare_rest.parser import Parser
 from sqlshare_rest.util.db import is_sqlite3, get_backend
@@ -11,7 +11,7 @@ elif six.PY3:
 
 
 @unittest.skipUnless(is_sqlite3(), "Only test with sqlite3")
-class TestSQLite3Backend(TestCase):
+class TestSQLite3Backend(CleanUpTestCase):
     def test_dataset_preview_sql(self):
         backend = get_backend()
         self.assertEquals("SELECT * FROM (SELECT (1)) LIMIT 100", backend.get_preview_sql_for_query("SELECT (1)"))
@@ -73,10 +73,10 @@ class TestSQLite3Backend(TestCase):
         parser.parse(handle)
 
         try:
-            backend.create_dataset_from_parser("test_dataset1", parser, user)
-            result = backend.run_query("SELECT * FROM table_test_dataset1", user)
+            backend.create_dataset_from_parser("test_dataset1a", parser, user)
+            result = backend.run_query("SELECT * FROM table_test_dataset1a", user)
             self.assertEquals([(1, 3, 4, ), (2, 10, 12, )], result)
-            result2 = backend.run_query("SELECT * FROM test_dataset1", user)
+            result2 = backend.run_query("SELECT * FROM test_dataset1a", user)
             self.assertEquals([(1, 3, 4, ), (2, 10, 12, )], result2)
         except Exception:
             raise
@@ -96,8 +96,8 @@ class TestSQLite3Backend(TestCase):
         parser.parse(handle)
 
         try:
-            backend.create_table_from_parser("test_dataset1", parser, user)
-            result = backend.run_query("SELECT * FROM table_test_dataset1", user)
+            backend.create_table_from_parser("test_dataset2", parser, user)
+            result = backend.run_query("SELECT * FROM table_test_dataset2", user)
             self.assertEquals([(1, 3, 4, ), (2, 10, 12, )], result)
         except Exception:
             raise
@@ -118,13 +118,10 @@ class TestSQLite3Backend(TestCase):
         parser.parse(handle)
 
         try:
-            backend.create_table_from_parser("test_dataset1", parser, user)
-            result = backend.run_query("SELECT * FROM table_test_dataset1", user)
+            backend.create_table_from_parser("test_dataset3", parser, user)
+            result = backend.run_query("SELECT * FROM table_test_dataset3", user)
             self.assertEquals([('a', 1, 2), ('b', 2, 3), ('c', 3, 4)], result)
         except Exception:
             raise
         finally:
             backend.close_user_connection(user)
-
-
-

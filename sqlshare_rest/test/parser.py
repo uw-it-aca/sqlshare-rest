@@ -1,4 +1,4 @@
-from django.test import TestCase
+from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.parser import Parser
 import six
 if six.PY2:
@@ -6,7 +6,7 @@ if six.PY2:
 elif six.PY3:
     from io import StringIO
 
-class TestParser(TestCase):
+class TestParser(CleanUpTestCase):
     def test_headers(self):
         # This is based on existing behavior in the C# app, not necessarily
         # desired behavior

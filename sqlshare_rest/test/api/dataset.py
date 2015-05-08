@@ -63,13 +63,13 @@ class DatsetAPITest(BaseAPITest):
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
 
-        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        ds1 = create_dataset_from_query(owner, "ds9", "SELECT(1)")
         # Should be None anyway, but why not...
         ds1.description = None
         ds1.save()
 
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
-                                                        'name': "ds1"})
+                                                        'name': "ds9"})
 
         response = self.client.get(url, **auth_headers)
         data = json.loads(response.content.decode("utf-8"))
@@ -84,11 +84,11 @@ class DatsetAPITest(BaseAPITest):
         auth_headers = self.get_auth_header_for_username(owner)
         other_auth_headers = self.get_auth_header_for_username(other)
 
-        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        ds1 = create_dataset_from_query(owner, "ds10", "SELECT(1)")
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
-                                                        'name': "ds1"})
+                                                        'name': "ds10"})
 
-        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':"ds1"})
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':"ds10"})
 
         response = self.client.get(url, **auth_headers)
         data = json.loads(response.content.decode("utf-8"))
@@ -319,7 +319,7 @@ class DatsetAPITest(BaseAPITest):
 
     def test_valid_no_permissions(self):
         owner = "put_user2"
-        ds1_name = "dataset_1"
+        ds1_name = "dataset_1c"
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
@@ -346,7 +346,7 @@ class DatsetAPITest(BaseAPITest):
 
     def test_public_access(self):
         owner = "put_user3"
-        ds1_name = "dataset_1"
+        ds1_name = "dataset_1d"
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
@@ -376,13 +376,13 @@ class DatsetAPITest(BaseAPITest):
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
 
-        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        ds1 = create_dataset_from_query(owner, "ds11", "SELECT(1)")
         # Should be None anyway, but why not...
         ds1.description = None
         ds1.save()
 
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
-                                                        'name': "ds1"})
+                                                        'name': "ds11"})
 
         response = self.client.get(url, **auth_headers)
         data = json.loads(response.content.decode("utf-8"))
@@ -426,13 +426,13 @@ class DatsetAPITest(BaseAPITest):
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
 
-        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        ds1 = create_dataset_from_query(owner, "ds12", "SELECT(1)")
         # Should be None anyway, but why not...
         ds1.description = None
         ds1.save()
 
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
-                                                        'name': "ds1"})
+                                                        'name': "ds12"})
 
         response = self.client.delete(url, **auth_headers)
         self.assertEquals(response.status_code, 200)
@@ -445,11 +445,11 @@ class DatsetAPITest(BaseAPITest):
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
 
-        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
+        ds1 = create_dataset_from_query(owner, "ds13", "SELECT(1)")
         # Should be None anyway, but why not...
 
         url = reverse("sqlshare_view_download_dataset", kwargs={ 'owner': owner,
-                                                                 'name': "ds1"})
+                                                                 'name': "ds13"})
 
         response = self.client.get(url, **auth_headers)
         self.assertEquals(response.status_code, 405)
@@ -457,7 +457,7 @@ class DatsetAPITest(BaseAPITest):
         response = self.client.post(url, {}, **auth_headers)
         self.assertEquals(response.status_code, 200)
 
-        self.assertEquals(response["Content-Disposition"],  'attachment; filename="ds1.csv"')
+        self.assertEquals(response["Content-Disposition"],  'attachment; filename="ds13.csv"')
         self.assertEquals(response["Content-Type"],  'text/csv')
 
         data = StringIO(response.content.decode("utf-8"))

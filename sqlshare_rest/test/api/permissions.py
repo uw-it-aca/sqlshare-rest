@@ -206,7 +206,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
     def test_emails(self):
         owner = "email_permissions_user2"
-        dataset_name = "ds1"
+        dataset_name = "ds2"
         self.remove_users.append(owner)
         owner_auth_headers = self.get_auth_header_for_username(owner)
 
@@ -278,7 +278,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
     def test_send_emails(self):
         owner = "email_permissions_user3"
-        dataset_name = "ds1"
+        dataset_name = "ds3"
         self.remove_users.append(owner)
         owner_obj = get_backend().get_user(owner)
         owner_auth_headers = self.get_auth_header_for_username(owner)
@@ -333,7 +333,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
         Query.objects.all().delete()
 
         owner = "permissions_preview_user1"
-        dataset_name = "ds1"
+        dataset_name = "ds4"
         other_user1 = "permissions_preview_user2"
         self.remove_users.append(owner)
         self.remove_users.append(other_user1)
@@ -370,7 +370,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
         Query.objects.all().delete()
 
         owner = "permissions_preview_user5"
-        dataset_name = "ds1"
+        dataset_name = "ds5"
         other_user1 = "permissions_preview_user6"
         self.remove_users.append(owner)
         self.remove_users.append(other_user1)
@@ -414,7 +414,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
         Query.objects.all().delete()
 
         owner = "permissions_preview_user7"
-        dataset_name = "ds1"
+        dataset_name = "ds6"
         other_user1 = "permissions_preview_user8"
         self.remove_users.append(owner)
         self.remove_users.append(other_user1)
@@ -455,7 +455,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
     def test_public_to_shared(self):
         owner = "permissions_xpublic_user1"
         other_user1 = "permissions_xpublic_user2"
-        dataset_name = "ds1"
+        dataset_name = "ds7"
 
         self.remove_users.append(owner)
         self.remove_users.append(other_user1)
@@ -486,7 +486,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
         owner = "permissions_token_user1"
         other = "permissions_token_taker"
         other2 = "permissions_token_taker2"
-        dataset_name = "ds1"
+        dataset_name = "ds8"
 
         self.remove_users.append(owner)
         self.remove_users.append(other)
@@ -548,7 +548,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(data["owner"], "permissions_token_user1")
-        self.assertEquals(data["name"], "ds1")
+        self.assertEquals(data["name"], "ds8")
 
         # the token is reusable - if someone emails a mailing list, say:
         response = self.client.post(token2_url, data=None, **other_auth_headers2)

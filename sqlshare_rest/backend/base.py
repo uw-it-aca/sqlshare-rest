@@ -54,6 +54,9 @@ class DBInterface(object):
     def get_preview_sql_for_query(self, sql):
         self._not_implemented("get_preview_sql_for_query")
 
+    def get_preview_sql_for_dataset(self, dataset_name, user):
+        self._not_implemented("get_preview_sql_for_dataset")
+
     def create_table_from_parser(self, dataset_name, parser, user):
         table_name = self._get_table_name_for_dataset(dataset_name)
         self._create_table(table_name=table_name,
@@ -225,6 +228,7 @@ class DBInterface(object):
             connection = self._create_user_connection(user)
             by_user[user.db_username] = {"connection": connection,
                                          "user": user}
+
         return by_user[user.db_username]["connection"]
 
     def close_user_connection(self, user):

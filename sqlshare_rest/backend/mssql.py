@@ -17,20 +17,12 @@ import hashlib
 
 
 class MSSQLBackend(DBInterface):
-    def remove_user(self, username):
-        """
-        Overriding this method to force a DB reset.  Seems like a bad sign,
-        perhaps connections are being pooled improperly.
-        """
-        db.close_connection()
-        return super(MSSQLBackend, self).remove_user(username)
-
     def get_user(self, user):
         """
         Overriding this method to force a DB reset.  Seems like a bad sign,
         perhaps connections are being pooled improperly.
         """
-        db.close_connection()
+#        db.close_connection()
         return super(MSSQLBackend, self).get_user(user)
 
     def create_db_user_password(self):
@@ -51,11 +43,14 @@ class MSSQLBackend(DBInterface):
         return password
 
     def create_db_user(self, username, password):
-        with closing(connection.cursor()) as cursor:
-            sql = "CREATE LOGIN %s WITH PASSWORD = '%s'" % (username, password)
-            cursor.execute(sql)
-            sql = "CREATE USER %s FROM LOGIN %s" % (username, username)
-            cursor.execute(sql)
+        cursor = connection.cursor()
+        sql = "CREATE LOGIN %s WITH PASSWORD = '%s'" % (username, password)
+        cursor.execute(sql)
+        cursor.close()
+        cursor = connection.cursor()
+        sql = "CREATE USER %s FROM LOGIN %s" % (username, username)
+        cursor.execute(sql)
+        cursor.close()
 
     def get_db_username(self, user):
         # Periods aren't allowed in MS SQL usernames.
@@ -67,27 +62,39 @@ class MSSQLBackend(DBInterface):
 
     # Maybe this could become separate files at some point?
     def create_db_schema(self, username, schema):
-        with closing(connection.cursor()) as cursor:
-            cursor.execute("CREATE SCHEMA %s AUTHORIZATION %s" % (schema,
-                                                                  username))
-            cursor.execute("GRANT CONNECT TO %s" % (username))
+        cursor = connection.cursor()
+        cursor.execute("CREATE SCHEMA %s AUTHORIZATION %s" % (schema,
+                                                              username))
+        cursor.close()
+        cursor = connection.cursor()
+        cursor.execute("GRANT CONNECT TO %s" % (username))
+        cursor.close()
 
-            sql = "GRANT CREATE VIEW, CREATE TABLE TO %s" % (username)
-            cursor.execute(sql)
-            sql = ("GRANT SELECT ON SCHEMA::%s "
-                   "TO %s WITH GRANT OPTION" % (schema, username))
-            cursor.execute(sql)
+        cursor = connection.cursor()
+        sql = "GRANT CREATE VIEW, CREATE TABLE TO %s" % (username)
+        cursor.execute(sql)
+        cursor.close()
+        sql = ("GRANT SELECT ON SCHEMA::%s "
+               "TO %s WITH GRANT OPTION" % (schema, username))
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        cursor.close()
 
     def remove_db_user(self, user):
-        with closing(connection.cursor()) as cursor:
-            model = User.objects.get(db_username=user)
-            # without this you can't drop the user, because they own an
-            # object in the db.
-            sql = "ALTER AUTHORIZATION ON SCHEMA::%s TO dbo" % (model.schema)
-            cursor.execute(sql)
-            # MSSQL doesn't let the username be a placeholder in DROP USER.
-            cursor.execute("DROP USER %s" % (user))
-            cursor.execute("DROP LOGIN %s" % (user))
+        model = User.objects.get(db_username=user)
+        cursor = connection.cursor()
+        # without this you can't drop the user, because they own an
+        # object in the db.
+        sql = "ALTER AUTHORIZATION ON SCHEMA::%s TO dbo" % (model.schema)
+        cursor.execute(sql)
+        cursor.close()
+        # MSSQL doesn't let the username be a placeholder in DROP USER.
+        cursor = connection.cursor()
+        cursor.execute("DROP USER %s" % (user))
+        cursor.close()
+        cursor = connection.cursor()
+        cursor.execute("DROP LOGIN %s" % (user))
+        cursor.close()
         return
 
     def remove_schema(self, schema):
@@ -164,8 +171,6 @@ class MSSQLBackend(DBInterface):
             settings.DATABASES['default']['OPTIONS']['extra_params'],
             )
 
-        from django import db
-        db.close_connection()
         conn = pyodbc.connect(string, autocommit=True)
         return conn
 
@@ -260,17 +265,17 @@ class MSSQLBackend(DBInterface):
 
     def create_table_from_query_result(self, name, source_cursor):
         # Make sure the db exists to stash query results into
-        QUERY_SCHEMA = self.get_query_cache_db_name()
+        QUERY_SCHEMA = self.get_query_cache_schema_name()
         cursor = connection.cursor()
-        sql = "SELECT name FROM master.sys.databases WHERE name = ?"
+        sql = "SELECT name FROM master.sys.schemas WHERE name = ?"
         cursor.execute(sql, (QUERY_SCHEMA, ))
 
         if not cursor.rowcount:
-            cursor.execute("CREATE DATABASE %s" % (QUERY_SCHEMA))
+            cursor.execute("CREATE SCHEMA %s" % (QUERY_SCHEMA))
 
         column_def = self._get_column_definitions_for_cursor(source_cursor)
 
-        full_name = "[%s].dbo.[%s]" % (QUERY_SCHEMA, name)
+        full_name = "[%s].[%s]" % (QUERY_SCHEMA, name)
         create_table = "CREATE TABLE %s (%s)" % (full_name, column_def)
         cursor.execute(create_table)
 
@@ -285,11 +290,14 @@ class MSSQLBackend(DBInterface):
             row_count += 1
         return row_count
 
-    def get_query_cache_db_name(self):
-        return getattr(settings, "SQLSHARE_QUERY_CACHE_DB", "ss_query_db")
+    def get_query_cache_schema_name(self):
+        return getattr(settings, "SQLSHARE_QUERY_CACHE_SCHEMA", "QUERY_SCHEMA")
 
     def get_qualified_name(self, dataset):
         return "[%s].[%s]" % (dataset.owner.schema, dataset.name)
+
+    def get_preview_sql_for_dataset(self, dataset_name, user):
+        return "SELECT TOP 100 * FROM [%s].[%s]" % (user.schema, dataset_name)
 
     def get_preview_sql_for_query(self, sql):
         return "SELECT TOP 100 * FROM (%s) as x" % sql
@@ -311,6 +319,17 @@ class MSSQLBackend(DBInterface):
         return "REVOKE ALL ON [%s].[%s] FROM %s" % (owner.schema,
                                                     dataset,
                                                     reader.db_username)
+
+    def _read_access_to_query_sql(self, query_id, user):
+        db = self.get_query_cache_schema_name()
+        return "GRANT SELECT ON [%s].[query_%s] TO [%s]" % (db,
+                                                            query_id,
+                                                            user.db_username)
+
+    def add_read_access_to_query(self, query_id, user):
+        sql = self._read_access_to_query_sql(query_id, user)
+        cursor = connection.cursor()
+        cursor.execute(sql)
 
     def add_read_access_to_dataset(self, dataset, owner, reader):
         # test round one:

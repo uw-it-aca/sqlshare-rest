@@ -91,7 +91,8 @@ def create_dataset_from_query(username, dataset_name, sql):
             except:
                 pass
 
-        preview_sql = backend.get_preview_sql_for_query(sql)
+        preview_sql = backend.get_preview_sql_for_dataset(dataset_name, user)
+#        preview_sql = backend.get_preview_sql_for_query(sql)
         query_obj = Query.objects.create(sql=preview_sql,
                                          owner=user,
                                          is_preview_for=model)

@@ -46,6 +46,9 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 except:
                     raise
             except Exception as ex:
+                if verbose:
+                    print ("Error running query %s: %s" % (oldest_query.pk,
+                                                           str(ex)))
                 oldest_query.has_error = True
                 oldest_query.error = str(ex)
             finally:

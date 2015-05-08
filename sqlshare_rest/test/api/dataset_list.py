@@ -37,10 +37,10 @@ class DatsetListAPITest(BaseAPITest):
     def test_my_list(self):
         owner = "ds_list_user1"
         self.remove_users.append(owner)
-        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
-        ds2 = create_dataset_from_query(owner, "ds2", "SELECT(2)")
-        ds3 = create_dataset_from_query(owner, "ds3", "SELECT(3)")
-        ds4 = create_dataset_from_query(owner, "ds4", "SELECT(4)")
+        ds1 = create_dataset_from_query(owner, "dsa1", "SELECT(1)")
+        ds2 = create_dataset_from_query(owner, "dsa2", "SELECT(2)")
+        ds3 = create_dataset_from_query(owner, "dsa3", "SELECT(3)")
+        ds4 = create_dataset_from_query(owner, "dsa4", "SELECT(4)")
 
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset_list")
@@ -51,7 +51,7 @@ class DatsetListAPITest(BaseAPITest):
         self.assertEquals(len(data), 4)
         self.assertEquals(data[0]["sql_code"], "SELECT(1)")
         self.assertEquals(data[0]["is_public"], False)
-        self.assertEquals(data[0]["name"], "ds1")
+        self.assertEquals(data[0]["name"], "dsa1")
         self.assertEquals(data[0]["owner"], owner)
 
         creation_date = data[0]["date_created"]
@@ -183,9 +183,9 @@ class DatsetListAPITest(BaseAPITest):
         auth_headers3 = self.get_auth_header_for_username(owner3)
         url = reverse("sqlshare_view_dataset_tagged_list", kwargs={"tag": "__test_tag_api__" })
 
-        ds1 = create_dataset_from_query(owner1, "ds_owned", "SELECT(1)")
-        ds2 = create_dataset_from_query(owner2, "ds_shared", "SELECT(1)")
-        ds3 = create_dataset_from_query(owner3, "ds_public", "SELECT(1)")
+        ds1 = create_dataset_from_query(owner1, "ds_owned2", "SELECT(1)")
+        ds2 = create_dataset_from_query(owner2, "ds_shared3", "SELECT(1)")
+        ds3 = create_dataset_from_query(owner3, "ds_public2", "SELECT(1)")
 
         ds4 = create_dataset_from_query(owner1, "ds_owned_tagged", "SELECT(1)")
         ds5 = create_dataset_from_query(owner2, "ds_shared_tagged", "SELECT(1)")
