@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>SQLShare</title>
+    <base id="solstice_base" href="/"/>
+    <meta http-equiv="Expires" content="0"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+
+    {% load compress %}
+    {% compress css %}
+    <link rel="stylesheet" type="text/css"  href="{{STATIC_URL}}styles/reset.css"/>
+    <link rel="stylesheet" type="text/css"  href="{{STATIC_URL}}styles/fonts.css"/>
+    <link rel="stylesheet" type="text/css"  href="{{STATIC_URL}}styles/sqlshare.css"/>
+    {% endcompress %}
+
+  </head>
+
+  <body>
+    <div class="ss-wayf-content">
+
+        <img src="{{STATIC_URL}}images/ss-wayf-logo.png" style="width:240px;"/>
+
+        <p class="ss-wayf-headline"><strong>SQLShare is an easier way to store and share your data.</strong>  Get answers to your research questions right now.</p>
+
+
+        <div class="ss-wayf-main">
+            <div class="ss-wayf-hero"><img src="{{STATIC_URL}}images/ss-wayf-hero.png" style="width:550px;" /></div>
+            <div class="ss-wayf-hero-content">
+
+                <div class="ss-wayf-login">
+                    <h3>Log in using your account:</h3>
+                    <button class="uw" onclick="go_to_login('{% url 'sqlshare_rest.views.auth.require_uw_login' %}');">UW</button>
+                    <button class="google" onclick="go_to_login('{% url 'sqlshare_rest.views.auth.require_google_login' %}');">Google</button>
+
+                </div>
+
+                <div class="ss-wayf-new-user">
+                    <h3>Don&rsquo;t have an account?</h3>
+                    <p>Create a <a href="https://www.google.com/accounts/NewAccount">Google Account</a> and start using SQLShare quickly.</p>
+                </div>
+
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div>
+            <div class="ss-wayf-feature">
+                <h2>Upload</h2>
+                <p>Upload any tabular data and start analyzing instantly.  No need to install, configure, or design a database.</p>
+            </div>
+            <div class="ss-wayf-feature">
+                <h2>Modify</h2>
+                <p>Exercise the full power of SQL even with zero programming experience: joins, subqueries, set operations.</p>
+            </div>
+            <div class="ss-wayf-feature-end">
+                <h2>Share</h2>
+                <p>Analyze and compare your data collaboratively.  Derive new datasets and share them with your colleagues.</p>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+
+        <div class="ss-wayf-sponsors">
+
+            <h5 style="">Brought to you by:</h5>
+
+            <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/ss-wayf-escience.png" style="" /><br/>eScience Institute</div>
+            <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/moore-foundation-logo.gif" style="" /></div>
+            <div class="clear"></div>
+
+        </div>
+
+    </div>
+
+
+    <script type="text/javascript" src="{{STATIC_URL}}javascript/wayf.js"></script>
+
+  </body>
+</html>

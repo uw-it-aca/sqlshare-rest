@@ -1,0 +1,28 @@
+language: python
+python:
+  - "2.7"
+  - "3.4"
+install: pip install -r requirements.txt
+before_script:
+  - mysql -u root -e 'create database sqlshare_app'
+  - mysql -u root -e 'create user "sqlshare_user" identified by "ss_pass"'
+  - mysql -u root -e 'grant all on *.* to sqlshare_user'
+  - mysql -u root -e 'grant grant option on *.* to sqlshare_user'
+  - pip install coverage
+  - pip install python-coveralls
+  - pip install pep8
+  - pip install PyMySQL
+  - cp travis-ci/manage.py manage.py
+  - python manage.py syncdb --noinput
+env:
+  - DB=sqlite3
+  - DB=mysql
+script:
+  - pep8 sqlshare_rest/ --exclude=migrations,sqlshare_rest/tests.py,sqlshare_rest/test/
+  - coverage run --source=sqlshare_rest/ --omit=sqlshare_rest/migrations/* manage.py test sqlshare_rest
+after_script:
+  - coveralls
+notifications:
+  webhooks:
+      urls:
+        - https://yarn.cac.washington.edu/rest/botalyst/v1/travis-ci
