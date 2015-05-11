@@ -133,6 +133,9 @@ class MySQLBackend(DBInterface):
         cursor = connection.cursor()
         cursor.execute(sql)
 
+    def add_owner_read_access_to_query(self, query_id, user):
+        return self.add_read_access_to_query(query_id, user)
+
     def add_read_access_to_query(self, query_id, user):
         sql = self._read_access_to_query_sql(query_id, user)
         cursor = connection.cursor()

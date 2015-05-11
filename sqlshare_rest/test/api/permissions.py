@@ -587,3 +587,18 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         emails = data["emails"]
         self.assertEquals(emails, ["test_user1@example.com"])
+
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop login permissions_preview_user8")
+

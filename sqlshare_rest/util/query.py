@@ -9,7 +9,13 @@ def get_sample_data_for_query(query, username):
     if query.is_finished and not query.error:
         try:
             cursor = get_query_sample_data(user_obj, query.id)
-            data = cursor.fetchall()
+            data = []
+            row = cursor.fetchone()
+            while row:
+                # This is to make sure the data is json serializable.  Some
+                # backends return 'row' objects, such as <type 'pyodbc.Row'>
+                data.append(list(row))
+                row = cursor.fetchone()
             columns = frontend_description_from_cursor(cursor)
             cursor.close()
         except Exception as ex:

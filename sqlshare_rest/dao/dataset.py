@@ -176,8 +176,8 @@ def add_account_to_dataset(dataset, account):
 
 def add_public_access(dataset):
     try:
-        get_backend().add_public_access(dataset.name, dataset.owner.username)
-    except AttributeError:
+        get_backend().add_public_access(dataset, dataset.owner)
+    except AttributeError as ex:
         pass
     dataset.is_public = True
     dataset.save()
@@ -185,8 +185,7 @@ def add_public_access(dataset):
 
 def remove_public_access(dataset):
     try:
-        username = dataset.owner.username
-        get_backend().remove_public_access(dataset.name, username)
+        get_backend().remove_public_access(dataset.name, dataset.owner)
     except AttributeError:
         pass
     dataset.is_public = False
@@ -213,6 +212,10 @@ def reset_dataset_account_access(dataset):
         if query:
             backend.add_read_access_to_query(query.pk, user)
 
+    if dataset.is_public:
+        add_public_access(dataset)
+    else:
+        remove_public_access(dataset)
 
 def set_dataset_emails(dataset, emails, save_dataset=True):
     # Get a unique list...

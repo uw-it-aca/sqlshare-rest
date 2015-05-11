@@ -83,6 +83,9 @@ class SQLite3Backend(DBInterface):
             row_count += 1
         return row_count
 
+    def add_owner_read_access_to_query(self, query_id, user):
+        return self.add_read_access_to_query(query_id, user)
+
     def add_read_access_to_query(*args, **kwargs):
         pass
 

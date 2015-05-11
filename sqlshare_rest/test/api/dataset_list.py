@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse
+from django.db import connection
 from unittest2 import skipIf
 from datetime import datetime
 from dateutil import parser
@@ -259,4 +260,17 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
         self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
 
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop login ds_list_user8")
 

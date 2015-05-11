@@ -457,6 +457,7 @@ class TestMSSQLBackend(CleanUpTestCase):
         _run_query("drop login test_remove_user2")
         _run_query("drop login test_remove_user1")
         _run_query("drop login test_remove_user3")
+        _run_query("drop login test_mysql_qualified_dataset_name")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...
