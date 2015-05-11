@@ -360,6 +360,7 @@ class TestMSSQLBackend(CleanUpTestCase):
 
         try:
             backend.create_dataset_from_parser("share_me", parser, user1)
+            dataset = Dataset.objects.create(owner=user1, name="share_me")
 
             # Just check that it's there:
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user1)
@@ -369,7 +370,7 @@ class TestMSSQLBackend(CleanUpTestCase):
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_public_permissions1.share_me", user2)
 
             # Share it
-            backend.add_public_access("share_me", user1)
+            backend.add_public_access(dataset, user1)
 
             # Check the new person has access
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user2)
@@ -401,7 +402,7 @@ class TestMSSQLBackend(CleanUpTestCase):
 
 
             # Drop the public sharing
-            backend.remove_public_access("share_me", user1)
+            backend.remove_public_access(dataset, user1)
 
             # Make sure user2 and user3 don't have access
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_public_permissions1.share_me", user2)

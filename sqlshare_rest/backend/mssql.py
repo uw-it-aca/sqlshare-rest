@@ -376,7 +376,10 @@ class MSSQLBackend(DBInterface):
 
     def _add_public_access_to_sample(self, dataset):
         schema = self.get_query_cache_schema_name()
-        query = Query.objects.get(is_preview_for=dataset.pk)
+        try:
+            query = Query.objects.get(is_preview_for=dataset.pk)
+        except Query.DoesNotExist:
+            return
         sample_id = query.pk
 
         if query.is_finished:
@@ -393,7 +396,7 @@ class MSSQLBackend(DBInterface):
 
     def _remove_public_access_sql(self, dataset, owner):
         return "REVOKE ALL ON [%s].[%s] FROM PUBLIC" % (owner.schema,
-                                                        dataset)
+                                                        dataset.name)
 
     def _remove_public_access_from_sample(self, dataset):
         schema = self.get_query_cache_schema_name()
@@ -409,4 +412,5 @@ class MSSQLBackend(DBInterface):
         self.run_query(sql, owner, return_cursor=True).close()
 
         sql = self._remove_public_access_from_sample(dataset)
-        self.run_query(sql, owner, return_cursor=True).close()
+        if sql:
+            self.run_query(sql, owner, return_cursor=True).close()

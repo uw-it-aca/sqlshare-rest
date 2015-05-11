@@ -601,4 +601,5 @@ class DatasetPermissionsAPITest(BaseAPITest):
         # This is just an embarrassing list of things to cleanup if something fails.
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop login permissions_preview_user8")
+        _run_query("drop login permissions_token_user1")
 
