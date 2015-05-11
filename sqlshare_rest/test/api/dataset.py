@@ -229,6 +229,8 @@ class DatsetAPITest(BaseAPITest):
         response = self.client.put(url, data=json_data, **auth_headers)
         self.assertEquals(response.status_code, 201)
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
         data = json.loads(response.content.decode("utf-8"))
 
@@ -253,6 +255,8 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["sample_data_status"], "working")
 
 
+        query = Query.objects.all()[0]
+        remove_pk2 = query.pk
         process_queue()
         # Test that the GET returns data after the second PUT too...
         response = self.client.get(url, **auth_headers)
@@ -263,6 +267,15 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["owner"], owner)
         self.assertEquals(data["sample_data_status"], "success")
         self.assertEquals(data["description"], "This is a test dataset")
+
+        try:
+            get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
+        except:
+            pass
+        try:
+            get_backend().remove_table_for_query_by_name("query_%s" % remove_pk2)
+        except:
+            pass
 
     def test_repeated_puts_no_queue_run(self):
         """
@@ -304,6 +317,8 @@ class DatsetAPITest(BaseAPITest):
         response = self.client.put(url, data=json_data, **auth_headers)
         self.assertEquals(response.status_code, 201)
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
         # Test that the GET returns data after the second PUT too...
         response = self.client.get(url, **auth_headers)
@@ -313,6 +328,7 @@ class DatsetAPITest(BaseAPITest):
 
         self.assertEquals(data["owner"], owner)
         self.assertEquals(data["description"], "This is a test dataset")
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
 
 
 
@@ -460,7 +476,7 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(response["Content-Disposition"],  'attachment; filename="ds13.csv"')
         self.assertEquals(response["Content-Type"],  'text/csv')
 
-        data = StringIO(response.content.decode("utf-8"))
+        data = StringIO(("".join(response.streaming_content)).decode("utf-8"))
         reader = csv.reader(data, delimiter=",")
         values = []
         for row in reader:

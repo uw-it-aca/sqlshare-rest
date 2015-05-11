@@ -150,6 +150,9 @@ class DBInterface(object):
                               user,
                               return_cursor=True)
 
+    def remove_table_for_query_by_name(self, name):
+        raise NotImplementedError("remove_table_for_query_by_name")
+
     def create_table_from_query_result(self, name, cursor):
         """
         Create a table based on the values in:

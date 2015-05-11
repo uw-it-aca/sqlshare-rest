@@ -84,11 +84,13 @@ def create_dataset_from_query(username, dataset_name, sql):
 
         # Remove all existing sample data queries
         previous = Query.objects.filter(is_preview_for=model)
+
         for query in previous:
+            delete_id = query.pk
             query.delete()
             try:
-                backend.delete_query(query.pk)
-            except:
+                backend.delete_query(delete_id)
+            except Exception as ex:
                 pass
 
         preview_sql = backend.get_preview_sql_for_dataset(dataset_name, user)

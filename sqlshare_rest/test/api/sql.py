@@ -60,7 +60,7 @@ class RunQueryAPITest(BaseAPITest):
         response = self.client.post(url, { "sql": "SELECT (1), (2)" }, **auth_headers)
         self.assertEquals(response.status_code, 200)
 
-        data = StringIO(response.content.decode("utf-8"))
+        data = StringIO(("".join(response.streaming_content)).decode("utf-8"))
         reader = csv.reader(data, delimiter=",")
         values = []
         for row in reader:
@@ -73,7 +73,7 @@ class RunQueryAPITest(BaseAPITest):
         response = self.client.post(url, { "sql": "SELECT ('\",;\na')" }, **auth_headers)
         self.assertEquals(response.status_code, 200)
 
-        data = StringIO(response.content.decode("utf-8"))
+        data = StringIO(("".join(response.streaming_content)).decode("utf-8"))
         reader = csv.reader(data, delimiter=",")
         values = []
         for row in reader:

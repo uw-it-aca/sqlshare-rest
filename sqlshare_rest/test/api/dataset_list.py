@@ -4,6 +4,7 @@ from datetime import datetime
 from dateutil import parser
 from django.test.utils import override_settings
 from django.test.client import Client
+from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.test import missing_url
 from sqlshare_rest.dao.dataset import create_dataset_from_query, set_dataset_accounts
@@ -62,11 +63,11 @@ class DatsetListAPITest(BaseAPITest):
 
         now = timezone.now()
 
-        self.assertTrue((now - cd_obj).total_seconds() < 2)
-        self.assertTrue((now - md_obj).total_seconds() < 2)
+        self.assertTrue((now - cd_obj).total_seconds() < 10)
+        self.assertTrue((now - md_obj).total_seconds() < 10)
 
-        self.assertTrue((cd_obj - now).total_seconds() > -2)
-        self.assertTrue((md_obj - now).total_seconds() > -2)
+        self.assertTrue((cd_obj - now).total_seconds() > -10)
+        self.assertTrue((md_obj - now).total_seconds() > -10)
 
 
 
@@ -160,6 +161,10 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue(lookup["ds_list_user6"]["ds_public"])
 
         # What happens with the sample data queries?
+
+        remove_id1 = Query.objects.all()[0].pk
+        remove_id2 = Query.objects.all()[1].pk
+        remove_id3 = Query.objects.all()[2].pk
         process_queue()
         process_queue()
         process_queue()
@@ -169,6 +174,10 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue(lookup["ds_list_user4"]["ds_owned"])
         self.assertTrue(lookup["ds_list_user5"]["ds_shared"])
         self.assertTrue(lookup["ds_list_user6"]["ds_public"])
+
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_id1)
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_id2)
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_id3)
 
     def test_tagged_list(self):
         owner1 = "ds_list_user7"

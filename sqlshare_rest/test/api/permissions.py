@@ -349,6 +349,8 @@ class DatasetPermissionsAPITest(BaseAPITest):
         owner_auth_headers = self.get_auth_header_for_username(owner)
         user1_auth_headers = self.get_auth_header_for_username(other_user1)
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
 
         new_data = { "accounts": [ other_user1 ] }
@@ -363,6 +365,8 @@ class DatasetPermissionsAPITest(BaseAPITest):
             self.assertEquals(data["sample_data"], [['1']])
         else:
             self.assertEquals(data["sample_data"], [[1]])
+
+        backend.remove_table_for_query_by_name("query_%s" % remove_pk)
 
     def test_preview_table_permissions_pre_process(self):
         # We need to process the preview query - purge any existing queries
@@ -396,6 +400,8 @@ class DatasetPermissionsAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(data["sample_data_status"], "working")
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
         # Test that permission was added after the query is finished.
         response = self.client.get(url, **user1_auth_headers)
@@ -407,6 +413,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
             self.assertEquals(data["sample_data"], [['1']])
         else:
             self.assertEquals(data["sample_data"], [[1]])
+        backend.remove_table_for_query_by_name("query_%s" % remove_pk)
 
     def test_preview_table_permissions_public(self):
         # We need to process the preview query - purge any existing queries
@@ -437,6 +444,8 @@ class DatasetPermissionsAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(data["sample_data_status"], "working")
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
         # Test that permission was added after the query is finished.
         response = self.client.get(url, **user1_auth_headers)
@@ -451,6 +460,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
             self.assertEquals(data["sample_data"], None)
         else:
             self.assertEquals(data["sample_data"], [[1]])
+        backend.remove_table_for_query_by_name("query_%s" % remove_pk)
 
     def test_public_to_shared(self):
         owner = "permissions_xpublic_user1"
@@ -538,12 +548,12 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         # Make sure that token 1 doesn't give access
         token1_url = reverse("sqlshare_token_access", kwargs={"token": access_token1})
-        response = self.client.post(token1_url, data=None, **other_auth_headers)
+        response = self.client.post(token1_url, data={}, **other_auth_headers)
         self.assertEquals(response.status_code, 404)
 
         # Make sure that token 2 does give access
         token2_url = reverse("sqlshare_token_access", kwargs={"token": access_token2})
-        response = self.client.post(token2_url, data=None, **other_auth_headers)
+        response = self.client.post(token2_url, data={}, **other_auth_headers)
         self.assertEquals(response.status_code, 200)
 
         data = json.loads(response.content.decode("utf-8"))
@@ -551,17 +561,17 @@ class DatasetPermissionsAPITest(BaseAPITest):
         self.assertEquals(data["name"], "ds8")
 
         # the token is reusable - if someone emails a mailing list, say:
-        response = self.client.post(token2_url, data=None, **other_auth_headers2)
+        response = self.client.post(token2_url, data={}, **other_auth_headers2)
         self.assertEquals(response.status_code, 200)
 
         # Make sure if we try to add the user a second time, nothing weird happens
         token2_url = reverse("sqlshare_token_access", kwargs={"token": access_token2})
-        response = self.client.post(token2_url, data=None, **other_auth_headers)
+        response = self.client.post(token2_url, data={}, **other_auth_headers)
         self.assertEquals(response.status_code, 200)
 
         # Make sure that if we add the owner this way, they don't end up in the list
         token2_url = reverse("sqlshare_token_access", kwargs={"token": access_token2})
-        response = self.client.post(token2_url, data=None, **owner_auth_headers)
+        response = self.client.post(token2_url, data={}, **owner_auth_headers)
         self.assertEquals(response.status_code, 200)
 
         # Now, make sure the email is still in the permissions api document,

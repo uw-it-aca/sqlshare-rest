@@ -59,6 +59,11 @@ class SQLite3Backend(DBInterface):
     def get_query_sample_sql(self, query_id):
         return "SELECT * FROM query_%s LIMIT 100" % (query_id)
 
+    def remove_table_for_query_by_name(self, name):
+        cursor = connection.cursor()
+        drop_table = "DROP TABLE %s" % (name)
+        cursor.execute(drop_table)
+
     def create_table_from_query_result(self, name, source_cursor):
         cursor = connection.cursor()
 

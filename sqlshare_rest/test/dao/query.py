@@ -1,6 +1,7 @@
 from sqlshare_rest.test import CleanUpTestCase
 from django.db import connection
 from django.test.utils import override_settings
+from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
@@ -28,6 +29,8 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(query.is_finished, False)
         self.assertEquals(query.has_error, False)
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
 
         q2 = Query.objects.get(pk=query.pk)
@@ -36,6 +39,8 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q2.error, None)
         self.assertEquals(q2.has_error, False)
         self.assertEquals(q2.rows_total, 1)
+
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
 
     def test_order(self):
         owner = "dao_query_user2"
@@ -77,6 +82,10 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q3.is_finished, True)
 
         process_queue()
+        get_backend().remove_table_for_query_by_name("query_%s" % query1.pk)
+        get_backend().remove_table_for_query_by_name("query_%s" % query2.pk)
+        get_backend().remove_table_for_query_by_name("query_%s" % query3.pk)
+
 
     def test_invalid_sql(self):
         owner = "dao_query_user3"
