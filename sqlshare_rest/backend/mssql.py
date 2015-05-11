@@ -228,7 +228,8 @@ class MSSQLBackend(DBInterface):
 
     def get_query_sample_sql(self, query_id):
         QUERY_SCHEMA = self.get_query_cache_schema_name()
-        return "SELECT TOP 100 * FROM [%s].[query_%s]" % (QUERY_SCHEMA, query_id)
+        return "SELECT TOP 100 * FROM [%s].[query_%s]" % (QUERY_SCHEMA,
+                                                          query_id)
 
     def _get_column_definitions_for_cursor(self, cursor):
         import pyodbc
@@ -314,6 +315,9 @@ class MSSQLBackend(DBInterface):
     def get_qualified_name(self, dataset):
         return "[%s].[%s]" % (dataset.owner.schema, dataset.name)
 
+    def get_download_sql_for_dataset(self, dataset):
+        return "SELECT * FROM %s" % self.get_qualified_name(dataset)
+
     def get_preview_sql_for_dataset(self, dataset_name, user):
         return "SELECT TOP 100 * FROM [%s].[%s]" % (user.schema, dataset_name)
 
@@ -346,10 +350,10 @@ class MSSQLBackend(DBInterface):
 
     def _owner_read_access_to_query_sql(self, query_id, user):
         db = self.get_query_cache_schema_name()
-        return "GRANT SELECT ON [%s].[query_%s] TO [%s] WITH GRANT OPTION" % (db,
-                                                            query_id,
-                                                            user.db_username)
-
+        return ("GRANT SELECT ON [%s].[query_%s] TO "
+                "[%s] WITH GRANT OPTION") % (db,
+                                             query_id,
+                                             user.db_username)
 
     def add_owner_read_access_to_query(self, query_id, user):
         sql = self._owner_read_access_to_query_sql(query_id, user)
@@ -384,7 +388,7 @@ class MSSQLBackend(DBInterface):
 
         if query.is_finished:
             return "GRANT SELECT ON [%s].[query_%s] TO PUBLIC" % (schema,
-                                                                      sample_id)
+                                                                  sample_id)
 
     def add_public_access(self, dataset, owner):
         sql = self._add_public_access_sql(dataset, owner)

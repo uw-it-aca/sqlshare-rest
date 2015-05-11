@@ -42,7 +42,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 try:
                     row_count = backend.create_table_from_query_result(name,
                                                                        cursor)
-                    backend.add_owner_read_access_to_query(oldest_query.pk, user)
+                    backend.add_owner_read_access_to_query(oldest_query.pk,
+                                                           user)
                 except:
                     raise
             except Exception as ex:

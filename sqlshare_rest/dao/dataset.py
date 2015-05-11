@@ -217,6 +217,7 @@ def reset_dataset_account_access(dataset):
     else:
         remove_public_access(dataset)
 
+
 def set_dataset_emails(dataset, emails, save_dataset=True):
     # Get a unique list...
     emails = list(set(emails))
