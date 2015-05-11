@@ -78,6 +78,10 @@ class MySQLBackend(DBInterface):
     def get_download_sql_for_dataset(self, dataset):
         return "SELECT * FROM %s" % self.get_qualified_name(dataset)
 
+    def get_preview_sql_for_dataset(self, dataset_name, user):
+        return "SELECT * FROM `%s`.`%s` LIMIT 100" % (user.schema,
+                                                      dataset_name)
+
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) as x LIMIT 100" % sql
 
@@ -129,6 +133,9 @@ class MySQLBackend(DBInterface):
         cursor = connection.cursor()
         cursor.execute(sql)
 
+    def add_owner_read_access_to_query(self, query_id, user):
+        return self.add_read_access_to_query(query_id, user)
+
     def add_read_access_to_query(self, query_id, user):
         sql = self._read_access_to_query_sql(query_id, user)
         cursor = connection.cursor()
@@ -170,6 +177,13 @@ class MySQLBackend(DBInterface):
 
     def get_query_cache_db_name(self):
         return getattr(settings, "SQLSHARE_QUERY_CACHE_DB", "ss_query_db")
+
+    def remove_table_for_query_by_name(self, name):
+        QUERY_SCHEMA = self.get_query_cache_db_name()
+        cursor = connection.cursor()
+        full_name = "`%s`.`%s`" % (QUERY_SCHEMA, name)
+        drop_table = "DROP TABLE %s" % (full_name)
+        cursor.execute(drop_table)
 
     def create_table_from_query_result(self, name, source_cursor):
         # Make sure the db exists to stash query results into

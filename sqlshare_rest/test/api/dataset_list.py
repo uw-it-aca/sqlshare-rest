@@ -1,9 +1,11 @@
 from django.core.urlresolvers import reverse
+from django.db import connection
 from unittest2 import skipIf
 from datetime import datetime
 from dateutil import parser
 from django.test.utils import override_settings
 from django.test.client import Client
+from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.test import missing_url
 from sqlshare_rest.dao.dataset import create_dataset_from_query, set_dataset_accounts
@@ -37,10 +39,10 @@ class DatsetListAPITest(BaseAPITest):
     def test_my_list(self):
         owner = "ds_list_user1"
         self.remove_users.append(owner)
-        ds1 = create_dataset_from_query(owner, "ds1", "SELECT(1)")
-        ds2 = create_dataset_from_query(owner, "ds2", "SELECT(2)")
-        ds3 = create_dataset_from_query(owner, "ds3", "SELECT(3)")
-        ds4 = create_dataset_from_query(owner, "ds4", "SELECT(4)")
+        ds1 = create_dataset_from_query(owner, "dsa1", "SELECT(1)")
+        ds2 = create_dataset_from_query(owner, "dsa2", "SELECT(2)")
+        ds3 = create_dataset_from_query(owner, "dsa3", "SELECT(3)")
+        ds4 = create_dataset_from_query(owner, "dsa4", "SELECT(4)")
 
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset_list")
@@ -51,7 +53,7 @@ class DatsetListAPITest(BaseAPITest):
         self.assertEquals(len(data), 4)
         self.assertEquals(data[0]["sql_code"], "SELECT(1)")
         self.assertEquals(data[0]["is_public"], False)
-        self.assertEquals(data[0]["name"], "ds1")
+        self.assertEquals(data[0]["name"], "dsa1")
         self.assertEquals(data[0]["owner"], owner)
 
         creation_date = data[0]["date_created"]
@@ -62,11 +64,11 @@ class DatsetListAPITest(BaseAPITest):
 
         now = timezone.now()
 
-        self.assertTrue((now - cd_obj).total_seconds() < 2)
-        self.assertTrue((now - md_obj).total_seconds() < 2)
+        self.assertTrue((now - cd_obj).total_seconds() < 10)
+        self.assertTrue((now - md_obj).total_seconds() < 10)
 
-        self.assertTrue((cd_obj - now).total_seconds() > -2)
-        self.assertTrue((md_obj - now).total_seconds() > -2)
+        self.assertTrue((cd_obj - now).total_seconds() > -10)
+        self.assertTrue((md_obj - now).total_seconds() > -10)
 
 
 
@@ -160,6 +162,10 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue(lookup["ds_list_user6"]["ds_public"])
 
         # What happens with the sample data queries?
+
+        remove_id1 = Query.objects.all()[0].pk
+        remove_id2 = Query.objects.all()[1].pk
+        remove_id3 = Query.objects.all()[2].pk
         process_queue()
         process_queue()
         process_queue()
@@ -169,6 +175,10 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue(lookup["ds_list_user4"]["ds_owned"])
         self.assertTrue(lookup["ds_list_user5"]["ds_shared"])
         self.assertTrue(lookup["ds_list_user6"]["ds_public"])
+
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_id1)
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_id2)
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_id3)
 
     def test_tagged_list(self):
         owner1 = "ds_list_user7"
@@ -183,9 +193,9 @@ class DatsetListAPITest(BaseAPITest):
         auth_headers3 = self.get_auth_header_for_username(owner3)
         url = reverse("sqlshare_view_dataset_tagged_list", kwargs={"tag": "__test_tag_api__" })
 
-        ds1 = create_dataset_from_query(owner1, "ds_owned", "SELECT(1)")
-        ds2 = create_dataset_from_query(owner2, "ds_shared", "SELECT(1)")
-        ds3 = create_dataset_from_query(owner3, "ds_public", "SELECT(1)")
+        ds1 = create_dataset_from_query(owner1, "ds_owned2", "SELECT(1)")
+        ds2 = create_dataset_from_query(owner2, "ds_shared3", "SELECT(1)")
+        ds3 = create_dataset_from_query(owner3, "ds_public2", "SELECT(1)")
 
         ds4 = create_dataset_from_query(owner1, "ds_owned_tagged", "SELECT(1)")
         ds5 = create_dataset_from_query(owner2, "ds_shared_tagged", "SELECT(1)")
@@ -250,4 +260,17 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
         self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
 
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop login ds_list_user8")
 

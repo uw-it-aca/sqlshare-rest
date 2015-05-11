@@ -15,7 +15,7 @@ class DBInterface(object):
     def run_query(self, sql, user, params=None, return_cursor=False):
         self._not_implemented("run_query")
 
-    def create_view(self, name, sql, user):
+    def create_view(self, name, sql, user, column_names=None):
         self._not_implemented("create_view")
 
     def create_db_user(self, username, password):
@@ -35,6 +35,7 @@ class DBInterface(object):
 
     def remove_user(self, username):
         model = User.objects.get(username=username)
+        self.close_user_connection(model)
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 
@@ -51,7 +52,10 @@ class DBInterface(object):
         self._not_implemented("get_download_sql_for_dataset")
 
     def get_preview_sql_for_query(self, sql):
-        self._not_implemented("get_preview_for_query")
+        self._not_implemented("get_preview_sql_for_query")
+
+    def get_preview_sql_for_dataset(self, dataset_name, user):
+        self._not_implemented("get_preview_sql_for_dataset")
 
     def create_table_from_parser(self, dataset_name, parser, user):
         table_name = self._get_table_name_for_dataset(dataset_name)
@@ -146,6 +150,9 @@ class DBInterface(object):
                               user,
                               return_cursor=True)
 
+    def remove_table_for_query_by_name(self, name):
+        raise NotImplementedError("remove_table_for_query_by_name")
+
     def create_table_from_query_result(self, name, cursor):
         """
         Create a table based on the values in:
@@ -224,6 +231,7 @@ class DBInterface(object):
             connection = self._create_user_connection(user)
             by_user[user.db_username] = {"connection": connection,
                                          "user": user}
+
         return by_user[user.db_username]["connection"]
 
     def close_user_connection(self, user):

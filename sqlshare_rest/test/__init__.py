@@ -1,6 +1,5 @@
-from django.test import TestCase
 from django.core.urlresolvers import reverse
-from django.test import TestCase
+from django.test import SimpleTestCase
 from sqlshare_rest.util.db import get_backend
 
 
@@ -13,7 +12,7 @@ def missing_url(name):
 
     return False
 
-class CleanUpTestCase(TestCase):
+class CleanUpTestCase(SimpleTestCase):
     def setUp(self):
         # Try to cleanup from any previous test runs...
         self.remove_users = []

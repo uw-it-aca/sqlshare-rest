@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from oauth2_provider.decorators import protected_resource
 from django.views.decorators.csrf import csrf_exempt
 from sqlshare_rest.views import get_oauth_user
@@ -27,10 +27,12 @@ def run(request):
 def response_for_query(sql, user, download_name):
     try:
         backend = get_backend()
+        if sql == "":
+            raise Exception("Missing sql statement")
         cursor = backend.run_query(sql, user, return_cursor=True)
         disposition = 'attachment; filename="%s"' % download_name
-        response = HttpResponse(stream_query(cursor, user),
-                                content_type='text/csv')
+        response = StreamingHttpResponse(stream_query(cursor, user),
+                                         content_type='text/csv')
         response['Content-Disposition'] = disposition
         return response
     except Exception as ex:

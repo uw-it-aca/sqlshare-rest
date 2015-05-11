@@ -9,6 +9,7 @@ from django.utils import timezone
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
+from sqlshare_rest.util.db import get_backend
 from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
@@ -135,6 +136,8 @@ class FileUploadAPITest(BaseAPITest):
         dataset_url = response11["Location"]
         self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user1/test_dataset1")
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
         response12 = self.client.get(dataset_url, **auth_headers)
 
@@ -150,3 +153,4 @@ class FileUploadAPITest(BaseAPITest):
             # Hoping that other db engines will also return typed data...
             self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
 
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)

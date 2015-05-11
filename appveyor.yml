@@ -7,6 +7,10 @@ environment:
       DB: "sqlite3"
     - PYTHON: "C:/Python34"
       DB: "sqlite3"
+    - PYTHON: "C:/Python27"
+      DB: "mssql"
+    - PYTHON: "C:/Python34"
+      DB: "mssql"
 init:
   - "ECHO %PYTHON%"
   - ps: "ls C:/Python*"

@@ -1,4 +1,4 @@
-from django.test import TestCase
+from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.util.db import is_mysql, get_backend
 from sqlshare_rest.parser import Parser
 from django.db import connection
@@ -13,7 +13,7 @@ elif six.PY3:
 
 
 @unittest.skipUnless(is_mysql(), "Only test with mysql")
-class TestMySQLBackend(TestCase):
+class TestMySQLBackend(CleanUpTestCase):
 
     def test_create_user(self):
         self.remove_users.append("test_user_tcu1")

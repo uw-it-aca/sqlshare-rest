@@ -58,6 +58,8 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 oldest.dataset_created = True
                 oldest.save()
             except Exception as ex:
+                if verbose:
+                    print("Error on %s: %s" % (oldest.pk, str(ex)))
                 oldest.has_error = True
                 oldest.error = str(ex)
                 oldest.save()
