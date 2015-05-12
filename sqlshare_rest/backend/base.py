@@ -243,6 +243,9 @@ class DBInterface(object):
         by_user = DBInterface.USER_CONNECTIONS
         thread_id = threading.current_thread().ident
 
+        if thread_id not in by_user:
+            return
+
         if user.db_username in by_user[thread_id]:
             self._disconnect_connection(by_user[thread_id][user.db_username])
             del by_user[thread_id][user.db_username]
