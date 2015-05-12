@@ -424,16 +424,16 @@ class TestMSSQLBackend(CleanUpTestCase):
             backend.close_user_connection(user2)
             backend.close_user_connection(user3)
 
-    def test_cancel_query(self):
-        username = "test_user_cancel_query1"
-        self.remove_users.append(username)
-
-        backend = get_backend()
-        user = backend.get_user(username)
-        result = backend.run_query("SELECT (1) WAITFOR DELAY '10:00'", user)
-
-
-        self.assertEquals(1, 0)
+#    def test_cancel_query(self):
+#        username = "test_user_cancel_query1"
+#        self.remove_users.append(username)
+#
+#        backend = get_backend()
+#        user = backend.get_user(username)
+#        result = backend.run_query("SELECT (1) WAITFOR DELAY '10:00'", user)
+#
+#
+#        self.assertEquals(1, 0)
 
     @classmethod
     def setUpClass(cls):
