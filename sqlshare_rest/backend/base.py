@@ -3,6 +3,7 @@ import os
 import random
 import string
 from django.conf import settings
+import threading
 
 
 class DBInterface(object):
@@ -227,15 +228,21 @@ class DBInterface(object):
 
     def get_connection_for_user(self, user):
         by_user = DBInterface.USER_CONNECTIONS
+        thread_id = threading.current_thread().ident
+        if thread_id not in by_user:
+            by_user[thread_id] = {}
+
         if user.db_username not in by_user:
             connection = self._create_user_connection(user)
-            by_user[user.db_username] = {"connection": connection,
-                                         "user": user}
+            by_user[thread_id][user.db_username] = {"connection": connection,
+                                                    "user": user}
 
-        return by_user[user.db_username]["connection"]
+        return by_user[thread_id][user.db_username]["connection"]
 
     def close_user_connection(self, user):
         by_user = DBInterface.USER_CONNECTIONS
-        if user.db_username in by_user:
-            self._disconnect_connection(by_user[user.db_username])
-            del by_user[user.db_username]
+        thread_id = threading.current_thread().ident
+
+        if user.db_username in by_user[thread_id]:
+            self._disconnect_connection(by_user[thread_id][user.db_username])
+            del by_user[thread_id][user.db_username]
