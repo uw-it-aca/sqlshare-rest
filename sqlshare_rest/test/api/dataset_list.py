@@ -64,11 +64,14 @@ class DatsetListAPITest(BaseAPITest):
 
         now = timezone.now()
 
-        self.assertTrue((now - cd_obj).total_seconds() < 10)
-        self.assertTrue((now - md_obj).total_seconds() < 10)
+        limit = get_backend().get_testing_time_delta_limit()
 
-        self.assertTrue((cd_obj - now).total_seconds() > -10)
-        self.assertTrue((md_obj - now).total_seconds() > -10)
+
+        self.assertTrue((now - cd_obj).total_seconds() < limit)
+        self.assertTrue((now - md_obj).total_seconds() < limit)
+
+        self.assertTrue((cd_obj - now).total_seconds() > -1 * limit)
+        self.assertTrue((md_obj - now).total_seconds() > -1 * limit)
 
 
 
@@ -273,4 +276,5 @@ class DatsetListAPITest(BaseAPITest):
         # This is just an embarrassing list of things to cleanup if something fails.
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop login ds_list_user8")
+        _run_query("drop login ds_list_user9")
 

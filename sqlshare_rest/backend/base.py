@@ -249,3 +249,6 @@ class DBInterface(object):
         if user.db_username in by_user[thread_id]:
             self._disconnect_connection(by_user[thread_id][user.db_username])
             del by_user[thread_id][user.db_username]
+
+    def get_testing_time_delta_limit(self):
+        return 5

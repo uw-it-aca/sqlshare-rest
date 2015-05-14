@@ -140,5 +140,3 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 if verbose:
                     print("Adding query ID %s to the queue." % query.pk)
                 q.put(query)
-
-    q.join()

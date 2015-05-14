@@ -154,3 +154,18 @@ class FileUploadAPITest(BaseAPITest):
             self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
 
         get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
+
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop login upload_user1")
+

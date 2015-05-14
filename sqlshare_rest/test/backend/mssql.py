@@ -2,7 +2,7 @@ from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.models import Dataset
 from sqlshare_rest.parser import Parser
 from django.db import connection
-from sqlshare_rest.util.db import is_mssql, get_backend
+from sqlshare_rest.util.db import is_mssql, is_sql_azure, get_backend
 import unittest
 import six
 if six.PY2:
@@ -11,7 +11,7 @@ elif six.PY3:
     from io import StringIO
 
 
-@unittest.skipUnless(is_mssql(), "Only test with mssql")
+@unittest.skipUnless(is_mssql() or is_sql_azure(), "Only test with mssql")
 class TestMSSQLBackend(CleanUpTestCase):
     def test_remove_user(self):
         backend = get_backend()
