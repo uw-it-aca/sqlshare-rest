@@ -340,6 +340,7 @@ class MySQLBackend(DBInterface):
             "user": username,
             "passwd": password,
             "db": schema,
+            "autocommit": True,
         }
 
         if host:
