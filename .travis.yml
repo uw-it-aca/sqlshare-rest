@@ -23,8 +23,8 @@ before_script:
   - python manage.py syncdb --noinput
 env:
   matrix:
-    - DB=sqlite3
-    - DB=mysql
+#    - DB=sqlite3
+#    - DB=mysql
     - DB=azure
   global:
     - SUBSCRIPTION_ID=af6a4ccb-f42b-4319-b0c0-10b51fcdebee
