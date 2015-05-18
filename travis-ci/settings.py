@@ -87,9 +87,6 @@ elif os.environ['DB'] == "mysql":
         }
     }
 elif os.environ['DB'] == "azure":
-    try:
-        import pyodbc
-
     SQLSHARE_IS_AZURE = True
     DATABASES = {
         'default': {
@@ -106,8 +103,6 @@ elif os.environ['DB'] == "azure":
 
         }
     }
-
-
 else:
     raise Exception("Unconfigured DB engine: %s" % os.environ['DB'])
 
