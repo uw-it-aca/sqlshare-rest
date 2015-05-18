@@ -39,7 +39,7 @@ env:
     - secure: "cQJu68nqqjlYMxTTp5KnBjUcMFamAqi2A8eVvsabZXYwNHL+Ay+2+NEUZTPsTOISY1CrXRp7xilvUCj1jlBQwcrhjPs5nMN/u3IHafOja7k14nMAjCKURts6MklGshetAp19rVxWy0pSkJvofADFfy5l9ps0mhvNO4HTnmr0sqs="
 matrix:
   exclude:
-    - python: 3.4
+    - python: "3.4"
       env: DB=azure
 script:
   - pep8 sqlshare_rest/ --exclude=migrations,sqlshare_rest/tests.py,sqlshare_rest/test/
