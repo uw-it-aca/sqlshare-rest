@@ -15,6 +15,9 @@ before_script:
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant grant option on *.* to sqlshare_user'; fi
   - sudo apt-get install unixODBC-dev
   - sudo apt-get install freetds-common
+  - sudo apt-get install tdsodbc
+  - sudo apt-get install odbcinst1debian2
+  - dpkg-query -L odbcinst1debian2
   - pip install coverage
   - pip install python-coveralls
   - pip install pep8
