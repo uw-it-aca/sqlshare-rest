@@ -34,15 +34,22 @@ env:
 #    - DB=sqlite3
 #    - DB=mysql
     - DB=azure
+    exclude:
+      - python: 3.4
+        env: DB=azure
   global:
     - SUBSCRIPTION_ID=af6a4ccb-f42b-4319-b0c0-10b51fcdebee
     - secure: "cQJu68nqqjlYMxTTp5KnBjUcMFamAqi2A8eVvsabZXYwNHL+Ay+2+NEUZTPsTOISY1CrXRp7xilvUCj1jlBQwcrhjPs5nMN/u3IHafOja7k14nMAjCKURts6MklGshetAp19rVxWy0pSkJvofADFfy5l9ps0mhvNO4HTnmr0sqs="
+
 script:
   - pep8 sqlshare_rest/ --exclude=migrations,sqlshare_rest/tests.py,sqlshare_rest/test/
   - coverage run --source=sqlshare_rest/ --omit=sqlshare_rest/migrations/* manage.py test sqlshare_rest
+after_success:
+  - if [ "$DB" = "azure" ] ; then source travis-ci/stop_sql_azure.sh ; fi
+after_failure:
+  - if [ "$DB" = "azure" ] ; then source travis-ci/stop_sql_azure.sh ; fi
 after_script:
   - coveralls
-  - if [ "$DB" = "azure" ] ; then source travis-ci/stop_sql_azure.sh ; fi
 notifications:
   webhooks:
       urls:

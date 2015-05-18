@@ -5,7 +5,7 @@ cat /tmp/azure/server_info.xml
 export SERVER_HOST=`xmllint --xpath '/*[local-name()="ServerName"]/@FullyQualifiedDomainName' /tmp/azure/server_info.xml | cut -d '"' -f 2`
 export SERVER_NAME=`xmllint --xpath '/*[local-name()="ServerName"]/text()' /tmp/azure/server_info.xml`
 
-echo "Azure DB Name: $SERVER_NAME"
+echo "Azure DB Name: $SERVER_NAME, $SERVER_HOST"
 
 IP=`wget http://ipecho.net/plain -O - -q ; echo`
 
