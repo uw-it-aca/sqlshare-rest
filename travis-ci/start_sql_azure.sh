@@ -14,8 +14,7 @@ curl -X POST https://management.core.windows.net:8443/$SUBSCRIPTION_ID/services/
 
 curl -X POST https://management.core.windows.net:8443/$SUBSCRIPTION_ID/services/sqlservers/servers/$SERVER_NAME/firewallrules -d "<ServiceResource xmlns='http://schemas.microsoft.com/windowsazure'><Name>AllowAll</Name><StartIPAddress>$IP</StartIPAddress><EndIPAddress>$IP</EndIPAddress></ServiceResource>" --key /tmp/azure/azure.key --cert /tmp/azure/azure.cert --header "x-ms-version: 2012-03-01" --header "Content-type: application/xml"
 
-# printf "[FreeTDS]\nDescription = Azure DB\nDriver = /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so\nSetup = /usr/lib/x86_64-linux-gnu/odbc/libtdsS.so\nTDS_Version = 7.0\nDataTypeCompatibility=80\nMARS Connection=False\n" > /tmp/azure/odbcinst.ini
-printf "[FreeTDS]\nDescription = Azure DB\nTDS_Version = 7.0\nDataTypeCompatibility=80\nMARS Connection=False\n" > /tmp/azure/odbcinst.ini
+printf "[FreeTDS]\nDescription = Azure DB\nDriver = /usr/lib/i386-linux-gnu/odbc/libtdsodbc.so\nSetup = /usr/lib/i386-linux-gnu/odbc/libtdsS.so\nTDS_Version = 7.0\nDataTypeCompatibility=80\nMARS Connection=False\n" > /tmp/azure/odbcinst.ini
 printf "[Azure]\nSERVER = $SERVER_HOST\nDriver = FreeTDS\n" > /tmp/azure/odbc.ini
 
 export ODBCSYSINI=/tmp/azure/
