@@ -7,8 +7,6 @@ before_install:
     - if [ "$DB" = "azure" ] ; then openssl aes-256-cbc -K $encrypted_d6387f57280a_key -iv $encrypted_d6387f57280a_iv -in travis-ci/azure.tar.enc -out /tmp/azure/azure.tar -d; fi
     - if [ "$DB" = "azure" ] ; then tar xvf /tmp/azure/azure.tar -C /tmp/azure/; fi
     - if [ "$DB" = "azure" ] ; then source travis-ci/start_sql_azure.sh ; fi
-    - if [ "$DB" = "azure" ] ; then sudo printf "[FreeTDS]\nDescription = Azure DB\nDriver = /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so\nSetup = /usr/lib/x86_64-linux-gnu/odbc/libtdsS.so\nTDS_Version = 7.0\nDataTypeCompatibility=80\nMARS Connection=False\n" > /etc/odbcinst.ini ; fi
-    - if [ "$DB" = "azure" ] ; then sudo printf "[Azure]\nSERVER = $SERVER_HOST\nDriver = FreeTDS\n" > /etc/odbc.ini; fi
 install: pip install -r requirements.txt
 before_script:
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'create database sqlshare_app'; fi

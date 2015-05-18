@@ -7,10 +7,16 @@ export SERVER_NAME=`xmllint --xpath '/*[local-name()="ServerName"]/text()' /tmp/
 
 echo "Azure DB Name: $SERVER_NAME"
 
-IP=`dig +short myip.opendns.com @resolver1.opendns.com`
+IP=`wget http://ipecho.net/plain -O - -q ; echo`
 
 echo "Public IP: $IP"
 curl -X POST https://management.core.windows.net:8443/$SUBSCRIPTION_ID/services/sqlservers/servers/$SERVER_NAME/databases -d '<ServiceResource xmlns="http://schemas.microsoft.com/windowsazure"><Name>sqlshare</Name></ServiceResource>' --key /tmp/azure/azure.key --cert /tmp/azure/azure.cert --header "x-ms-version: 2012-03-01" --header "Content-type: application/xml" > database_info.xml
 
 curl -X POST https://management.core.windows.net:8443/$SUBSCRIPTION_ID/services/sqlservers/servers/$SERVER_NAME/firewallrules -d "<ServiceResource xmlns='http://schemas.microsoft.com/windowsazure'><Name>AllowAll</Name><StartIPAddress>$IP</StartIPAddress><EndIPAddress>$IP</EndIPAddress></ServiceResource>" --key /tmp/azure/azure.key --cert /tmp/azure/azure.cert --header "x-ms-version: 2012-03-01" --header "Content-type: application/xml"
+
+printf "[FreeTDS]\nDescription = Azure DB\nDriver = /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so\nSetup = /usr/lib/x86_64-linux-gnu/odbc/libtdsS.so\nTDS_Version = 7.0\nDataTypeCompatibility=80\nMARS Connection=False\n" > /tmp/azure/odbcinst.ini
+printf "[Azure]\nSERVER = $SERVER_HOST\nDriver = FreeTDS\n" > /tmp/azure/odbc.ini
+
+export ODBCSYSINI=/tmp/azure/
+export ODBCINI=/tmp/azure/odbc.ini
 
