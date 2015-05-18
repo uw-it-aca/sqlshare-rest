@@ -15,6 +15,7 @@ before_script:
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'create user "sqlshare_user" identified by "ss_pass"'; fi
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant all on *.* to sqlshare_user'; fi
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant grant option on *.* to sqlshare_user'; fi
+  - sudo apt-get install unixODBC-dev
   - pip install coverage
   - pip install python-coveralls
   - pip install pep8
