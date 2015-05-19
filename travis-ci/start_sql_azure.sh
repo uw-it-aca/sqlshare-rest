@@ -1,5 +1,4 @@
 
-echo "Other secure var: $AZURE_FAKE_PASSWORD_TEST"
 curl -X POST https://management.core.windows.net:8443/$SUBSCRIPTION_ID/services/sqlservers/servers -d "<Server xmlns='http://schemas.microsoft.com/sqlazure/2010/12/'><AdministratorLogin>sqlshare-travis-admin</AdministratorLogin><AdministratorLoginPassword>$AZURE_DB_PASSWORD</AdministratorLoginPassword><Location>West US</Location><Version>12.0</Version></Server>" --key /tmp/azure/azure.key --cert /tmp/azure/azure.cert --header 'x-ms-version: 2012-03-01' --header 'Content-type: application/xml' > /tmp/azure/server_info.xml
 
 cat /tmp/azure/server_info.xml
