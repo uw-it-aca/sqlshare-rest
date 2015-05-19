@@ -88,6 +88,7 @@ elif os.environ['DB'] == "mysql":
     }
 elif os.environ['DB'] == "azure":
     SQLSHARE_IS_AZURE = True
+    print "Environment test: ", os.environ['AZURE_FAKE_PASSWORD_TEST']
     DATABASES = {
         'default': {
             'ENGINE': 'django_pyodbc',
