@@ -47,4 +47,4 @@ class Command(BaseCommand):
                                                 )
 
         print("ID:%s SECRET:%s" % (new_client.client_id,
-                                    new_client.client_secret))
+                                   new_client.client_secret))
