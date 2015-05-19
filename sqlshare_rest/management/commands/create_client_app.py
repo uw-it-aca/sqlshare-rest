@@ -25,13 +25,13 @@ class Command(BaseCommand):
         error = False
         if "return_url" not in options or not options["return_url"]:
             error = True
-            print ("--return-url is required")
+            print("--return-url is required")
         if "name" not in options or not options["name"]:
             error = True
-            print ("--name is required")
+            print("--name is required")
         if "username" not in options or not options["username"]:
             error = True
-            print ("--owner-username is required")
+            print("--owner-username is required")
 
         if error:
             return
@@ -46,5 +46,5 @@ class Command(BaseCommand):
                                                 authorization_grant_type=code,
                                                 )
 
-        print ("ID:%s SECRET:%s" % (new_client.client_id,
+        print("ID:%s SECRET:%s" % (new_client.client_id,
                                     new_client.client_secret))
