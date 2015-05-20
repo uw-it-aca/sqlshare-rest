@@ -51,6 +51,10 @@ class Parser(object):
         if self.has_header_row():
             # XXX - make this overridable?
             self._column_names = self._get_headers_from_handle(handle)
+        else:
+            count = len(self._next(csv.reader(handle)))
+            handle.seek(0)
+            self._column_names = self.generate_column_names(count)
 
     def get_data_handle(self):
         return DataHandler(self)
