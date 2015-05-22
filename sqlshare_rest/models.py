@@ -195,8 +195,6 @@ class Query(models.Model):
             finish_date = self.date_finished.strftime(JSON_DATE)
         create_date = self.date_created.strftime(JSON_DATE)
 
-        user = User.objects.get(username=request.user.username)
-
         return {
             "sql_code": self.sql,
             "is_finished": self.is_finished,
