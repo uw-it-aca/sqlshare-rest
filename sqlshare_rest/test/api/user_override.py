@@ -12,6 +12,7 @@ from sqlshare_rest.models import User
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 import json
+import re
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -183,14 +184,19 @@ class UserOverrideAPITest(BaseAPITest):
         response = self.client.get(url, **auth_headers)
 
         data = json.loads(response.content.decode("utf-8"))
-        self.assertEquals(len(data), 1)
+
+        # Other tests make datasets public, so we can't just count on a static number
+        actual_owner_count = len(data)
+        self.assertTrue(actual_owner_count > 1)
 
         user2 = backend.get_user("over2")
         self._override(user_obj, user2)
         response = self.client.get(url, **auth_headers)
 
         data = json.loads(response.content.decode("utf-8"))
-        self.assertEquals(len(data), 0)
+
+        # This override user should have 1 fewer than the owner
+        self.assertEquals(len(data), actual_owner_count-1)
 
     def test_dataset_list_tagged(self):
         self.remove_users = []
@@ -221,6 +227,46 @@ class UserOverrideAPITest(BaseAPITest):
 
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(len(data), 0)
+
+    def test_start_query(self):
+        owner = "override_query_user1"
+        self.remove_users.append(owner)
+        self.remove_users.append("user2")
+
+        backend = get_backend()
+        user_obj = backend.get_user(owner)
+        self._clear_override(user_obj)
+
+        post_url = reverse("sqlshare_view_query_list")
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        data = {
+            "sql": "select(1)"
+        }
+
+        response = self.client.post(post_url, data=json.dumps(data), content_type='application/json', **auth_headers)
+
+        self.assertEquals(response.status_code, 202)
+
+        values = json.loads(response.content.decode("utf-8"))
+
+        self.assertEquals(values["error"], None)
+        self.assertEquals(values["sql_code"], "select(1)")
+        url = values["url"]
+
+        self.assertTrue(re.match("/v3/db/query/[\d]+$", url))
+
+        response = self.client.get(url, **auth_headers)
+
+        self.assertEquals(response.status_code, 202)
+        values = json.loads(response.content.decode("utf-8"))
+
+
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+        response = self.client.get(url, **auth_headers)
+
+        self.assertEquals(response.status_code, 403)
 
 
 

@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.decorators import protected_resource
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.query import create_query, get_recent_activity
+from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.models import Query
 from sqlshare_rest.util.query import get_sample_data_for_query
 import json
@@ -18,13 +19,14 @@ def details(request, id):
     except Query.DoesNotExist:
         return get404()
 
-    if query.owner.username != request.user.username:
+    user = get_user(request)
+    if query.owner.username != user.username:
         return get403()
 
     data = query.json_data(request)
 
     sample_data, columns = get_sample_data_for_query(query,
-                                                     request.user.username)
+                                                     user.username)
 
     data["sample_data"] = sample_data
     data["columns"] = columns
