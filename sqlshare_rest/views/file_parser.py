@@ -4,6 +4,7 @@ from oauth2_provider.decorators import protected_resource
 from sqlshare_rest.models import FileUpload
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.parser import Parser
+from sqlshare_rest.dao.user import get_user
 import json
 
 
@@ -17,7 +18,8 @@ def parser(request, id):
     except FileUpload.DoesNotExist:
         return get404()
 
-    if upload.owner.username != request.user.username:
+    user = get_user(request)
+    if upload.owner.username != user.username:
         return get403()
 
     if request.META["REQUEST_METHOD"] == "PUT":

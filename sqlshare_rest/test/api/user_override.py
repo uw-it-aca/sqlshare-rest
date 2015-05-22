@@ -294,6 +294,101 @@ class UserOverrideAPITest(BaseAPITest):
         response = self.client.get(url, **user_auth_headers)
         self.assertEquals(response.status_code, 403)
 
+    def test_file_upload_init(self):
+        self.remove_users = []
+        user = "overrider"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        auth_headers = self.get_auth_header_for_username(user)
+
+        data1 = "col1,col2,XXcol3\na,1,2\nb,2,3\nc,3,4\n"
+        init_url = reverse("sqlshare_view_file_upload_init")
+
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        # Do the initial file upload as the other user, make sure actual user
+        # can't see the parser values.
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+
+        response1 = self.client.post(init_url, data=data1, content_type="text/plain", **auth_headers)
+        self.assertEquals(response1.status_code, 201)
+        body = response1.content.decode("utf-8")
+
+        re.match("^\d+$", body)
+
+        upload_id = int(body)
+
+        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+        response2 = self.client.get(parser_url, **auth_headers)
+        self.assertEquals(response2.status_code, 200)
+
+        self._clear_override(user_obj)
+        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+        response2 = self.client.get(parser_url, **auth_headers)
+        self.assertEquals(response2.status_code, 403)
+
+    def test_file_upload_process(self):
+        self.remove_users = []
+        user = "overrider"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        auth_headers = self.get_auth_header_for_username(user)
+
+        data1 = "col1,col2,XXcol3\na,1,2\nb,2,3\nc,3,4\n"
+        data2 = "z,999,2\ny,2,3\nx,30,41"
+        init_url = reverse("sqlshare_view_file_upload_init")
+
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        # Do the initial file upload as the other user, make sure actual user
+        # can't upload more data.
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+
+        response1 = self.client.post(init_url, data=data1, content_type="text/plain", **auth_headers)
+        self.assertEquals(response1.status_code, 201)
+        body = response1.content.decode("utf-8")
+
+        re.match("^\d+$", body)
+
+        upload_id = int(body)
+
+        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+        response2 = self.client.get(parser_url, **auth_headers)
+        self.assertEquals(response2.status_code, 200)
+
+        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+        response2 = self.client.get(parser_url, **auth_headers)
+        self.assertEquals(response2.status_code, 200)
+
+        self._clear_override(user_obj)
+        upload_url = reverse("sqlshare_view_file_upload", kwargs={ "id":upload_id })
+        # Send the rest of the file:
+        response6 = self.client.post(upload_url, data=data2, content_type="application/json", **auth_headers)
+
+        self.assertEquals(response6.status_code, 403)
+        self._override(user_obj, user2)
+        response6 = self.client.post(upload_url, data=data2, content_type="application/json", **auth_headers)
+        self.assertEquals(response6.status_code, 200)
+
+        # Make sure the original user can't finalize the dataset
+        self._clear_override(user_obj)
+        finalize_url = reverse("sqlshare_view_upload_finalize", kwargs={ "id": upload_id })
+
+        finalize_data = json.dumps({ "dataset_name": "test_dataset1",
+                                     "description": "Just a test description"
+                                   })
+        # Make sure no one else can do it!
+        response8 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
+        self.assertEquals(response8.status_code, 403)
+
+        self._override(user_obj, user2)
+        response8 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
+        self.assertEquals(response8.status_code, 202)
+
+
+
 
     def _override(self, user1, user2):
         user1.override_as = user2
