@@ -7,9 +7,9 @@ from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.test import missing_url
 from sqlshare_rest.dao.dataset import create_dataset_from_query
-from sqlshare_rest.dao.dataset import set_dataset_accounts
+from sqlshare_rest.dao.dataset import set_dataset_accounts, set_dataset_emails
 from sqlshare_rest.dao.query import create_query
-from sqlshare_rest.models import User, Query
+from sqlshare_rest.models import User, Query, DatasetSharingEmail
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 import json
@@ -463,6 +463,75 @@ class UserOverrideAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(len(data), 0)
 
+    def test_dataset_permissions(self):
+        self.remove_users = []
+        user = "overrider"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        user_auth_headers = self.get_auth_header_for_username(user)
+
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        self._clear_override(user_obj)
+
+        # Make sure we have the user we think...
+        ds_overrider_1 = create_dataset_from_query(user, "ds_overrider_2", "SELECT (1)")
+        url = reverse("sqlshare_view_dataset_permissions", kwargs={ 'owner': user,
+                                                                    'name': "ds_overrider_2"})
+
+        response = self.client.get(url, **user_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+
+        # Now test get as someone else.
+        response = self.client.get(url, **user_auth_headers)
+        self.assertEquals(response.status_code, 403)
+
+    def test_access_tokens(self):
+        self.remove_users = []
+        user = "overrider_owner_sharer"
+        self.remove_users.append(user)
+        self.remove_users.append("override_3rd_party")
+        self.remove_users.append("overrider_recipient")
+        self.remove_users.append("over3")
+
+        backend = get_backend()
+        backend.get_user(user)
+        user_obj = backend.get_user("overrider_recipient")
+        auth_headers = self.get_auth_header_for_username("overrider_recipient")
+        self._clear_override(user_obj)
+
+        ds_overrider_1 = create_dataset_from_query("override_3rd_party", "ds_overrider_access_token", "SELECT (1)")
+
+        set_dataset_emails(ds_overrider_1, [ "test_user1@example.com" ])
+        ds_overrider_1.is_shared = True
+        ds_overrider_1.save()
+
+        sharing = DatasetSharingEmail.objects.filter(dataset=ds_overrider_1)[0]
+        email = sharing.email
+        access_token1 = sharing.access_token
+
+
+        user2 = backend.get_user("over3")
+        self._override(user_obj, user2)
+
+        # Get the access token url while overriden, and make sure the original
+        # user doesn't have access:
+        token1_url = reverse("sqlshare_token_access", kwargs={"token": access_token1})
+        response = self.client.post(token1_url, data={}, **auth_headers)
+
+        self.assertEquals(response.status_code, 200)
+
+        ds_url = reverse("sqlshare_view_dataset", kwargs={"owner": "override_3rd_party", "name": "ds_overrider_access_token"})
+
+        response = self.client.get(ds_url, **auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        self._clear_override(user_obj)
+        response = self.client.get(ds_url, **auth_headers)
+        self.assertEquals(response.status_code, 403)
 
     def _override(self, user1, user2):
         user1.override_as = user2

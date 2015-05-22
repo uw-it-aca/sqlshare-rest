@@ -9,14 +9,16 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.dao.dataset import set_dataset_accounts, set_dataset_emails
 from sqlshare_rest.dao.dataset import add_account_to_dataset
+from sqlshare_rest.dao.user import get_user
 
 
 @csrf_exempt
 @protected_resource()
 def permissions(request, owner, name):
     get_oauth_user(request)
+    user = get_user(request)
 
-    if owner != request.user.username:
+    if owner != user.username:
         return get403()
 
     try:
@@ -89,6 +91,7 @@ def add_token_access(request, token):
         response.status_code = 404
         return response
 
+    user = get_user(request)
     dataset = sharing_email.dataset
-    add_account_to_dataset(dataset, request.user.username)
+    add_account_to_dataset(dataset, user.username)
     return HttpResponse(json.dumps(dataset.json_data()))
