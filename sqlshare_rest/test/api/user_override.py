@@ -8,7 +8,8 @@ from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.test import missing_url
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import set_dataset_accounts
-from sqlshare_rest.models import User
+from sqlshare_rest.dao.query import create_query
+from sqlshare_rest.models import User, Query
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 import json
@@ -388,6 +389,79 @@ class UserOverrideAPITest(BaseAPITest):
         self.assertEquals(response8.status_code, 202)
 
 
+    def test_query_list(self):
+        self.remove_users = []
+        user = "overrider"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        auth_headers = self.get_auth_header_for_username(user)
+
+        Query.objects.all().delete()
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        self._clear_override(user_obj)
+
+        query1 = create_query(user, "SELECT (1)")
+        query2 = create_query(user, "SELECT (1)")
+        query3 = create_query(user, "SELECT (1)")
+
+        url = reverse("sqlshare_view_query_list")
+        auth_headers = self.get_auth_header_for_username(user)
+
+        response = self.client.get(url, **auth_headers)
+
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 3)
+
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+        response = self.client.get(url, **auth_headers)
+
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+    def test_query_post(self):
+        self.remove_users = []
+        user = "overrider"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        auth_headers = self.get_auth_header_for_username(user)
+        url = reverse("sqlshare_view_query_list")
+
+        Query.objects.all().delete()
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+
+        # make that query as the override user:
+        data = {
+            "sql": "select(1)"
+        }
+
+        response = self.client.post(url, data=json.dumps(data), content_type='application/json', **auth_headers)
+
+        self.assertEquals(response.status_code, 202)
+
+
+        # find the query as the override...
+        response = self.client.get(url, **auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 1)
+
+
+        self._clear_override(user_obj)
+
+        # make sure the original user can't see the query
+        response = self.client.get(url, **auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
 
 
     def _override(self, user1, user2):
