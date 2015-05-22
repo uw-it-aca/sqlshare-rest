@@ -43,8 +43,9 @@ def dataset_shared_list(request):
 @protected_resource()
 def dataset_tagged_list(request, tag):
     get_oauth_user(request)
+    user = get_user(request)
 
-    datasets = get_all_datasets_tagged_for_user(request.user, tag_label=tag)
+    datasets = get_all_datasets_tagged_for_user(user, tag_label=tag)
 
     data = []
     for dataset in datasets:
