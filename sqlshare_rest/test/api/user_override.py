@@ -9,6 +9,7 @@ from sqlshare_rest.test import missing_url
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.models import User
 from sqlshare_rest.dao.user import get_user
+from sqlshare_rest.dao.dataset import create_dataset_from_query
 import json
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
@@ -30,7 +31,7 @@ class UserOverrideAPITest(BaseAPITest):
         self.client = Client()
 
 
-    def test_api_methods(self):
+    def test_user_api(self):
         self.remove_users = []
         user = "overrider"
         self.remove_users.append(user)
@@ -39,8 +40,7 @@ class UserOverrideAPITest(BaseAPITest):
 
         backend = get_backend()
         user_obj = backend.get_user(user)
-        user_obj.override_as = None
-        user_obj.save()
+        self._clear_override(user_obj)
 
         url = reverse("sqlshare_view_user")
 
@@ -52,8 +52,7 @@ class UserOverrideAPITest(BaseAPITest):
 
 
         user2 = backend.get_user("over1")
-        user_obj.override_as = user2
-        user_obj.save()
+        self._override(user_obj, user2)
 
         response = self.client.get(url, **user_auth_headers)
         self.assertEquals(response.status_code, 200)
@@ -61,3 +60,61 @@ class UserOverrideAPITest(BaseAPITest):
         self.assertEquals(data["username"], "over1")
         self.assertEquals(data["schema"], "over1")
 
+
+    def test_dataset_api(self):
+        self.remove_users = []
+        user = "overrider"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        user_auth_headers = self.get_auth_header_for_username(user)
+    
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        self._clear_override(user_obj)
+    
+        # Make sure we have the user we think...
+        ds_overrider_1 = create_dataset_from_query(user, "ds_overrider_1", "SELECT (1)")
+        url = reverse("sqlshare_view_dataset", kwargs={ 'owner': user,
+                                                        'name': "ds_overrider_1"})
+    
+        response = self.client.get(url, **user_auth_headers)
+        self.assertEquals(response.status_code, 200)
+    
+        user2 = backend.get_user("over1")
+        self._override(user_obj, user2)
+    
+        # Now test get as someone else.
+        response = self.client.get(url, **user_auth_headers)
+        self.assertEquals(response.status_code, 403)
+    
+        data = {
+            "sql_code": "SELECT('FAIL')",
+            "is_public": False,
+            "is_snapshot": False,
+            "description": "This is a test dataset",
+        }
+    
+        json_data = json.dumps(data)
+    
+        # Test the right response from the PUT
+        self.assertRaisesRegexp(Exception, "Owner doesn't match user: .*", self.client.put, url, data=json_data, **user_auth_headers)
+    
+        # Test the right response from the PATCH
+        self.assertRaisesRegexp(Exception, "Owner doesn't match user: .*", self.client.patch, url, data=json_data, **user_auth_headers)
+    
+        # Test the right response from the DELETE
+        self.assertRaisesRegexp(Exception, "Owner doesn't match user: .*", self.client.delete, url, data=json_data, **user_auth_headers)
+    
+        url = reverse("sqlshare_view_download_dataset", kwargs={ 'owner': user,
+                                                                 'name': "ds_overrider_1"})
+        response = self.client.post(url, **user_auth_headers)
+        self.assertEquals(response.status_code, 403)
+
+
+    def _override(self, user1, user2):
+        user1.override_as = user2
+        user1.save()
+
+    def _clear_override(self, user):
+        user.override_as = None
+        user.save()

@@ -8,6 +8,7 @@ from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User, Query
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.views.sql import response_for_query
+from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.util.query import get_sample_data_for_query
@@ -32,11 +33,11 @@ def download(request, owner, name):
     except Exception as ex:
         raise
 
-    if not dataset.user_has_read_access(request.user):
+    user = get_user(request)
+    if not dataset.user_has_read_access(user):
         return get403()
 
     backend = get_backend()
-    user = backend.get_user(request.user.username)
     sql = backend.get_download_sql_for_dataset(dataset)
 
     download_name = "%s.csv" % name
@@ -70,7 +71,8 @@ def _get_dataset(request, owner, name):
     except Exception as ex:
         raise
 
-    if not dataset.user_has_read_access(request.user):
+    user = get_user(request)
+    if not dataset.user_has_read_access(user):
         return get403()
 
     if dataset.popularity:
@@ -83,7 +85,7 @@ def _get_dataset(request, owner, name):
     data = dataset.json_data()
 
     if dataset.preview_is_finished:
-        username = request.user.username
+        username = user.username
         query = Query.objects.get(is_preview_for=dataset)
         sample_data, columns = get_sample_data_for_query(query,
                                                          username)
@@ -96,7 +98,8 @@ def _get_dataset(request, owner, name):
 
 
 def _put_dataset(request, owner, name):
-    username = request.user.username
+    user = get_user(request)
+    username = user.username
     if username != owner:
         raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
 
@@ -117,7 +120,8 @@ def _put_dataset(request, owner, name):
 
 
 def _patch_dataset(request, owner, name):
-    username = request.user.username
+    user = get_user(request)
+    username = user.username
     if username != owner:
         raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
 
@@ -140,7 +144,8 @@ def _patch_dataset(request, owner, name):
 
 
 def _delete_dataset(request, owner, name):
-    username = request.user.username
+    user = get_user(request)
+    username = user.username
     if username != owner:
         raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
 
