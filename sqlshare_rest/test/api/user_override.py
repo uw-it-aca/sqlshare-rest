@@ -167,6 +167,33 @@ class UserOverrideAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(len(data), 0)
 
+    def test_dataset_list_all(self):
+        self.remove_users = []
+        user = "overrider_owner_list_all"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        auth_headers = self.get_auth_header_for_username(user)
+
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        self._clear_override(user_obj)
+
+        ds_overrider_1 = create_dataset_from_query(user, "ds_overrider_list3", "SELECT (1)")
+        url = reverse("sqlshare_view_dataset_all_list")
+        response = self.client.get(url, **auth_headers)
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 1)
+
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+        response = self.client.get(url, **auth_headers)
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+
+
     def _override(self, user1, user2):
         user1.override_as = user2
         user1.save()

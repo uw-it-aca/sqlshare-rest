@@ -57,7 +57,8 @@ def dataset_tagged_list(request, tag):
 def dataset_all_list(request):
     get_oauth_user(request)
 
-    datasets = get_all_datasets_for_user(request.user)
+    user = get_user(request)
+    datasets = get_all_datasets_for_user(user)
 
     data = []
     for dataset in datasets:
