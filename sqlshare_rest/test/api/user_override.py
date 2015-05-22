@@ -187,7 +187,7 @@ class UserOverrideAPITest(BaseAPITest):
 
         # Other tests make datasets public, so we can't just count on a static number
         actual_owner_count = len(data)
-        self.assertTrue(actual_owner_count > 1)
+        self.assertTrue(actual_owner_count >= 1)
 
         user2 = backend.get_user("over2")
         self._override(user_obj, user2)
@@ -268,6 +268,31 @@ class UserOverrideAPITest(BaseAPITest):
 
         self.assertEquals(response.status_code, 403)
 
+    def test_dataset_tags(self):
+        self.remove_users = []
+        user = "overrider"
+        self.remove_users.append(user)
+        self.remove_users.append("over2")
+        user_auth_headers = self.get_auth_header_for_username(user)
+
+        backend = get_backend()
+        user_obj = backend.get_user(user)
+        self._clear_override(user_obj)
+
+        # Make sure we have the user we think...
+        ds_overrider_1 = create_dataset_from_query(user, "ds_overrider_1", "SELECT (1)")
+        url = reverse("sqlshare_view_dataset_tags", kwargs={ 'owner': user,
+                                                        'name': "ds_overrider_1"})
+
+        response = self.client.get(url, **user_auth_headers)
+        self.assertEquals(response.status_code, 200)
+
+        user2 = backend.get_user("over2")
+        self._override(user_obj, user2)
+
+        # Now test get as someone else.
+        response = self.client.get(url, **user_auth_headers)
+        self.assertEquals(response.status_code, 403)
 
 
     def _override(self, user1, user2):
