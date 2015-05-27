@@ -18,6 +18,12 @@ def get_oauth_user(request):
             raise Exception("Invalid token - no client app")
 
 
+def get405():
+    response = HttpResponse("")
+    response.status_code = 405
+    return response
+
+
 def get404():
     response = HttpResponse("")
     response.status_code = 404

@@ -40,6 +40,10 @@ urlpatterns = patterns(
     url('v3/user/me', 'user.user',
         name="sqlshare_view_user"),
 
+    url('v3/db/query/(?P<id>[0-9]+)/download',
+        'download.run',
+        name="sqlshare_view_run_query"),
+
     url('v3/db/query/(?P<id>[0-9]+)',
         'query.details',
         name="sqlshare_view_query"),

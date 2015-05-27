@@ -9,7 +9,7 @@ import re
 
 
 @csrf_exempt
-@protected_resource()
+# @protected_resource()
 def run(request):
     if request.META['REQUEST_METHOD'] != "POST":
         response = HttpResponse()
@@ -17,8 +17,8 @@ def run(request):
         return response
 
     get_oauth_user(request)
-
     sql = request.POST.get("sql", "")
+
     backend = get_backend()
     user = backend.get_user(request.user.username)
     return response_for_query(sql, user, download_name="query_results.csv")
@@ -53,6 +53,7 @@ def stream_query(cursor, user):
     while row:
         yield ",".join(list(map(lambda x: csv_encode("%s" % x), row)))
         yield "\n"
+        print row
         row = cursor.fetchone()
 
     get_backend().close_user_connection(user)
