@@ -287,3 +287,22 @@ class CredentialsModel(models.Model):
 class FlowModel(models.Model):
     id = models.CharField(max_length=50, primary_key=True)
     flow = Py3FlowField()
+
+
+class DownloadToken(models.Model):
+    token = models.CharField(max_length=32)
+    query = models.ForeignKey(Query)
+
+    def _generate_token(self):
+        return uuid.uuid4().hex
+
+    def store_token_for_query(self, query):
+        self.query = query
+        self.token = self._generate_token()
+        self.save()
+
+    def validate_token(self, query, token):
+        # Deletes token on validation to ensure single-use
+        token = DownloadToken.objects.get(token=token, query=query)
+        token.delete()
+        return
