@@ -92,7 +92,7 @@ class FileUploadAPITest(BaseAPITest):
         parser_data = json.loads(response5.content.decode("utf-8"))
         self.assertEquals(parser_data["parser"]["delimiter"], "|")
         self.assertEquals(parser_data["parser"]["has_column_headers"], False)
-        self.assertEquals(parser_data["columns"], None)
+        self.assertEquals(parser_data["columns"], [{u'name': u'Column1'}, {u'name': u'Column2'}, {u'name': u'Column3'}])
         self.assertEquals(parser_data["sample_data"][0], ["col1,col2,XXcol3"])
         self.assertEquals(parser_data["sample_data"][1], ["a,1,2"])
         self.assertEquals(parser_data["sample_data"][2], ["b,2,3"])

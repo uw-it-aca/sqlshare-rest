@@ -26,6 +26,22 @@ class TestParser(CleanUpTestCase):
         self.assertTrue(p.has_header_row())
         self.assertEquals(['a','b','b1','d'], p.column_names())
 
+        p = Parser()
+        p.has_header_row(True)
+        p.delimiter(",")
+        handle = StringIO("a,b,c,d\n0,1,2,3\n4,5,6,7")
+        p.parse(handle)
+        self.assertEquals(['a','b','c','d'], p.column_names())
+
+        p = Parser()
+        p.has_header_row(False)
+        p.delimiter(",")
+        handle = StringIO("a,b,c,d\n0,1,2,3\n4,5,6,7")
+        p.parse(handle)
+        self.assertEquals(['Column1','Column2','Column3','Column4'], p.column_names())
+
+        
+
     def test_overrides(self):
         p = Parser()
         p.delimiter(",")
