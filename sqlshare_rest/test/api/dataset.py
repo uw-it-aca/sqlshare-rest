@@ -438,6 +438,20 @@ class DatsetAPITest(BaseAPITest):
         ds1 = Dataset.objects.get(pk = ds1.pk)
         self.assertFalse(ds1.is_public)
 
+        # Check that the SQL code can be patched, and that we get a new preview
+        Query.objects.all().delete()
+
+        response = self.client.patch(url, '{"sql_code":"SELECT(2)"}', content_type="application/json", **auth_headers)
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertEquals(ds1.sql, "SELECT(2)")
+        self.assertEquals(ds1.preview_is_finished, False)
+
+        process_queue()
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertEquals(ds1.preview_is_finished, True)
+        self.assertEquals(ds1.preview_error, None)
+
+
     def test_delete(self):
         owner = "test_dataset_delete"
         self.remove_users.append(owner)
