@@ -6,6 +6,7 @@ from sqlshare_rest.models import FileUpload, User
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.views import get_oauth_user, get403, get404
 import json
+import re
 
 
 @csrf_exempt
@@ -68,6 +69,10 @@ def finalize(request, id):
     if request.META["REQUEST_METHOD"] == "POST":
         values = json.loads(request.body.decode("utf-8"))
         dataset_name = values["dataset_name"]
+
+        bad_name_response = dataset_name_invalid_check(dataset_name)
+        if bad_name_response:
+            return bad_name_response
         description = values.get("description", "")
         is_public = values.get("is_public", False)
         upload.dataset_name = dataset_name
@@ -86,3 +91,12 @@ def finalize(request, id):
     else:
         response.status_code = 202
     return response
+
+
+def dataset_name_invalid_check(name):
+    if re.match(".*%.*", name):
+        response = HttpResponse("% not allowed in dataset name")
+        response.status_code = 400
+        return response
+
+    return

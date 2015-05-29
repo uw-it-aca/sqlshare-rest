@@ -239,3 +239,37 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(response11.status_code, 201)
         current_list = get_initial_filter_list()
         self.assertEquals(len(current_list), 0)
+
+    def test_rejected_characters(self):
+        owner = "upload_user_ds_crazy_name2"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        FileUpload.objects.all().delete()
+        data = "a,b,c\n1,2,3"
+
+        init_url = reverse("sqlshare_view_file_upload_init")
+        response1 = self.client.post(init_url, data=data, content_type="text/plain", **auth_headers)
+        self.assertEquals(response1.status_code, 201)
+        body = response1.content.decode("utf-8")
+
+        upload_id = int(body)
+
+        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+        response2 = self.client.get(parser_url, **auth_headers)
+        self.assertEquals(response2.status_code, 200)
+
+        parser_data = json.loads(response2.content.decode("utf-8"))
+        self.assertEquals(parser_data["parser"]["delimiter"], ",")
+
+       # Finalize the upload - turn it into a dataset
+        finalize_url = reverse("sqlshare_view_upload_finalize", kwargs={ "id": upload_id })
+
+        finalize_data = json.dumps({ "dataset_name": "bad-char1%",
+                                     "description": "Just a test description"
+                                   })
+
+        response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
+        self.assertEquals(response9.status_code, 400)
+        self.assertEquals(response9.content.decode("utf-8"), "% not allowed in dataset name")
+
