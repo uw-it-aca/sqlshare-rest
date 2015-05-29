@@ -150,4 +150,3 @@ def get_initial_filter_list():
     return FileUpload.objects.filter(dataset_created=False,
                                      has_error=False,
                                      is_finalized=True)
-
