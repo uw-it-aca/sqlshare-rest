@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.dataset_queue import process_dataset_queue
+from sqlshare_rest.util.dataset_queue import get_initial_filter_list
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import FileUpload, Query
 from sqlshare_rest.util.db import is_mysql, is_sqlite3
@@ -154,3 +155,45 @@ class FileUploadAPITest(BaseAPITest):
             self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
 
         get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
+
+
+    def test_bad_columns(self):
+        owner = "upload_user_wonky_columns"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        FileUpload.objects.all().delete()
+        data = "1123123\na,b,c"
+
+        init_url = reverse("sqlshare_view_file_upload_init")
+        response1 = self.client.post(init_url, data=data, content_type="text/plain", **auth_headers)
+        self.assertEquals(response1.status_code, 201)
+        body = response1.content.decode("utf-8")
+
+        upload_id = int(body)
+
+        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+        response2 = self.client.get(parser_url, **auth_headers)
+        self.assertEquals(response2.status_code, 200)
+
+        parser_data = json.loads(response2.content.decode("utf-8"))
+        self.assertEquals(parser_data["parser"]["delimiter"], ",")
+
+       # Finalize the upload - turn it into a dataset
+        finalize_url = reverse("sqlshare_view_upload_finalize", kwargs={ "id": upload_id })
+
+        finalize_data = json.dumps({ "dataset_name": "wonky_column_dataset",
+                                     "description": "Just a test description"
+                                   })
+
+        response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
+        self.assertEquals(response9.status_code, 202)
+
+        current_list = get_initial_filter_list()
+        self.assertEquals(len(current_list), 1)
+        process_dataset_queue()
+
+        response11 = self.client.get(finalize_url, **auth_headers)
+        self.assertEquals(response11.status_code, 400)
+        current_list = get_initial_filter_list()
+        self.assertEquals(len(current_list), 0)

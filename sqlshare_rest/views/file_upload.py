@@ -80,6 +80,9 @@ def finalize(request, id):
     if upload.dataset_created:
         response.status_code = 201
         response["location"] = upload.dataset.get_url()
+    elif upload.has_error:
+        response = HttpResponse(upload.error)
+        response.status_code = 400
     else:
         response.status_code = 202
     return response
