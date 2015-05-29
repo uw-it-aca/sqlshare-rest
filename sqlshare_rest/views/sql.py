@@ -53,7 +53,6 @@ def stream_query(cursor, user):
     while row:
         yield ",".join(list(map(lambda x: csv_encode("%s" % x), row)))
         yield "\n"
-        print row
         row = cursor.fetchone()
 
     get_backend().close_user_connection(user)
