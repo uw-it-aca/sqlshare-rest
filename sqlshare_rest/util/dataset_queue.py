@@ -83,8 +83,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 print("Triggering periodic processing.")
             trigger_upload_queue_processing()
 
-    filtered = FileUpload.objects.filter(dataset_created=False,
-                                         is_finalized=True)
+    filtered = get_initial_filter_list()
 
     if run_once:
         try:
@@ -135,6 +134,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
 
             uploads = FileUpload.objects.filter(dataset_created=False,
                                                 is_finalized=True,
+                                                has_error=False,
                                                 pk__gt=newest_pk)
             for upload in uploads:
                 if upload.pk > newest_pk:
@@ -144,3 +144,9 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 q.put(upload)
 
     q.join()
+
+
+def get_initial_filter_list():
+    return FileUpload.objects.filter(dataset_created=False,
+                                     has_error=False,
+                                     is_finalized=True)
