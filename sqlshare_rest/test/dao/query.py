@@ -117,4 +117,5 @@ class TestQueryDAO(CleanUpTestCase):
         # This is just an embarrassing list of things to cleanup if something fails.
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop login dao_query_user3")
+        _run_query("drop login dao_query_user2")
 

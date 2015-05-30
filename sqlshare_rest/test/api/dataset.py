@@ -180,12 +180,13 @@ class DatsetAPITest(BaseAPITest):
         md_obj = parser.parse(modification_date)
 
         now = timezone.now()
+        limit = get_backend().get_testing_time_delta_limit()
 
-        self.assertTrue((now - cd_obj).total_seconds() < 2)
-        self.assertTrue((now - md_obj).total_seconds() < 2)
+        self.assertTrue((now - cd_obj).total_seconds() < limit)
+        self.assertTrue((now - md_obj).total_seconds() < limit)
 
-        self.assertTrue((cd_obj - now).total_seconds() > -2)
-        self.assertTrue((md_obj - now).total_seconds() > -2)
+        self.assertTrue((cd_obj - now).total_seconds() > -1 * limit)
+        self.assertTrue((md_obj - now).total_seconds() > -1 * limit)
 
         # Test that the GET returns data too...
         response = self.client.get(url, **auth_headers)
@@ -437,6 +438,20 @@ class DatsetAPITest(BaseAPITest):
         ds1 = Dataset.objects.get(pk = ds1.pk)
         self.assertFalse(ds1.is_public)
 
+        # Check that the SQL code can be patched, and that we get a new preview
+        Query.objects.all().delete()
+
+        response = self.client.patch(url, '{"sql_code":"SELECT(2)"}', content_type="application/json", **auth_headers)
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertEquals(ds1.sql, "SELECT(2)")
+        self.assertEquals(ds1.preview_is_finished, False)
+
+        process_queue()
+        ds1 = Dataset.objects.get(pk = ds1.pk)
+        self.assertEquals(ds1.preview_is_finished, True)
+        self.assertEquals(ds1.preview_error, None)
+
+
     def test_delete(self):
         owner = "test_dataset_delete"
         self.remove_users.append(owner)
@@ -508,3 +523,5 @@ class DatsetAPITest(BaseAPITest):
         _run_query("drop user meta_012da3777ee")
         _run_query("drop user meta_e1bc449093c")
         _run_query("drop user meta_9e311190103")
+        _run_query("drop login put_user1")
+        

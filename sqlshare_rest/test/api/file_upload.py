@@ -156,7 +156,6 @@ class FileUploadAPITest(BaseAPITest):
 
         get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
 
-
     def test_bad_columns(self):
         owner = "upload_user_wonky_columns"
         self.remove_users.append(owner)
@@ -272,4 +271,19 @@ class FileUploadAPITest(BaseAPITest):
         response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
         self.assertEquals(response9.status_code, 400)
         self.assertEquals(response9.content.decode("utf-8"), "% not allowed in dataset name")
+
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop login upload_user1")
+
 

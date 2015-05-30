@@ -42,8 +42,8 @@ class MSSQLBackend(DBInterface):
         password = base + ''.join(random.choice(chars) for i in range(40))
         return password
 
-    def create_db_user(self, username, password):
-        cursor = connection.cursor()
+    def _run_create_db_user(self, conn, username, password):
+        cursor = conn.cursor()
         sql = "CREATE LOGIN %s WITH PASSWORD = '%s'" % (username, password)
         cursor.execute(sql)
         cursor.close()
@@ -51,6 +51,9 @@ class MSSQLBackend(DBInterface):
         sql = "CREATE USER %s FROM LOGIN %s" % (username, username)
         cursor.execute(sql)
         cursor.close()
+
+    def create_db_user(self, username, password):
+        return self._run_create_db_user(connection, username, password)
 
     def get_db_username(self, user):
         # Periods aren't allowed in MS SQL usernames.
@@ -418,3 +421,42 @@ class MSSQLBackend(DBInterface):
         sql = self._remove_public_access_from_sample(dataset)
         if sql:
             self.run_query(sql, owner, return_cursor=True).close()
+
+
+class SQLAzureBackend(MSSQLBackend):
+    """
+    Essentially just the MS SQL Backend.  Some changes are needed for user
+    management though.
+    """
+    def create_db_user(self, username, password):
+        import pyodbc
+        pyodbc.pooling = False
+
+        string = "DSN=%s;UID=%s;PWD=%s;DATABASE=%s;%s" % (
+            settings.DATABASES['default']['OPTIONS']['dsn'],
+            settings.DATABASES['default']['USER'],
+            settings.DATABASES['default']['PASSWORD'],
+            'master',
+            settings.DATABASES['default']['OPTIONS']['extra_params'],
+            )
+
+        master_conn = pyodbc.connect(string, autocommit=True)
+
+        ret = self._run_create_db_user(master_conn, username, password)
+        master_conn.close()
+        return ret
+
+    def remove_db_user(self, user):
+        """
+        The rules for being able to remove a user seem to be different enough
+        in azure that i'm just passing on it.
+        """
+        pass
+
+    def get_testing_time_delta_limit(self):
+        """
+        For some reason, at least from my home connection, these tests can
+        take a long time.  This is a larger value than needed, but i didn't
+        want to fiddle with it.
+        """
+        return 120

@@ -84,3 +84,17 @@ class RunQueryAPITest(BaseAPITest):
 
         self.assertEquals(response["Content-Disposition"],  'attachment; filename="query_results.csv"')
         self.assertEquals(response["Content-Type"],  'text/csv')
+
+    @classmethod
+    def setUpClass(cls):
+        def _run_query(sql):
+            cursor = connection.cursor()
+            try:
+                cursor.execute(sql)
+            except Exception as ex:
+                # Hopefully all of these will fail, so ignore the failures
+                pass
+
+        # This is just an embarrassing list of things to cleanup if something fails.
+        # It gets added to when something like this blocks one of my test runs...
+        _run_query("drop login run_query_user1")

@@ -11,17 +11,12 @@ import socket
 from threading import Thread
 
 import six
-
-if six.PY2:
-    from Queue import Queue
-elif six.PY3:
-    from queue import Queue
+from multiprocessing import Process, Manager, Queue
 
 
 def process_queue(thread_count=0, run_once=True, verbose=False):
-    q = Queue()
 
-    def worker():
+    def worker(q):
         """
         Get a query from the queue, and process it...
         """
@@ -34,6 +29,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             user = oldest_query.owner
             row_count = 0
             try:
+                start = timezone.now()
                 cursor = backend.run_query(oldest_query.sql,
                                            user,
                                            return_cursor=True)
@@ -44,6 +40,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                                                                        cursor)
                     backend.add_owner_read_access_to_query(oldest_query.pk,
                                                            user)
+
+                    end = timezone.now()
                 except:
                     raise
             except Exception as ex:
@@ -71,7 +69,6 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             except Exception as ex:
                 print("Error: %s" % str(ex))
 
-            q.task_done()
             if verbose:
                 print("Finished query id %s." % oldest_query.pk)
             if run_once:
@@ -88,6 +85,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 print("Triggering periodic processing.")
             trigger_query_queue_processing()
 
+    q = Queue()
     filtered = Query.objects.filter(is_finished=False)
     if run_once:
         try:
@@ -95,14 +93,13 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         except Query.DoesNotExist:
             return
         q.put(oldest_query)
-        worker()
+        worker(q)
 
     else:
         # Track the oldest query, so we only select ones newer that
         newest_pk = 0
         for i in range(thread_count):
-            t = Thread(target=worker)
-            t.setDaemon(True)
+            t = Process(target=worker, args=(q,))
             t.start()
 
         # Start with any queries already in the queue:
@@ -143,5 +140,3 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 if verbose:
                     print("Adding query ID %s to the queue." % query.pk)
                 q.put(query)
-
-    q.join()
