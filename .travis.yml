@@ -29,7 +29,7 @@ env:
   matrix:
     - DB=sqlite3
     - DB=mysql
-    - DB=azure
+#    - DB=azure
   global:
     - SUBSCRIPTION_ID=af6a4ccb-f42b-4319-b0c0-10b51fcdebee
     - secure: "Fbcg+0YoUsYbcBsJzDbmo3xjfK335yadYhQVp7h8OOg6fYmnoXuXOqmwUZON1beZGRVsB2yFIVmE81+ljLeqMqyf0uSGGSqXf8pHE9nfJ7cBSAAmUTH7jBEZ8UEvoj4cMwxSPTZJ9KTJlp7tjhDplrGe5k9LkGvSduEFsrkjyN0="
