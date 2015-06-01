@@ -353,3 +353,17 @@ class MySQLBackend(DBInterface):
         conn = pymysql.connect(**kwargs)
 
         return conn
+
+    def get_running_queries(self):
+        query = "SHOW FULL PROCESSLIST"
+
+        cursor = connection.cursor()
+        cursor.execute(query)
+
+        queries = []
+        row = cursor.fetchone()
+        while row:
+            queries.append({"sql": row[7]})
+            row = cursor.fetchone()
+
+        return queries

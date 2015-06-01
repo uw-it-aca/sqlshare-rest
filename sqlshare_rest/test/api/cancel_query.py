@@ -5,7 +5,7 @@ from time import sleep
 from multiprocessing import Process
 import json
 import re
-from sqlshare_rest.util.db import get_backend, is_mssql
+from sqlshare_rest.util.db import get_backend, is_mssql, is_mysql
 from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
@@ -16,7 +16,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
 
-@skipIf(missing_url("sqlshare_view_dataset_list") or not (is_mssql()), "SQLShare REST URLs not configured")
+@skipIf(missing_url("sqlshare_view_dataset_list") or not (is_mssql() or is_mysql()), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
                                 'django.contrib.sessions.middleware.SessionMiddleware',
                                 'django.middleware.common.CommonMiddleware',
@@ -47,6 +47,9 @@ class CancelQueryAPITest(BaseAPITest):
         query_text = None
         if is_mssql():
             query_text = "select (22) waitfor delay '00:10:30'"
+
+        if is_mysql():
+            query_text = "select sleep(432)"
 
         def queue_runner():
             from django import db
