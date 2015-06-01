@@ -438,7 +438,7 @@ class MSSQLBackend(DBInterface):
         queries = []
         row = cursor.fetchone()
         while row:
-            queries.append({ "sql": row[0] })
+            queries.append({"sql": row[0]})
             row = cursor.fetchone()
 
         return queries

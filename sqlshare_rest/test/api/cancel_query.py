@@ -16,7 +16,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
 
-@skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
+@skipIf(missing_url("sqlshare_view_dataset_list") or not (is_mssql()), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
                                 'django.contrib.sessions.middleware.SessionMiddleware',
                                 'django.middleware.common.CommonMiddleware',

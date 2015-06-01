@@ -38,7 +38,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             else:
                 oldest_query.save()
                 if verbose:
-                    print("Processing query id %s, in process %s." % (oldest_query.pk, process_id))
+                    print("Processing query id %s, "
+                          "in process %s." % (oldest_query.pk, process_id))
                 user = oldest_query.owner
                 row_count = 0
                 try:
@@ -49,8 +50,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
                     name = "query_%s" % oldest_query.pk
                     try:
-                        row_count = backend.create_table_from_query_result(name,
-                                                                           cursor)
+                        create_table = backend.create_table_from_query_result
+                        row_count = create_table(name, cursor)
                         backend.add_owner_read_access_to_query(oldest_query.pk,
                                                                user)
 
@@ -178,17 +179,18 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 t.start()
             return max_current_thread, t
 
-
         server.listen(5)
         while True:
             (clientsocket, address) = server.accept()
             # We don't actually have a protocol to speak...
             clientsocket.close()
-            terminate_list = Query.objects.filter(terminated=True, is_finished=False)
+            terminate_list = Query.objects.filter(terminated=True,
+                                                  is_finished=False)
 
             for query in terminate_list:
-                max_current_thread, new_process = kill_query(query, max_current_thread)
-                process_lookup[max_current_thread] = new_process
+                max_current_thread, process = kill_query(query,
+                                                         max_current_thread)
+                process_lookup[max_current_thread] = process
 
             queries = Query.objects.filter(is_finished=False, pk__gt=newest_pk)
             for query in queries:
