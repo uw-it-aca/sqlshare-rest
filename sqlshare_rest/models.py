@@ -180,6 +180,8 @@ class Query(models.Model):
                                         default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     rows_total = models.IntegerField(null=True)
+    process_queue_id = models.IntegerField(null=True)
+    terminated = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         super(Query, self).save(*args, **kwargs)

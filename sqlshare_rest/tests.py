@@ -16,3 +16,4 @@ from sqlshare_rest.test.api.file_upload import FileUploadAPITest
 from sqlshare_rest.test.api.user_search import UserSearchTest
 from sqlshare_rest.test.api.sql import RunQueryAPITest
 from sqlshare_rest.test.api.user_override import UserOverrideAPITest
+from sqlshare_rest.test.api.cancel_query import CancelQueryAPITest
