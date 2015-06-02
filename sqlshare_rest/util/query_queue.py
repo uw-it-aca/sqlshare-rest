@@ -87,6 +87,22 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 print("Finished query id %s." % oldest_query.pk)
             if run_once:
                 keep_looping = False
+            else:
+                # This is designed to protect against this scenario:
+                # 1) user cancels running query
+                # 2) we fetch that query from the db, call kill_query in the
+                #    main process
+                # 3) the query finishes, and the worker process selects a new
+                #    query to run
+                # 4) we kill the wrong query.
+                #
+                # This should be very unlikely, but it would be a nasty bug to
+                # try to figure out, since it doesn't happen often, but
+                # potentially has very bad outcomes.
+                #
+                # On the plus side, the time between 2 and 3 should be very
+                # short, so hopefully this 1 second pause more than covers us
+                sleep(1)
 
     def periodic_check():
         """
@@ -167,6 +183,10 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             query.save()
             if pid in process_lookup:
                 p = process_lookup[pid]
+                if verbose:
+                    print("Killing pid: %s to "
+                          "terminate query: %s" % (pid,
+                                                   query.pk))
                 try:
                     p.terminate()
                     p.join()
