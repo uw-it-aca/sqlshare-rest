@@ -20,6 +20,7 @@ class User(models.Model):
     db_username = models.CharField(max_length=250, db_index=True, unique=True)
     # db_password = EncryptedCharField(max_length=200)
     db_password = models.CharField(max_length=200)
+    override_as = models.ForeignKey("User", null=True)
 
     def get_full_name(self):
         # TODO
@@ -195,8 +196,6 @@ class Query(models.Model):
         if self.date_finished:
             finish_date = self.date_finished.strftime(JSON_DATE)
         create_date = self.date_created.strftime(JSON_DATE)
-
-        user = User.objects.get(username=request.user.username)
 
         return {
             "sql_code": self.sql,

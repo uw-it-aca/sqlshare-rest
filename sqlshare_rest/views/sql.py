@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.util.query import frontend_description_from_cursor
+from sqlshare_rest.dao.user import get_user
 import json
 import re
 
@@ -20,7 +21,8 @@ def run(request):
 
     sql = request.POST.get("sql", "")
     backend = get_backend()
-    user = backend.get_user(request.user.username)
+    user = get_user(request)
+    user = backend.get_user(user.username)
     return response_for_query(sql, user, download_name="query_results.csv")
 
 

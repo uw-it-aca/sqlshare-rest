@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from sqlshare_rest.models import User
 from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.util.db import get_backend
+from sqlshare_rest.dao.user import get_user
 import json
 
 
@@ -12,7 +13,7 @@ import json
 def user(request):
     get_oauth_user(request)
 
-    user = get_backend().get_user(request.user.username)
+    user = get_user(request)
 
     data = {
         "username": user.username,
