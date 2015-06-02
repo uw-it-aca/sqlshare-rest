@@ -76,9 +76,9 @@ class UserOverrideAPITest(BaseAPITest):
         self._clear_override(user_obj)
 
         # Make sure we have the user we think...
-        ds_overrider_1 = create_dataset_from_query(user, "ds_overrider_1", "SELECT (1)")
+        ds_overrider_1 = create_dataset_from_query(user, "ds_overrider_3", "SELECT (1)")
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': user,
-                                                        'name': "ds_overrider_1"})
+                                                        'name': "ds_overrider_3"})
 
         response = self.client.get(url, **user_auth_headers)
         self.assertEquals(response.status_code, 200)
@@ -109,7 +109,7 @@ class UserOverrideAPITest(BaseAPITest):
         self.assertRaisesRegexp(Exception, "Owner doesn't match user: .*", self.client.delete, url, data=json_data, **user_auth_headers)
 
         url = reverse("sqlshare_view_download_dataset", kwargs={ 'owner': user,
-                                                                 'name': "ds_overrider_1"})
+                                                                 'name': "ds_overrider_3"})
         response = self.client.post(url, **user_auth_headers)
         self.assertEquals(response.status_code, 403)
 
