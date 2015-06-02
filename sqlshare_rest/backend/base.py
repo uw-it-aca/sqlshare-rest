@@ -239,6 +239,9 @@ class DBInterface(object):
 
         return by_user[thread_id][user.db_username]["connection"]
 
+    def get_running_queries(self):
+        return self._not_implemented("get_running_queries")
+
     def close_user_connection(self, user):
         by_user = DBInterface.USER_CONNECTIONS
         thread_id = threading.current_thread().ident

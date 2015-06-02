@@ -5,6 +5,7 @@ from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.query import create_query, get_recent_activity
 from sqlshare_rest.models import Query
 from sqlshare_rest.util.query import get_sample_data_for_query
+from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 import json
 
 
@@ -21,6 +22,13 @@ def details(request, id):
     if query.owner.username != request.user.username:
         return get403()
 
+    if request.META['REQUEST_METHOD'] == "DELETE":
+        return _delete_query(request, id, query)
+
+    return _get_query(request, id, query)
+
+
+def _get_query(request, id, query):
     data = query.json_data(request)
 
     sample_data, columns = get_sample_data_for_query(query,
@@ -35,3 +43,11 @@ def details(request, id):
         response.status_code = 202
 
     return response
+
+
+def _delete_query(request, id, query):
+    query.terminated = True
+    query.save()
+    trigger_query_queue_processing()
+
+    return HttpResponse("")

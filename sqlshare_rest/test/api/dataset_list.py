@@ -277,4 +277,5 @@ class DatsetListAPITest(BaseAPITest):
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop login ds_list_user8")
         _run_query("drop login ds_list_user9")
+        _run_query("drop login ds_list_user6")
 

@@ -422,6 +422,27 @@ class MSSQLBackend(DBInterface):
         if sql:
             self.run_query(sql, owner, return_cursor=True).close()
 
+    def get_running_queries(self):
+        query = """SELECT sqltext.TEXT as sql,
+        req.session_id,
+        req.status,
+        req.command,
+        req.cpu_time,
+        req.total_elapsed_time
+        FROM sys.dm_exec_requests req
+        CROSS APPLY sys.dm_exec_sql_text(sql_handle) AS sqltext"""
+
+        cursor = connection.cursor()
+        cursor.execute(query)
+
+        queries = []
+        row = cursor.fetchone()
+        while row:
+            queries.append({"sql": row[0]})
+            row = cursor.fetchone()
+
+        return queries
+
 
 class SQLAzureBackend(MSSQLBackend):
     """
