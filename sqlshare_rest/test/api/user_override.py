@@ -66,7 +66,7 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_dataset_api(self):
         self.remove_users = []
-        user = "overrider"
+        user = "overrider2"
         self.remove_users.append(user)
         self.remove_users.append("over2")
         user_auth_headers = self.get_auth_header_for_username(user)
@@ -140,21 +140,21 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_dataset_list_shared_with(self):
         self.remove_users = []
-        user = "overrider_owner_sharer"
+        user = "overrider_owner_sharer2"
         self.remove_users.append(user)
-        self.remove_users.append("overrider_recipient")
+        self.remove_users.append("overrider_recipient1")
         self.remove_users.append("over2")
 
         backend = get_backend()
         backend.get_user(user)
-        user_obj = backend.get_user("overrider_recipient")
-        auth_headers = self.get_auth_header_for_username("overrider_recipient")
+        user_obj = backend.get_user("overrider_recipient1")
+        auth_headers = self.get_auth_header_for_username("overrider_recipient1")
         self._clear_override(user_obj)
 
         ds_overrider_1 = create_dataset_from_query(user, "ds_overrider_list2", "SELECT (1)")
 
 
-        set_dataset_accounts(ds_overrider_1, [ "overrider_recipient" ])
+        set_dataset_accounts(ds_overrider_1, [ "overrider_recipient1" ])
         url = reverse("sqlshare_view_dataset_shared_list")
         response = self.client.get(url, **auth_headers)
 
@@ -271,7 +271,7 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_dataset_tags(self):
         self.remove_users = []
-        user = "overrider"
+        user = "overrider3"
         self.remove_users.append(user)
         self.remove_users.append("over2")
         user_auth_headers = self.get_auth_header_for_username(user)
@@ -297,7 +297,7 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_file_upload_init(self):
         self.remove_users = []
-        user = "overrider"
+        user = "overrider4"
         self.remove_users.append(user)
         self.remove_users.append("over2")
         auth_headers = self.get_auth_header_for_username(user)
@@ -331,7 +331,7 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_file_upload_process(self):
         self.remove_users = []
-        user = "overrider"
+        user = "overrider5"
         self.remove_users.append(user)
         self.remove_users.append("over2")
         auth_headers = self.get_auth_header_for_username(user)
@@ -391,7 +391,7 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_query_list(self):
         self.remove_users = []
-        user = "overrider"
+        user = "overrider6"
         self.remove_users.append(user)
         self.remove_users.append("over2")
         auth_headers = self.get_auth_header_for_username(user)
@@ -426,7 +426,7 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_query_post(self):
         self.remove_users = []
-        user = "overrider"
+        user = "overrider7"
         self.remove_users.append(user)
         self.remove_users.append("over2")
         auth_headers = self.get_auth_header_for_username(user)
@@ -465,7 +465,7 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_dataset_permissions(self):
         self.remove_users = []
-        user = "overrider"
+        user = "overrider8"
         self.remove_users.append(user)
         self.remove_users.append("over2")
         user_auth_headers = self.get_auth_header_for_username(user)
@@ -491,16 +491,16 @@ class UserOverrideAPITest(BaseAPITest):
 
     def test_access_tokens(self):
         self.remove_users = []
-        user = "overrider_owner_sharer"
+        user = "overrider_owner_sharer1"
         self.remove_users.append(user)
         self.remove_users.append("override_3rd_party")
-        self.remove_users.append("overrider_recipient")
+        self.remove_users.append("overrider_recipient2")
         self.remove_users.append("over3")
 
         backend = get_backend()
         backend.get_user(user)
-        user_obj = backend.get_user("overrider_recipient")
-        auth_headers = self.get_auth_header_for_username("overrider_recipient")
+        user_obj = backend.get_user("overrider_recipient2")
+        auth_headers = self.get_auth_header_for_username("overrider_recipient2")
         self._clear_override(user_obj)
 
         ds_overrider_1 = create_dataset_from_query("override_3rd_party", "ds_overrider_access_token", "SELECT (1)")
