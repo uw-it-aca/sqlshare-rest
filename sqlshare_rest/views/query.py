@@ -32,6 +32,7 @@ def details(request, id):
 
 def _get_query(request, id, query):
     data = query.json_data(request)
+    user = get_user(request)
 
     sample_data, columns = get_sample_data_for_query(query,
                                                      user.username)
