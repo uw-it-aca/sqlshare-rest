@@ -9,4 +9,4 @@ pytz
 python-dateutil
 google-api-python-client
 AuthZ-Group
--e git+https://github.com/uw-it-aca/django-supporttools.git#egg=SupportTools
+-e git+https://github.com/uw-it-aca/django-supporttools.git@develop#egg=SupportTools
