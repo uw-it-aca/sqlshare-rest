@@ -97,7 +97,9 @@ class CancelQueryAPITest(BaseAPITest):
 
             url = reverse("sqlshare_view_query", kwargs={ "id": query.pk })
             response = self.client.delete(url, **auth_headers)
-            sleep(1)
+            # This is another lame timing thing.  1 second wasn't reliably
+            # long enough on travis.
+            sleep(3)
 
             has_query = False
             queries = backend.get_running_queries()
