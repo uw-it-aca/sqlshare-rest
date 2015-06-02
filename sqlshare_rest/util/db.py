@@ -1,7 +1,7 @@
 from django.conf import settings
 from sqlshare_rest.backend.mysql import MySQLBackend
 from sqlshare_rest.backend.sqlite3 import SQLite3Backend
-from sqlshare_rest.backend.mssql import MSSQLBackend
+from sqlshare_rest.backend.mssql import MSSQLBackend, SQLAzureBackend
 
 
 def _get_basic_settings():
@@ -15,6 +15,8 @@ def get_backend():
         return MySQLBackend()
     if is_sqlite3():
         return SQLite3Backend()
+    if is_sql_azure():
+        return SQLAzureBackend()
     if is_mssql():
         return MSSQLBackend()
     else:
@@ -31,7 +33,13 @@ def is_sqlite3():
 
 
 def is_mssql():
-    return _get_basic_settings()['ENGINE'] == "django_pyodbc"
+    return (_get_basic_settings()['ENGINE'] == "django_pyodbc" and
+            not is_sql_azure())
+
+
+def is_sql_azure():
+    return (_get_basic_settings()['ENGINE'] == "django_pyodbc" and
+            getattr(settings, "SQLSHARE_IS_AZURE", False))
 
 
 class BackendNotImplemented(Exception):

@@ -24,4 +24,4 @@ class Command(BaseCommand):
         if options["run_once"]:
             process_queue(verbose=verbose)
         else:
-            process_queue(run_once=False, thread_count=1, verbose=verbose)
+            process_queue(run_once=False, thread_count=5, verbose=verbose)

@@ -10,6 +10,7 @@ from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.views.sql import response_for_query
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.dao.dataset import create_preview_for_dataset
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.util.query import get_sample_data_for_query
 
@@ -133,6 +134,11 @@ def _patch_dataset(request, owner, name):
     if "description" in data:
         dataset.description = data["description"]
         updated = True
+
+    if "sql_code" in data:
+        dataset.sql = data["sql_code"]
+        updated = True
+        create_preview_for_dataset(dataset)
 
     if "is_public" in data:
         dataset.is_public = data["is_public"]
