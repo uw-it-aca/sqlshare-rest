@@ -17,3 +17,4 @@ from sqlshare_rest.test.api.user_search import UserSearchTest
 from sqlshare_rest.test.api.sql import RunQueryAPITest
 from sqlshare_rest.test.api.user_override import UserOverrideAPITest
 from sqlshare_rest.test.api.cancel_query import CancelQueryAPITest
+from sqlshare_rest.test.logging import TestLogging
