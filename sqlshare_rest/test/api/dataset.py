@@ -463,10 +463,14 @@ class DatsetAPITest(BaseAPITest):
             self.assertEquals(ds1.preview_is_finished, False)
             self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'PATCH dataset sql_code; owner: patch_adams; name: ds11; sql_code: SELECT(2)'))
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue()
         ds1 = Dataset.objects.get(pk = ds1.pk)
         self.assertEquals(ds1.preview_is_finished, True)
         self.assertEquals(ds1.preview_error, None)
+
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
 
 
     def test_delete(self):

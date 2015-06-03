@@ -69,6 +69,8 @@ class QueryAPITest(BaseAPITest):
 
             self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.query', 'INFO', 'GET unfinished query; ID: %s' % (qid)))
 
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
         process_queue(run_once=True)
         with LogCapture() as l:
             response = self.client.get(url, **auth_headers)
@@ -78,3 +80,4 @@ class QueryAPITest(BaseAPITest):
 
             self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.query', 'INFO', 'GET finished query; ID: %s' % (qid)))
 
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
