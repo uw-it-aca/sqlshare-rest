@@ -139,18 +139,23 @@ def _patch_dataset(request, owner, name):
     updated = False
     if "description" in data:
         dataset.description = data["description"]
-        logger.info("PATCH dataset description; owner: %s; name: %s; description: %s" % (owner, name, data["description"]), request)
+        logger.info("PATCH dataset description; owner: %s; name: %s; "
+                    "description: %s" % (owner, name, data["description"]),
+                    request)
         updated = True
 
     if "sql_code" in data:
         dataset.sql = data["sql_code"]
         updated = True
-        logger.info("PATCH dataset sql_code; owner: %s; name: %s; sql_code: %s" % (owner, name, dataset.sql), request)
+        logger.info("PATCH dataset sql_code; owner: %s; name: %s; "
+                    "sql_code: %s" % (owner, name, dataset.sql), request)
         create_preview_for_dataset(dataset)
 
     if "is_public" in data:
         dataset.is_public = data["is_public"]
-        logger.info("PATCH dataset is_public; owner: %s; name: %s; is_public: %s" % (owner, name, dataset.is_public), request)
+        logger.info("PATCH dataset is_public; owner: %s; name: %s; "
+                    "is_public: %s" % (owner, name, dataset.is_public),
+                    request)
         updated = True
 
     dataset.save()
