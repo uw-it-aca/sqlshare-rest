@@ -40,4 +40,6 @@ def _start_query(request):
     response = HttpResponse(json.dumps(query.json_data(request)))
     response["Location"] = query.get_url()
     response.status_code = 202
+    logger.info("Started query; ID: %s; SQL: %s" % (query.pk, data["sql"]),
+                request)
     return response
