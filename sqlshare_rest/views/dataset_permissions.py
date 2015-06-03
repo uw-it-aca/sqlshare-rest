@@ -10,6 +10,9 @@ from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.dao.dataset import set_dataset_accounts, set_dataset_emails
 from sqlshare_rest.dao.dataset import add_account_to_dataset
 from sqlshare_rest.dao.user import get_user
+from sqlshare_rest.logger import getLogger
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -39,6 +42,8 @@ def permissions(request, owner, name):
 
 def _get_dataset_permissions(request, dataset):
     # The list() is needed for python3
+    logger.info("GET dataset permissions; owner: %s; "
+                "name: %s" % (dataset.owner.username, dataset.name), request)
     emails = DatasetSharingEmail.objects.filter(dataset=dataset)
     data = {
         "is_public": dataset.is_public,
@@ -57,6 +62,15 @@ def _set_dataset_permissions(request, dataset):
     accounts = data.get("accounts", [])
     is_shared = False
 
+    logger.info("PUT dataset permissions; owner: %s; "
+                "name: %s" % (dataset.owner.username, dataset.name), request)
+    for account in accounts:
+        logger.info("PUT dataset permissions; owner: %s; name: %s; "
+                    "set account: %s" % (dataset.owner.username,
+                                         dataset.name,
+                                         account),
+                    request)
+
     try:
         set_dataset_accounts(dataset, accounts, save_dataset=False)
         if len(accounts):
@@ -68,6 +82,12 @@ def _set_dataset_permissions(request, dataset):
     if len(emails):
         is_shared = True
 
+    for email in emails:
+        logger.info("PUT dataset permissions; owner: %s; name: %s; "
+                    "set email: %s" % (dataset.owner.username,
+                                       dataset.name,
+                                       email),
+                    request)
     set_dataset_emails(dataset, emails, save_dataset=False)
 
     dataset.is_shared = is_shared
@@ -75,6 +95,8 @@ def _set_dataset_permissions(request, dataset):
     if "is_public" in data:
         dataset.is_public = data["is_public"]
 
+    logger.info("PUT dataset permissions finished; owner: %s; "
+                "name: %s" % (dataset.owner.username, dataset.name), request)
     dataset.save()
 
     return HttpResponse()
