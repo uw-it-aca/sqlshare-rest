@@ -57,6 +57,7 @@ def _get_query(request, id, query):
 def _delete_query(request, id, query):
     query.terminated = True
     query.save()
+    logger.info("Cancelled query; ID: %s" % (query.pk), request)
     trigger_query_queue_processing()
 
     return HttpResponse("")
