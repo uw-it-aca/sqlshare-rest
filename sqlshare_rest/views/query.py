@@ -7,7 +7,10 @@ from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.models import Query
 from sqlshare_rest.util.query import get_sample_data_for_query
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
+from sqlshare_rest.logger import getLogger
 import json
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -44,6 +47,9 @@ def _get_query(request, id, query):
 
     if not query.is_finished:
         response.status_code = 202
+        logger.info("GET unfinished query; ID: %s" % (query.pk), request)
+    else:
+        logger.info("GET finished query; ID: %s" % (query.pk), request)
 
     return response
 
@@ -51,6 +57,7 @@ def _get_query(request, id, query):
 def _delete_query(request, id, query):
     query.terminated = True
     query.save()
+    logger.info("Cancelled query; ID: %s" % (query.pk), request)
     trigger_query_queue_processing()
 
     return HttpResponse("")

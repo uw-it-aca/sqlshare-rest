@@ -15,6 +15,7 @@ from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
+from testfixtures import LogCapture
 
 @skipIf(missing_url("sqlshare_view_dataset_list") or not (is_mssql() or is_mysql()), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -95,8 +96,11 @@ class CancelQueryAPITest(BaseAPITest):
 
             self.assertTrue(has_query)
 
-            url = reverse("sqlshare_view_query", kwargs={ "id": query.pk })
-            response = self.client.delete(url, **auth_headers)
+            with LogCapture() as l:
+                url = reverse("sqlshare_view_query", kwargs={ "id": query.pk })
+                response = self.client.delete(url, **auth_headers)
+                self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.query', 'INFO', 'Cancelled query; ID: %s' % (query.pk)))
+
             # This is another lame timing thing.  1 second wasn't reliably
             # long enough on travis.
             sleep(3)

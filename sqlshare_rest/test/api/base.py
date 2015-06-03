@@ -7,6 +7,7 @@ from oauth2_provider.compat import get_user_model, urlencode, parse_qs, urlparse
 from django.db import connection
 import json
 import base64
+import os
 
 class BaseAPITest(CleanUpTestCase):
     def get_basic_auth_header(self, user, password):
@@ -70,3 +71,28 @@ class BaseAPITest(CleanUpTestCase):
         }
 
         return auth_headers
+
+    def _has_log(self, l, user, override, name, level, message):
+        has_log = False
+        acting = user
+        if override:
+            acting = override
+
+        formatted = "Actual: %s; Acting: %s; %s" % (user, acting, message)
+        if not user:
+            formatted = "Offline; %s" % (message)
+
+        if "DEBUG_LOG_MESSAGES" in os.environ:
+            print ("\nFind: ", name, level, formatted)
+        for log in l.actual():
+            log_name = log[0]
+            log_level = log[1]
+            msg = log[2]
+
+            if "DEBUG_LOG_MESSAGES" in os.environ:
+                print (" MSG: ", log_name, log_level, msg)
+
+            if msg == formatted and name == log_name and level == log_level:
+                has_log = True
+
+        return has_log

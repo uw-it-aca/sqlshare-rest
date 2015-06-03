@@ -19,6 +19,7 @@ from sqlshare_rest.util.dataset_queue import get_initial_filter_list
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import FileUpload, Query
 from sqlshare_rest.util.db import is_mysql, is_sqlite3
+from testfixtures import LogCapture
 
 @override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
@@ -56,18 +57,23 @@ class FileUploadAPITest(BaseAPITest):
 
         init_url = reverse("sqlshare_view_file_upload_init")
 
-        response1 = self.client.post(init_url, data=data1, content_type="text/plain", **auth_headers)
-        self.assertEquals(response1.status_code, 201)
-        body = response1.content.decode("utf-8")
+        with LogCapture() as l:
+            response1 = self.client.post(init_url, data=data1, content_type="text/plain", **auth_headers)
+            self.assertEquals(response1.status_code, 201)
+            body = response1.content.decode("utf-8")
 
-        re.match("^\d+$", body)
+            re.match("^\d+$", body)
 
-        upload_id = int(body)
+            upload_id = int(body)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, initialized; ID: %s' % (upload_id)))
+
 
         # Test default parsing
-        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
-        response2 = self.client.get(parser_url, **auth_headers)
-        self.assertEquals(response2.status_code, 200)
+        with LogCapture() as l:
+            parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+            response2 = self.client.get(parser_url, **auth_headers)
+            self.assertEquals(response2.status_code, 200)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_parser', 'INFO', 'File upload, GET parser; ID: %s' % (upload_id)))
 
         parser_data = json.loads(response2.content.decode("utf-8"))
         self.assertEquals(parser_data["parser"]["delimiter"], ",")
@@ -84,7 +90,9 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(response3.status_code, 403)
 
         # Test overriding the parser
-        response4 = self.client.put(parser_url, data='{ "parser": { "delimiter": "|", "has_column_header": false } }', content_type="application/json", **auth_headers)
+        with LogCapture() as l:
+            response4 = self.client.put(parser_url, data='{ "parser": { "delimiter": "|", "has_column_header": false } }', content_type="application/json", **auth_headers)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_parser', 'INFO', 'File upload, PUT parser; ID: %s; delimiter: |; has_column_header: False' % (upload_id)))
 
         parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
         response5 = self.client.get(parser_url, **auth_headers)
@@ -104,7 +112,9 @@ class FileUploadAPITest(BaseAPITest):
 
         upload_url = reverse("sqlshare_view_file_upload", kwargs={ "id":upload_id })
         # Send the rest of the file:
-        response6 = self.client.post(upload_url, data=data2, content_type="application/json", **auth_headers)
+        with LogCapture() as l:
+            response6 = self.client.post(upload_url, data=data2, content_type="application/json", **auth_headers)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, Append data; ID: %s' % (upload_id)))
 
         self.assertEquals(response6.status_code, 200)
 
@@ -122,11 +132,17 @@ class FileUploadAPITest(BaseAPITest):
         response8 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **other_auth_headers)
         self.assertEquals(response8.status_code, 403)
 
-        response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
-        self.assertEquals(response9.status_code, 202)
+        with LogCapture() as l:
+            response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
+            self.assertEquals(response9.status_code, 202)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, PUT finalize; ID: %s; name: test_dataset1; description: Just a test description; is_public: False' % (upload_id)))
 
-        response10 = self.client.get(finalize_url, **auth_headers)
-        self.assertEquals(response10.status_code, 202)
+
+        with LogCapture() as l:
+            response10 = self.client.get(finalize_url, **auth_headers)
+            self.assertEquals(response10.status_code, 202)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, GET finalize; ID: %s' % (upload_id)))
+
 
         # Process the dataset...
         process_dataset_queue()

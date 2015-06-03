@@ -3,6 +3,7 @@ from unittest2 import skipIf
 from django.db import connection
 from django.core import mail
 import json
+from testfixtures import LogCapture
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
@@ -81,23 +82,28 @@ class DatasetPermissionsAPITest(BaseAPITest):
         self.assertEquals(response.status_code, 403)
 
         # Test the default state of the permissions api...
-        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
-        response = self.client.get(permissions_url, **owner_auth_headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.content.decode("utf-8"))
-        self.assertEquals(data["is_public"], False)
-        self.assertEquals(data["is_shared"], False)
-        self.assertEquals(data["accounts"], [])
-        self.assertEquals(data["emails"], [])
+        with LogCapture() as l:
+            permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+            response = self.client.get(permissions_url, **owner_auth_headers)
+            self.assertEquals(response.status_code, 200)
+            data = json.loads(response.content.decode("utf-8"))
+            self.assertEquals(data["is_public"], False)
+            self.assertEquals(data["is_shared"], False)
+            self.assertEquals(data["accounts"], [])
+            self.assertEquals(data["emails"], [])
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset_permissions', 'INFO', 'GET dataset permissions; owner: permissions_user1; name: ds1'))
 
         # Test round 1 of changes...
         new_data = { "accounts": [ other_user1, other_user2 ] }
         response = self.client.put(permissions_url, data=json.dumps(new_data), **user1_auth_headers)
         self.assertEquals(response.status_code, 403)
 
-        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.content.decode("utf-8"), "")
+        with LogCapture() as l:
+            response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+            self.assertEquals(response.status_code, 200)
+            self.assertEquals(response.content.decode("utf-8"), "")
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset_permissions', 'INFO', 'PUT dataset permissions; owner: permissions_user1; name: ds1; set account: permissions_user2'))
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset_permissions', 'INFO', 'PUT dataset permissions; owner: permissions_user1; name: ds1; set account: permissions_user3'))
 
         response = self.client.get(permissions_url, **owner_auth_headers)
         self.assertEquals(response.status_code, 200)
@@ -224,9 +230,16 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         # Add 2 emails:
         new_data = { "emails": [ "user1@example.com", "user2@example.com" ] }
-        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.content.decode("utf-8"), "")
+        with LogCapture() as l:
+            response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+            self.assertEquals(response.status_code, 200)
+            self.assertEquals(response.content.decode("utf-8"), "")
+
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset_permissions', 'INFO', 'PUT dataset permissions; owner: email_permissions_user2; name: ds2'))
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset_permissions', 'INFO', 'PUT dataset permissions; owner: email_permissions_user2; name: ds2; set email: user1@example.com'))
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset_permissions', 'INFO', 'PUT dataset permissions; owner: email_permissions_user2; name: ds2; set email: user2@example.com'))
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset_permissions', 'INFO', 'PUT dataset permissions finished; owner: email_permissions_user2; name: ds2'))
+
 
         response = self.client.get(permissions_url, **owner_auth_headers)
         self.assertEquals(response.status_code, 200)

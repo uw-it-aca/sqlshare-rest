@@ -14,6 +14,7 @@ from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.models import Query
 from sqlshare_rest.util.query_queue import process_queue
+from testfixtures import LogCapture
 import csv
 import six
 
@@ -50,8 +51,11 @@ class RunQueryAPITest(BaseAPITest):
 
         response = self.client.get(url, **auth_headers)
         self.assertEquals(response.status_code, 405)
-        response = self.client.post(url, { "sql": "SELECT (1" }, **auth_headers)
-        self.assertEquals(response.status_code, 400)
+
+        with LogCapture() as l:
+            response = self.client.post(url, { "sql": "SELECT (1" }, **auth_headers)
+            self.assertEquals(response.status_code, 400)
+            self.assertTrue(self._has_log(l, user, None, 'sqlshare_rest.views.sql', 'INFO', 'Running SQL: SELECT (1'))
 
 
         response = self.client.post(url, { }, **auth_headers)

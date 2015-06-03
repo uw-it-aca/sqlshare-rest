@@ -13,6 +13,9 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import create_preview_for_dataset
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.util.query import get_sample_data_for_query
+from sqlshare_rest.logger import getLogger
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -94,6 +97,7 @@ def _get_dataset(request, owner, name):
         data["sample_data"] = sample_data
         data["columns"] = columns
 
+    logger.info("GET dataset; owner: %s; name: %s" % (owner, name), request)
     data["qualified_name"] = get_backend().get_qualified_name(dataset)
     return HttpResponse(json.dumps(data))
 
@@ -117,6 +121,8 @@ def _put_dataset(request, owner, name):
     response = HttpResponse(json.dumps(dataset.json_data()))
     response.status_code = 201
 
+    logger.info("PUT dataset; owner: %s; name: %s" % (owner, name), request)
+
     return response
 
 
@@ -133,15 +139,23 @@ def _patch_dataset(request, owner, name):
     updated = False
     if "description" in data:
         dataset.description = data["description"]
+        logger.info("PATCH dataset description; owner: %s; name: %s; "
+                    "description: %s" % (owner, name, data["description"]),
+                    request)
         updated = True
 
     if "sql_code" in data:
         dataset.sql = data["sql_code"]
         updated = True
+        logger.info("PATCH dataset sql_code; owner: %s; name: %s; "
+                    "sql_code: %s" % (owner, name, dataset.sql), request)
         create_preview_for_dataset(dataset)
 
     if "is_public" in data:
         dataset.is_public = data["is_public"]
+        logger.info("PATCH dataset is_public; owner: %s; name: %s; "
+                    "is_public: %s" % (owner, name, dataset.is_public),
+                    request)
         updated = True
 
     dataset.save()
@@ -163,5 +177,6 @@ def _delete_dataset(request, owner, name):
         response.status_code = 404
         return response
 
+    logger.info("DELETE dataset; owner: %s; name: %s" % (owner, name), request)
     dataset.delete()
     return response
