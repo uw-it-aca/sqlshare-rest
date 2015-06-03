@@ -4,10 +4,13 @@ from sqlshare_rest.dao.dataset import get_datasets_shared_with_user
 from sqlshare_rest.dao.dataset import get_all_datasets_tagged_for_user
 from sqlshare_rest.dao.dataset import get_all_datasets_for_user
 from sqlshare_rest.dao.user import get_user
+from sqlshare_rest.logger import getLogger
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.decorators import protected_resource
 import json
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -21,6 +24,8 @@ def dataset_list(request):
     data = []
     for dataset in datasets:
         data.append(dataset.json_data())
+
+    logger.info("GET my dataset list", request)
     return HttpResponse(json.dumps(data))
 
 

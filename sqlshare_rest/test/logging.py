@@ -34,26 +34,6 @@ class TestLogging(BaseAPITest):
         self.remove_users = []
         self.client = Client()
 
-    def _has_log(self, l, user, override, name, level, message):
-        has_log = False
-        acting = user
-        if override:
-            acting = override
-
-        formatted = "Actual: %s; Acting: %s; %s" % (user, acting, message)
-        if not user:
-            formatted = "Offline; %s" % (message)
-
-        for log in l.actual():
-            log_name = log[0]
-            log_level = log[1]
-            msg = log[2]
-
-            if msg == formatted and name == log_name and level == log_level:
-                has_log = True
-
-        return has_log
-
     def test_interface(self):
         username1 = "log_test_user1"
         username2 = "log_test_user2"
@@ -124,19 +104,3 @@ class TestLogging(BaseAPITest):
         with LogCapture() as l:
             logger.critical("Critical Msg", request)
             self.assertTrue(self._has_log(l, username1, username2, "sqlshare_rest.test.logging", "CRITICAL", "Critical Msg"))
-
-#    def test_api(self):
-#        user = "log_test_user3"
-#        self.remove_users.append(user)
-#
-#        with LogCapture() as l:
-#            auth_headers = self.get_auth_header_for_username(user)
-#
-#            data = {
-#                "sql": "select(1)"
-#            }
-#
-#            post_url = reverse("sqlshare_view_query_list")
-#            response = self.client.post(post_url, data=json.dumps(data), content_type='application/json', **auth_headers)
-#
-#            self.assertTrue(self._has_log(l, user, None, "sqlshare.views.query_list", "INFO", "Started query: select(1)"))

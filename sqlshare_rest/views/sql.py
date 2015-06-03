@@ -5,8 +5,11 @@ from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.util.query import frontend_description_from_cursor
 from sqlshare_rest.dao.user import get_user
+from sqlshare_rest.logger import getLogger
 import json
 import re
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -20,6 +23,9 @@ def run(request):
     get_oauth_user(request)
 
     sql = request.POST.get("sql", "")
+
+    logger.info("Running SQL: %s" % (sql), request)
+
     backend = get_backend()
     user = get_user(request)
     user = backend.get_user(user.username)

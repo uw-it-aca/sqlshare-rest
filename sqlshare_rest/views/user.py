@@ -5,7 +5,10 @@ from sqlshare_rest.models import User
 from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.dao.user import get_user
+from sqlshare_rest.logger import getLogger
 import json
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -20,4 +23,5 @@ def user(request):
         "schema": user.schema,
     }
 
+    logger.info("User logged in", request)
     return HttpResponse(json.dumps(data))
