@@ -20,24 +20,22 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
                                 'django.contrib.messages.middleware.MessageMiddleware',
                                 'django.middleware.clickjacking.XFrameOptionsMiddleware',
                                 ),
+                   SQLSHARE_QUERY_CACHE_DB="test_ss_query_db",
                    AUTHENTICATION_BACKENDS = ('django.contrib.auth.backends.ModelBackend',)
                    )
-
 class DownloadAPITest(BaseAPITest):
+    token = None
+    query_id = None
+
     def setUp(self):
-        # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
-        owner = "query_user1"
-        self.remove_users.append(owner)
-
-        post_url = reverse("sqlshare_view_query_list")
+        owner = "test_dataset_download"
         auth_headers = self.get_auth_header_for_username(owner)
-
         data = {
             "sql": "select(1)"
         }
-
+        post_url = reverse("sqlshare_view_query_list")
         response = self.client.post(post_url, data=json.dumps(data), content_type='application/json', **auth_headers)
 
         values = json.loads(response.content.decode("utf-8"))
@@ -47,30 +45,70 @@ class DownloadAPITest(BaseAPITest):
 
 
 
-
-    def test_downlaod(self):
-        owner = "query_user1"
+    def test_download(self):
+        owner = "test_dataset_download"
         self.remove_users.append(owner)
-
-        post_url = reverse("sqlshare_view_init_download", kwargs={'id': self.query_id})
         auth_headers = self.get_auth_header_for_username(owner)
-
+        post_url = reverse("sqlshare_view_init_download", kwargs={'id': self.query_id})
 
         response = self.client.post(post_url, content_type='application/json', **auth_headers)
         self.assertEqual(response.status_code, 200)
         body = json.loads(response.content)
         self.assertTrue('token' in body)
 
-        token = body['token']
+        self.token = body['token']
 
-        post_url = reverse("sqlshare_view_run_download", kwargs={'id': self.query_id, 'token': token})
-
-        response = self.client.post(post_url, content_type='application/json', **auth_headers)
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.streaming)
+        post_url = reverse("sqlshare_view_run_download", kwargs={'id': self.query_id, 'token': self.token})
+        response2 = self.client.get(post_url, content_type='application/json', **auth_headers)
+        self.assertEqual(response2.status_code, 200)
+        self.assertTrue(response2.streaming)
 
         response_body = ""
-        for line in response.streaming_content:
+        for line in response2.streaming_content:
             response_body += line
 
         self.assertEqual(response_body, "\"1\"\n\"1\"\n")
+
+        # Ensure download only works once
+        post_url = reverse("sqlshare_view_run_download", kwargs={'id': self.query_id, 'token': self.token})
+        response = self.client.get(post_url, content_type='application/json', **auth_headers)
+        self.assertEqual(response.status_code, 403)
+
+    def test_bad_query(self):
+        owner = "query_user1"
+        self.remove_users.append(owner)
+
+        # non-existing query
+        post_url = reverse("sqlshare_view_init_download", kwargs={'id': 5948})
+        auth_headers = self.get_auth_header_for_username(owner)
+        response = self.client.post(post_url, content_type='application/json', **auth_headers)
+        self.assertEqual(response.status_code, 404)
+
+        # non-owned query
+        owner = "not_the_owner"
+        post_url = reverse("sqlshare_view_init_download", kwargs={'id': self.query_id})
+        auth_headers = self.get_auth_header_for_username(owner)
+        response = self.client.post(post_url, content_type='application/json', **auth_headers)
+        self.assertEqual(response.status_code, 403)
+
+    def test_bad_download(self):
+        owner = "query_user1"
+        self.remove_users.append(owner)
+
+        # bad query id
+        post_url = reverse("sqlshare_view_run_download", kwargs={'id': 123123, 'token': 'asd'})
+        auth_headers = self.get_auth_header_for_username(owner)
+        response = self.client.get(post_url, content_type='application/json', **auth_headers)
+        self.assertEqual(response.status_code, 404)
+
+
+    def test_bad_methods(self):
+        owner = "query_user1"
+        auth_headers = self.get_auth_header_for_username(owner)
+        init_url = reverse("sqlshare_view_init_download", kwargs={'id': 5948})
+        init_response = self.client.get(init_url, content_type='application/json', **auth_headers)
+        self.assertEqual(init_response.status_code, 405)
+
+        download_url = reverse("sqlshare_view_run_download", kwargs={'id': 5948, 'token' : 'asd1234'})
+        download_response = self.client.post(download_url, content_type='application/json', **auth_headers)
+        self.assertEqual(download_response.status_code, 405)

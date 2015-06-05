@@ -11,21 +11,18 @@ import json
 @csrf_exempt
 def run(request, id, token):
     if request.META['REQUEST_METHOD'] != "GET":
-        get405()
+        return get405()
 
     get_oauth_user(request)
-    if id is None:
-        get400()
 
     try:
         query = Query.objects.get(pk=id)
     except Query.DoesNotExist:
         return get404()
-
     try:
         DownloadToken().validate_token(query, token)
     except DownloadToken.DoesNotExist:
-        get403()
+        return get403()
 
     sql = query.sql
 
@@ -38,12 +35,9 @@ def run(request, id, token):
 @protected_resource()
 def init(request, id):
     if request.META['REQUEST_METHOD'] != "POST":
-        get405()
+        return get405()
 
     get_oauth_user(request)
-
-    if id is None:
-        get400()
 
     try:
         query = Query.objects.get(pk=id)
