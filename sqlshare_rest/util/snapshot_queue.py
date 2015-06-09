@@ -85,7 +85,7 @@ def process_snapshot_queue(thread_count=0, run_once=True, verbose=False):
             if dataset.pk > newest_pk:
                 newest_pk = dataset.pk
             if verbose:
-                print("Adding dataset ID %s to the queue." % upload.pk)
+                print("Adding dataset ID %s to the queue." % dataset.pk)
             q.put(dataset)
 
         # Just in case things get off the rails - maybe a connection to the
