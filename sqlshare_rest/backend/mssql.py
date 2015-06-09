@@ -113,6 +113,27 @@ class MSSQLBackend(DBInterface):
     def _disconnect_connection(self, connection):
         connection["connection"].close()
 
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        source_schema = source_dataset.owner.schema
+        sql = "SELECT * INTO [%s].[%s] FROM [%s].[%s]" % (source_schema,
+                                                          table_name,
+                                                          user.schema,
+                                                          source_dataset.name)
+
+        self.run_query(sql, user, return_cursor=True).close()
+
+    def _create_view_of_snapshot(self, dataset, user):
+        sql = self._get_snapshot_view_sql(dataset)
+        self.run_query(sql, user, return_cursor=True).close()
+
+    def _get_snapshot_view_sql(self, dataset):
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        return ("CREATE VIEW [%s].[%s] AS "
+                "SELECT * FROM [%s].[%s]" % (dataset.owner.schema,
+                                             dataset.name,
+                                             dataset.owner.schema,
+                                             table_name))
+
     def create_view(self, name, sql, user, column_names=None):
         import pyodbc
         if column_names:
