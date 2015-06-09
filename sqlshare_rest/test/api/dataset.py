@@ -346,6 +346,7 @@ class DatsetAPITest(BaseAPITest):
         owner = "put_user2"
         ds1_name = "dataset_1c"
         self.remove_users.append(owner)
+        self.remove_users.append("not_owner")
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
                                                         'name': ds1_name})

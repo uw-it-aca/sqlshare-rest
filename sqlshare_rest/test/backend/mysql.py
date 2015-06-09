@@ -1,5 +1,7 @@
 from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.util.db import is_mysql, get_backend
+from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.util.snapshot_queue import process_snapshot_queue
 from sqlshare_rest.parser import Parser
 from django.db import connection
 from django.conf import settings
@@ -241,45 +243,33 @@ class TestMySQLBackend(CleanUpTestCase):
 
         self.assertEquals(sql, "CREATE TABLE `test_table1` (`Column1` INT, `Column2` FLOAT, `Column3` VARCHAR(400)) ENGINE InnoDB CHARACTER SET utf8 COLLATE utf8_bin")
 
-    def test_snapshot_sql(self):
-        backend = get_backend()
-        sql = backend._create_snapshot_sql("old", "new")
-        self.assertEquals(sql, "CREATE TABLE `new` AS SELECT * FROM old")
 
     def test_snapshot(self):
-        self.remove_users.append("test_user_snapshot1")
+        owner = "test_user_snapshot1"
+        self.remove_users.append(owner)
         backend = get_backend()
-        user = backend.get_user("test_user_snapshot1")
-
-        handle = StringIO("z,y,x\n1,3,4\n2,10,12")
-
-        parser = Parser()
-        parser.guess(handle.read(1024*20))
-        handle.seek(0)
-        parser.parse(handle)
+        user = backend.get_user(owner)
 
         try:
-            backend.create_dataset_from_parser("test_dataset1", parser, user)
-            result = backend.run_query("SELECT * FROM %s.table_test_dataset1" % user.schema, user)
-            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
-            result2 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
-            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result2)
+            from pymysql.err import ProgrammingError
+            ds_source = create_dataset_from_query(owner, "my_snap_source1", "SELECT (1), (2), (4), (8)")
+            result2 = backend.run_query("SELECT * FROM test_user_snapshot1.my_snap_source1", user)
+            self.assertEquals(((1, 2, 4, 8,),), result2)
 
-            backend.create_snapshot("`test_user_snapshot1`.`test_dataset1`", "test_snapshot1", user)
+            ds_source = Dataset.objects.get(name="my_snap_source1", owner=user)
+            ds_dest = Dataset.objects.create(name="my_snap_destination", owner=user)
+            backend.create_snapshot_dataset(ds_source, ds_dest, user)
 
-            # Make sure the snapshot has the right initial data
-            result3 = backend.run_query("SELECT * FROM test_user_snapshot1.test_snapshot1", user)
-            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result3)
+            self.assertRaises(ProgrammingError, backend.run_query, "SELECT * FROM test_user_snapshot1.my_snap_destination", user)
 
-            # Update the original backing table
-            # make sure the original dataset is updated, but the snapshot isn't
-            backend.run_query("INSERT INTO table_test_dataset1 VALUES (3,14,15)", user)
-            result4 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
-            self.assertEquals(((1, 3, 4, ), (2, 10, 12, ), (3, 14, 15, )), result4)
+            process_snapshot_queue(verbose=True)
 
-            result5 = backend.run_query("SELECT * FROM test_user_snapshot1.test_snapshot1", user)
-            self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result5)
+            result4 = backend.run_query("SELECT * FROM test_user_snapshot1.table_my_snap_destination", user)
+            self.assertEquals(((1, 2, 4, 8,),), result4)
 
+
+            result3 = backend.run_query("SELECT * FROM test_user_snapshot1.my_snap_destination", user)
+            self.assertEquals(((1, 2, 4, 8,),), result3)
         except Exception:
             raise
         finally:

@@ -199,6 +199,20 @@ class MySQLBackend(DBInterface):
         QUERY_SCHEMA = self.get_query_cache_db_name()
         return "SELECT * FROM %s.query_%s LIMIT 100" % (QUERY_SCHEMA, query_id)
 
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        sql = "CREATE TABLE `%s` AS SELECT * FROM %s" % (table_name,
+                                                         source_dataset.name)
+
+        self.run_query(sql, user)
+
+    def _get_snapshot_view_sql(self, dataset):
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        return ("CREATE OR REPLACE VIEW `%s` AS "
+                "SELECT * FROM `%s`.`%s`" % (dataset.name,
+                                             dataset.owner.schema,
+                                             table_name))
+
+
     def _get_column_definitions_for_cursor(self, cursor):
         import pymysql
         # XXX - is defining this a sign that this is a mistake?
