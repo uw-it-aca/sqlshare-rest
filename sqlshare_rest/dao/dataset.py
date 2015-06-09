@@ -91,6 +91,28 @@ def create_dataset_from_query(username, dataset_name, sql):
         backend.close_user_connection(user)
 
 
+def create_dataset_from_snapshot(user, dataset_name, source):
+    backend = get_backend()
+    try:
+        (model, created) = Dataset.objects.get_or_create(name=dataset_name,
+                                                         owner=user)
+        if not created:
+            # Clear out the existing dataset, so we can create
+            # the new view properly
+            backend.delete_dataset(dataset_name, user)
+
+        backend.create_snapshot_dataset(source, model, user)
+
+        model.preview_is_finished = False
+        model.preview_error = None
+
+        return model
+    except Exception:
+        raise
+    finally:
+        backend.close_user_connection(user)
+
+
 def create_preview_for_dataset(dataset):
     # Remove all existing sample data queries
     previous = Query.objects.filter(is_preview_for=dataset)

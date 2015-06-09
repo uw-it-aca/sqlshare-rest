@@ -25,8 +25,32 @@ class DBInterface(object):
     def create_db_schema(self, username, schema):
         self._not_implemented("create_db_schema")
 
-    def create_snapshot(self, source_dataset, destination_datset, user):
-        self._not_implemented("create_snapshot")
+    def create_snapshot_dataset(self, source_dataset, destination, user):
+        name = destination.name
+        table_name = self._get_table_name_for_dataset(name)
+        sql = self._get_view_sql_for_dataset(table_name, user)
+
+        destination.sql = sql
+        destination.snapshot_finished = False
+        destination.snapshot_source = source_dataset
+        destination.save()
+
+    def load_snapshot_table(self, dataset, user):
+        source_dataset = dataset.snapshot_source
+        table_name = self._get_table_name_for_dataset(dataset.name)
+
+        self._create_snapshot_table(source_dataset, table_name, user)
+        self._create_view_of_snapshot(dataset, user)
+
+    def _create_view_of_snapshot(self, dataset, user):
+        sql = self._get_snapshot_view_sql(dataset)
+        self.run_query(sql, user)
+
+    def _get_snapshot_view_sql(self, dataset):
+        self._not_implemented("_get_snapshot_view_sql")
+
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        self._not_implemented("_create_snapshot_table")
 
     def remove_db_user(self, db_username):
         self._not_implemented("remove_db_user")

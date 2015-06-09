@@ -85,23 +85,6 @@ class MySQLBackend(DBInterface):
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) as x LIMIT 100" % sql
 
-    def _create_snapshot_sql(self, source_dataset, destination_datset):
-        """
-        Requires the source to be quoted, the destination to not be.
-
-        Source could be another user's dataset, so we can't quote that.
-        """
-        return "CREATE TABLE `%s` AS SELECT * FROM %s" % (destination_datset,
-                                                          source_dataset)
-
-    def create_snapshot(self, source_dataset, destination_datset, user):
-        table_name = self._get_table_name_for_dataset(destination_datset)
-        sql = self._create_snapshot_sql(source_dataset, table_name)
-        self.run_query(sql, user)
-        self.create_view(destination_datset,
-                         self._get_view_sql_for_dataset(table_name, user),
-                         user)
-
     def _add_read_access_sql(self, dataset, owner, reader):
         return "GRANT SELECT ON `%s`.`%s` TO `%s`" % (owner.schema,
                                                       dataset,
