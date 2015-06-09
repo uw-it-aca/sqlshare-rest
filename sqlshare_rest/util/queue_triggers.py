@@ -1,5 +1,6 @@
 import socket
 
+SNAPSHOT_QUEUE_PORT_NUMBER = 1997
 UPLOAD_QUEUE_PORT_NUMBER = 1998
 QUERY_QUEUE_PORT_NUMBER = 1999
 
@@ -16,5 +17,13 @@ def trigger_upload_queue_processing():
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(('localhost', UPLOAD_QUEUE_PORT_NUMBER))
+    except socket.error as ex:
+        pass
+
+
+def trigger_snapshot_processing():
+    try:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(('localhost', SNAPSHOT_QUEUE_PORT_NUMBER))
     except socket.error as ex:
         pass

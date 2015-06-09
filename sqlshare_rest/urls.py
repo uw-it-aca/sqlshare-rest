@@ -20,6 +20,10 @@ urlpatterns = patterns(
     url('v3/db/dataset/tagged/(?P<tag>.*)', 'dataset_list.dataset_tagged_list',
         name="sqlshare_view_dataset_tagged_list"),
 
+    url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/snapshot',
+        'dataset.snapshot',
+        name="sqlshare_dataset_snapshot"),
+
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
         'dataset.dataset',
         name="sqlshare_view_dataset"),
