@@ -212,7 +212,6 @@ class MySQLBackend(DBInterface):
                                              dataset.owner.schema,
                                              table_name))
 
-
     def _get_column_definitions_for_cursor(self, cursor):
         import pymysql
         # XXX - is defining this a sign that this is a mistake?
