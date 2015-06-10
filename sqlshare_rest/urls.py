@@ -20,6 +20,10 @@ urlpatterns = patterns(
     url('v3/db/dataset/tagged/(?P<tag>.*)', 'dataset_list.dataset_tagged_list',
         name="sqlshare_view_dataset_tagged_list"),
 
+    url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/snapshot',
+        'dataset.snapshot',
+        name="sqlshare_dataset_snapshot"),
+
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
         'dataset.dataset',
         name="sqlshare_view_dataset"),
@@ -89,6 +93,8 @@ urlpatterns = patterns(
     url(r'^google_return', 'auth.google_return'),
     url(r'^google', 'auth.require_google_login'),
     url(r'^uw/', 'auth.require_uw_login'),
+
+    url(r'user/', 'admin.user_override'),
 )
 
 # OAuth urls.  Doing this instead of including the oauth2_provider urls so we

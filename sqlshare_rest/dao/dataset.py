@@ -82,28 +82,56 @@ def create_dataset_from_query(username, dataset_name, sql):
         model.sql = sql
         model.save()
 
-        # Remove all existing sample data queries
-        previous = Query.objects.filter(is_preview_for=model)
-
-        for query in previous:
-            delete_id = query.pk
-            query.delete()
-            try:
-                backend.delete_query(delete_id)
-            except Exception as ex:
-                pass
-
-        preview_sql = backend.get_preview_sql_for_dataset(dataset_name, user)
-#        preview_sql = backend.get_preview_sql_for_query(sql)
-        query_obj = Query.objects.create(sql=preview_sql,
-                                         owner=user,
-                                         is_preview_for=model)
+        create_preview_for_dataset(model)
 
         return model
     except Exception:
         raise
     finally:
         backend.close_user_connection(user)
+
+
+def create_dataset_from_snapshot(user, dataset_name, source):
+    backend = get_backend()
+    try:
+        (model, created) = Dataset.objects.get_or_create(name=dataset_name,
+                                                         owner=user)
+        if not created:
+            # Clear out the existing dataset, so we can create
+            # the new view properly
+            backend.delete_dataset(dataset_name, user)
+
+        backend.create_snapshot_dataset(source, model, user)
+
+        model.preview_is_finished = False
+        model.preview_error = None
+
+        return model
+    except Exception:
+        raise
+    finally:
+        backend.close_user_connection(user)
+
+
+def create_preview_for_dataset(dataset):
+    # Remove all existing sample data queries
+    previous = Query.objects.filter(is_preview_for=dataset)
+
+    backend = get_backend()
+    for query in previous:
+        delete_id = query.pk
+        query.delete()
+        try:
+            backend.delete_query(delete_id)
+        except Exception as ex:
+            pass
+
+    dataset_name = dataset.name
+    user = dataset.owner
+    preview_sql = backend.get_preview_sql_for_dataset(dataset_name, user)
+    query_obj = Query.objects.create(sql=preview_sql,
+                                     owner=user,
+                                     is_preview_for=dataset)
 
 
 def set_dataset_accounts(dataset, accounts, save_dataset=True):

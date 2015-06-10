@@ -86,6 +86,22 @@ elif os.environ['DB'] == "mysql":
             'PASSWORD': 'ss_pass',
         }
     }
+elif os.environ['DB'] == "azure":
+    SQLSHARE_IS_AZURE = True
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django_pyodbc',
+            'NAME': "sqlshare",
+            'USER': 'sqlshare-travis-admin',
+            'PASSWORD': os.environ['AZURE_DB_PASSWORD'],
+            'OPTIONS': {
+                'dsn': "Azure",
+                'autocommit': True,
+                'extra_params': 'TDS_Version=8.0;PORT=1433',
+            }
+
+        }
+    }
 else:
     raise Exception("Unconfigured DB engine: %s" % os.environ['DB'])
 

@@ -26,10 +26,10 @@ class SQLite3Backend(DBInterface):
         self.run_query(sql, owner)
 
     def create_view(self, name, sql, user):
-        view_sql = "CREATE VIEW %s AS %s" % (name, sql)
+        view_sql = "CREATE VIEW `%s` AS %s" % (name, sql)
         self.run_query(view_sql, user)
 
-        count_sql = "SELECT COUNT(*) FROM %s" % (name)
+        count_sql = "SELECT COUNT(*) FROM `%s`" % (name)
         result = self.run_query(count_sql, user)
         return result[0][0]
 
@@ -48,6 +48,17 @@ class SQLite3Backend(DBInterface):
     # Maybe this could become separate files at some point?
     def create_db_schema(self, db_username, schema_name):
         return
+
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        sql = "CREATE TABLE `%s` AS SELECT * FROM %s" % (table_name,
+                                                         source_dataset.name)
+
+        self.run_query(sql, user)
+
+    def _get_snapshot_view_sql(self, dataset):
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        return "CREATE VIEW `%s` AS SELECT * FROM `%s`" % (dataset.name,
+                                                           table_name)
 
     def run_query(self, sql, username, params=None, return_cursor=False):
         cursor = connection.cursor()

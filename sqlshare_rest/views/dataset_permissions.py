@@ -9,14 +9,20 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.dao.dataset import set_dataset_accounts, set_dataset_emails
 from sqlshare_rest.dao.dataset import add_account_to_dataset
+from sqlshare_rest.dao.user import get_user
+from sqlshare_rest.models import User
+from sqlshare_rest.logger import getLogger
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
 @protected_resource()
 def permissions(request, owner, name):
     get_oauth_user(request)
+    user = get_user(request)
 
-    if owner != request.user.username:
+    if owner != user.username:
         return get403()
 
     try:
@@ -37,6 +43,8 @@ def permissions(request, owner, name):
 
 def _get_dataset_permissions(request, dataset):
     # The list() is needed for python3
+    logger.info("GET dataset permissions; owner: %s; "
+                "name: %s" % (dataset.owner.username, dataset.name), request)
     emails = DatasetSharingEmail.objects.filter(dataset=dataset)
     data = {
         "is_public": dataset.is_public,
@@ -53,29 +61,66 @@ def _set_dataset_permissions(request, dataset):
     data = json.loads(request.body.decode("utf-8"))
 
     accounts = data.get("accounts", [])
-    is_shared = False
+    emails = data.get("emails", [])
+
+    logger.info("PUT dataset permissions; owner: %s; "
+                "name: %s" % (dataset.owner.username, dataset.name), request)
+
+    if "authlist" in data:
+        authlist = data["authlist"]
+
+        existing_users = User.objects.filter(username__in=authlist)
+        existing_accounts = {}
+        for user in existing_users:
+            existing_accounts[user.username] = True
+
+        for item in authlist:
+            if item in existing_accounts:
+                accounts.append(item)
+            else:
+                emails.append(item)
+
+    for account in accounts:
+        logger.info("PUT dataset permissions; owner: %s; name: %s; "
+                    "set account: %s" % (dataset.owner.username,
+                                         dataset.name,
+                                         account),
+                    request)
+
+    for email in emails:
+        logger.info("PUT dataset permissions; owner: %s; name: %s; "
+                    "set email: %s" % (dataset.owner.username,
+                                       dataset.name,
+                                       email),
+                    request)
 
     try:
-        set_dataset_accounts(dataset, accounts, save_dataset=False)
-        if len(accounts):
-            is_shared = True
+        _store_dataset_permissions(dataset, accounts, emails)
     except InvalidAccountException:
         return get400()
-
-    emails = data.get("emails", [])
-    if len(emails):
-        is_shared = True
-
-    set_dataset_emails(dataset, emails, save_dataset=False)
-
-    dataset.is_shared = is_shared
 
     if "is_public" in data:
         dataset.is_public = data["is_public"]
 
+    logger.info("PUT dataset permissions finished; owner: %s; "
+                "name: %s" % (dataset.owner.username, dataset.name), request)
     dataset.save()
 
     return HttpResponse()
+
+
+def _store_dataset_permissions(dataset, accounts, emails):
+    is_shared = False
+
+    set_dataset_accounts(dataset, accounts, save_dataset=False)
+    if len(accounts):
+        is_shared = True
+
+    set_dataset_emails(dataset, emails, save_dataset=False)
+    if len(emails):
+        is_shared = True
+
+    dataset.is_shared = is_shared
 
 
 @csrf_exempt
@@ -89,6 +134,7 @@ def add_token_access(request, token):
         response.status_code = 404
         return response
 
+    user = get_user(request)
     dataset = sharing_email.dataset
-    add_account_to_dataset(dataset, request.user.username)
+    add_account_to_dataset(dataset, user.username)
     return HttpResponse(json.dumps(dataset.json_data()))

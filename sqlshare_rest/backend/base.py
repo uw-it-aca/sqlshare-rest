@@ -3,6 +3,7 @@ import os
 import random
 import string
 from django.conf import settings
+import threading
 
 
 class DBInterface(object):
@@ -24,8 +25,32 @@ class DBInterface(object):
     def create_db_schema(self, username, schema):
         self._not_implemented("create_db_schema")
 
-    def create_snapshot(self, source_dataset, destination_datset, user):
-        self._not_implemented("create_snapshot")
+    def create_snapshot_dataset(self, source_dataset, destination, user):
+        name = destination.name
+        table_name = self._get_table_name_for_dataset(name)
+        sql = self._get_view_sql_for_dataset(table_name, user)
+
+        destination.sql = sql
+        destination.snapshot_finished = False
+        destination.snapshot_source = source_dataset
+        destination.save()
+
+    def load_snapshot_table(self, dataset, user):
+        source_dataset = dataset.snapshot_source
+        table_name = self._get_table_name_for_dataset(dataset.name)
+
+        self._create_snapshot_table(source_dataset, table_name, user)
+        self._create_view_of_snapshot(dataset, user)
+
+    def _create_view_of_snapshot(self, dataset, user):
+        sql = self._get_snapshot_view_sql(dataset)
+        self.run_query(sql, user)
+
+    def _get_snapshot_view_sql(self, dataset):
+        self._not_implemented("_get_snapshot_view_sql")
+
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        self._not_implemented("_create_snapshot_table")
 
     def remove_db_user(self, db_username):
         self._not_implemented("remove_db_user")
@@ -227,15 +252,30 @@ class DBInterface(object):
 
     def get_connection_for_user(self, user):
         by_user = DBInterface.USER_CONNECTIONS
+        thread_id = threading.current_thread().ident
+        if thread_id not in by_user:
+            by_user[thread_id] = {}
+
         if user.db_username not in by_user:
             connection = self._create_user_connection(user)
-            by_user[user.db_username] = {"connection": connection,
-                                         "user": user}
+            by_user[thread_id][user.db_username] = {"connection": connection,
+                                                    "user": user}
 
-        return by_user[user.db_username]["connection"]
+        return by_user[thread_id][user.db_username]["connection"]
+
+    def get_running_queries(self):
+        return self._not_implemented("get_running_queries")
 
     def close_user_connection(self, user):
         by_user = DBInterface.USER_CONNECTIONS
-        if user.db_username in by_user:
-            self._disconnect_connection(by_user[user.db_username])
-            del by_user[user.db_username]
+        thread_id = threading.current_thread().ident
+
+        if thread_id not in by_user:
+            return
+
+        if user.db_username in by_user[thread_id]:
+            self._disconnect_connection(by_user[thread_id][user.db_username])
+            del by_user[thread_id][user.db_username]
+
+    def get_testing_time_delta_limit(self):
+        return 5

@@ -4,7 +4,11 @@ from oauth2_provider.decorators import protected_resource
 from sqlshare_rest.models import FileUpload
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.parser import Parser
+from sqlshare_rest.dao.user import get_user
+from sqlshare_rest.logger import getLogger
 import json
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -17,15 +21,23 @@ def parser(request, id):
     except FileUpload.DoesNotExist:
         return get404()
 
-    if upload.owner.username != request.user.username:
+    user = get_user(request)
+    if upload.owner.username != user.username:
         return get403()
 
     if request.META["REQUEST_METHOD"] == "PUT":
         p = Parser()
         values = json.loads(request.body.decode("utf-8"))
-        p.delimiter(values["parser"]["delimiter"])
-        p.has_header_row(values["parser"]["has_column_header"])
+        delimiter = values["parser"]["delimiter"]
+        has_column_header = values["parser"]["has_column_header"]
+        p.delimiter(delimiter)
+        p.has_header_row(has_column_header)
 
+        logger.info("File upload, PUT parser; ID: %s; delimiter: %s; "
+                    "has_column_header: %s" % (upload.pk,
+                                               delimiter,
+                                               has_column_header),
+                    request)
         _update_from_parser(upload, p)
 
     if not upload.has_parser_values:
@@ -37,6 +49,9 @@ def parser(request, id):
         handle.close()
 
         _update_from_parser(upload, p)
+
+    if request.META["REQUEST_METHOD"] == "GET":
+        logger.info("File upload, GET parser; ID: %s" % (upload.pk), request)
 
     return HttpResponse(json.dumps(upload.parser_json_data()))
 

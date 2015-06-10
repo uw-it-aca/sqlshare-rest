@@ -15,6 +15,7 @@ from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
 from django.contrib.auth.models import User
+from testfixtures import LogCapture
 
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
@@ -43,10 +44,13 @@ class QueryListAPITest(BaseAPITest):
         url = reverse("sqlshare_view_query_list")
         auth_headers = self.get_auth_header_for_username(owner)
 
-        response = self.client.get(url, **auth_headers)
+        with LogCapture() as l:
+            response = self.client.get(url, **auth_headers)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.content.decode("utf-8"), "[]")
+            self.assertEquals(response.status_code, 200)
+            self.assertEquals(response.content.decode("utf-8"), "[]")
+
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.query_list', 'INFO', 'GET query list'))
 
 
     def test_list(self):

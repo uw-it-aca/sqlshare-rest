@@ -14,6 +14,7 @@ from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.models import Query, Dataset
 from sqlshare_rest.util.query_queue import process_queue
+from testfixtures import LogCapture
 import csv
 
 import six
@@ -50,9 +51,11 @@ class DatsetAPITest(BaseAPITest):
         self.remove_users.append("test_user1")
         auth_headers = self.get_auth_header_for_username("test_user1")
         url = reverse("sqlshare_view_dataset_list")
-        response = self.client.get(url, **auth_headers)
+        with LogCapture() as l:
+            response = self.client.get(url, **auth_headers)
 
-        self.assertEquals(response.content.decode("utf-8"), '[]')
+            self.assertEquals(response.content.decode("utf-8"), '[]')
+            self.assertTrue(self._has_log(l, "test_user1", None, 'sqlshare_rest.views.dataset_list', 'INFO', 'GET my dataset list'))
 
     def test_no_description(self):
         """
@@ -71,10 +74,12 @@ class DatsetAPITest(BaseAPITest):
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
                                                         'name': "ds9"})
 
-        response = self.client.get(url, **auth_headers)
-        data = json.loads(response.content.decode("utf-8"))
-        self.assertEquals(data["description"], "")
+        with LogCapture() as l:
+            response = self.client.get(url, **auth_headers)
+            data = json.loads(response.content.decode("utf-8"))
+            self.assertEquals(data["description"], "")
 
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'GET dataset; owner: no_description_owner; name: ds9'))
 
     def test_popularity(self):
         owner = "mr_popular"
@@ -157,35 +162,39 @@ class DatsetAPITest(BaseAPITest):
         json_data = json.dumps(data)
 
         # Test the right response from the PUT
-        response = self.client.put(url, data=json_data, **auth_headers)
-        self.assertEquals(response.status_code, 201)
+        with LogCapture() as l:
+            response = self.client.put(url, data=json_data, **auth_headers)
+            self.assertEquals(response.status_code, 201)
 
-        data = json.loads(response.content.decode("utf-8"))
+            data = json.loads(response.content.decode("utf-8"))
 
-        self.assertEquals(data["sample_data_status"], "working")
-        self.assertEquals(data["description"], "This is a test dataset")
-        self.assertEquals(data["is_public"], False)
-        self.assertEquals(data["is_shared"], False)
-        self.assertEquals(data["sql_code"], "SELECT(1)")
-        self.assertEquals(data["columns"], None)
-        self.assertEquals(data["popularity"], 0)
-        self.assertEquals(data["name"], ds1_name)
-        self.assertEquals(data["tags"], [])
-        self.assertEquals(data["url"], url)
+            self.assertEquals(data["sample_data_status"], "working")
+            self.assertEquals(data["description"], "This is a test dataset")
+            self.assertEquals(data["is_public"], False)
+            self.assertEquals(data["is_shared"], False)
+            self.assertEquals(data["sql_code"], "SELECT(1)")
+            self.assertEquals(data["columns"], None)
+            self.assertEquals(data["popularity"], 0)
+            self.assertEquals(data["name"], ds1_name)
+            self.assertEquals(data["tags"], [])
+            self.assertEquals(data["url"], url)
 
-        creation_date = data["date_created"]
-        modification_date = data["date_modified"]
+            creation_date = data["date_created"]
+            modification_date = data["date_modified"]
 
-        cd_obj = parser.parse(creation_date)
-        md_obj = parser.parse(modification_date)
+            cd_obj = parser.parse(creation_date)
+            md_obj = parser.parse(modification_date)
 
-        now = timezone.now()
+            now = timezone.now()
+            limit = get_backend().get_testing_time_delta_limit()
 
-        self.assertTrue((now - cd_obj).total_seconds() < 2)
-        self.assertTrue((now - md_obj).total_seconds() < 2)
+            self.assertTrue((now - cd_obj).total_seconds() < limit)
+            self.assertTrue((now - md_obj).total_seconds() < limit)
 
-        self.assertTrue((cd_obj - now).total_seconds() > -2)
-        self.assertTrue((md_obj - now).total_seconds() > -2)
+            self.assertTrue((cd_obj - now).total_seconds() > -1 * limit)
+            self.assertTrue((md_obj - now).total_seconds() > -1 * limit)
+
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'PUT dataset; owner: put_user1; name: dataset_1'))
 
         # Test that the GET returns data too...
         response = self.client.get(url, **auth_headers)
@@ -337,6 +346,7 @@ class DatsetAPITest(BaseAPITest):
         owner = "put_user2"
         ds1_name = "dataset_1c"
         self.remove_users.append(owner)
+        self.remove_users.append("not_owner")
         auth_headers = self.get_auth_header_for_username(owner)
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
                                                         'name': ds1_name})
@@ -404,11 +414,14 @@ class DatsetAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEquals(data["description"], "")
 
-        self.client.patch(url, '{"description": "VIA PATCH"}', content_type="application/json", **auth_headers)
+        with LogCapture() as l:
+            self.client.patch(url, '{"description": "VIA PATCH"}', content_type="application/json", **auth_headers)
 
-        response = self.client.get(url, **auth_headers)
-        data = json.loads(response.content.decode("utf-8"))
-        self.assertEquals(data["description"], "VIA PATCH")
+            response = self.client.get(url, **auth_headers)
+            data = json.loads(response.content.decode("utf-8"))
+            self.assertEquals(data["description"], "VIA PATCH")
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'PATCH dataset description; owner: patch_adams; name: ds11; description: VIA PATCH'))
+
 
         self.client.patch(url, '{"rando-field": "MEH"}', content_type="application/json", **auth_headers)
 
@@ -425,17 +438,41 @@ class DatsetAPITest(BaseAPITest):
         ds1 = Dataset.objects.get(pk = ds1.pk)
         self.assertFalse(ds1.is_public)
 
-        self.client.patch(url, '{"is_public": true }', content_type="application/json", **auth_headers)
-        ds1 = Dataset.objects.get(pk = ds1.pk)
-        self.assertTrue(ds1.is_public)
+        with LogCapture() as l:
+            self.client.patch(url, '{"is_public": true }', content_type="application/json", **auth_headers)
+            ds1 = Dataset.objects.get(pk = ds1.pk)
+            self.assertTrue(ds1.is_public)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'PATCH dataset is_public; owner: patch_adams; name: ds11; is_public: True'))
 
         self.client.patch(url, '{"rando-2": true }', content_type="application/json", **auth_headers)
         ds1 = Dataset.objects.get(pk = ds1.pk)
         self.assertTrue(ds1.is_public)
 
-        self.client.patch(url, '{"is_public": false }', content_type="application/json", **auth_headers)
+        with LogCapture() as l:
+            self.client.patch(url, '{"is_public": false }', content_type="application/json", **auth_headers)
+            ds1 = Dataset.objects.get(pk = ds1.pk)
+            self.assertFalse(ds1.is_public)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'PATCH dataset is_public; owner: patch_adams; name: ds11; is_public: False'))
+
+        # Check that the SQL code can be patched, and that we get a new preview
+        Query.objects.all().delete()
+
+        with LogCapture() as l:
+            response = self.client.patch(url, '{"sql_code":"SELECT(2)"}', content_type="application/json", **auth_headers)
+            ds1 = Dataset.objects.get(pk = ds1.pk)
+            self.assertEquals(ds1.sql, "SELECT(2)")
+            self.assertEquals(ds1.preview_is_finished, False)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'PATCH dataset sql_code; owner: patch_adams; name: ds11; sql_code: SELECT(2)'))
+
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
+        process_queue()
         ds1 = Dataset.objects.get(pk = ds1.pk)
-        self.assertFalse(ds1.is_public)
+        self.assertEquals(ds1.preview_is_finished, True)
+        self.assertEquals(ds1.preview_error, None)
+
+        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
+
 
     def test_delete(self):
         owner = "test_dataset_delete"
@@ -450,8 +487,11 @@ class DatsetAPITest(BaseAPITest):
         url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
                                                         'name': "ds12"})
 
-        response = self.client.delete(url, **auth_headers)
-        self.assertEquals(response.status_code, 200)
+        with LogCapture() as l:
+            response = self.client.delete(url, **auth_headers)
+            self.assertEquals(response.status_code, 200)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'DELETE dataset; owner: test_dataset_delete; name: ds12'))
+                
 
         response = self.client.get(url, **auth_headers)
         self.assertEquals(response.status_code, 404)
@@ -508,3 +548,5 @@ class DatsetAPITest(BaseAPITest):
         _run_query("drop user meta_012da3777ee")
         _run_query("drop user meta_e1bc449093c")
         _run_query("drop user meta_9e311190103")
+        _run_query("drop login put_user1")
+        

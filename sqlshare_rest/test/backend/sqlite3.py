@@ -2,6 +2,9 @@ from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.models import Dataset, User
 from sqlshare_rest.parser import Parser
 from sqlshare_rest.util.db import is_sqlite3, get_backend
+from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.util.snapshot_queue import process_snapshot_queue
+from django.db.utils import OperationalError
 import unittest
 import six
 if six.PY2:
@@ -125,3 +128,28 @@ class TestSQLite3Backend(CleanUpTestCase):
             raise
         finally:
             backend.close_user_connection(user)
+
+    def test_snapshot(self):
+        backend = get_backend()
+        owner = "test_user_snapshot1"
+        user = backend.get_user(owner)
+
+
+        ds_source = create_dataset_from_query(owner, "s3_snap_source1", "SELECT (1), (2), (4), (8)")
+        result2 = backend.run_query("SELECT * FROM s3_snap_source1", user)
+        self.assertEquals([(1, 2, 4, 8,)], result2)
+
+        ds_source = Dataset.objects.get(name="s3_snap_source1", owner=user)
+        ds_dest = Dataset.objects.create(name="s3_snap_destination", owner=user)
+        backend.create_snapshot_dataset(ds_source, ds_dest, user)
+
+        self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM s3_snap_destination", user)
+
+        process_snapshot_queue(verbose=True)
+
+        result4 = backend.run_query("SELECT * FROM table_s3_snap_destination", user)
+        self.assertEquals([(1, 2, 4, 8,)], result4)
+
+
+        result3 = backend.run_query("SELECT * FROM s3_snap_destination", user)
+        self.assertEquals([(1, 2, 4, 8,)], result3)

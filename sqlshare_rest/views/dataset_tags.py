@@ -7,12 +7,14 @@ from sqlshare_rest.models import Dataset, User
 from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.dao.dataset import update_tags
+from sqlshare_rest.dao.user import get_user
 
 
 @csrf_exempt
 @protected_resource()
 def tags(request, owner, name):
     get_oauth_user(request)
+    user = get_user(request)
     try:
         dataset = get_dataset_by_owner_and_name(owner, name)
     except Dataset.DoesNotExist:
@@ -22,7 +24,7 @@ def tags(request, owner, name):
     except Exception as ex:
         raise
 
-    if not dataset.user_has_read_access(request.user):
+    if not dataset.user_has_read_access(user):
         return get403()
 
     if request.META['REQUEST_METHOD'] == "GET":
@@ -39,17 +41,18 @@ def _get_tags(request, dataset):
 
 def _put_tags(request, dataset):
     data = json.loads(request.body.decode("utf-8"))
+    user = get_user(request)
 
-    is_owner = request.user.username == dataset.owner.username
+    is_owner = user.username == dataset.owner.username
 
     update_tagsets = []
     for user_tags in data:
         if is_owner:
             update_tagsets.append(user_tags)
         else:
-            if request.user.username == user_tags["name"]:
+            if user.username == user_tags["name"]:
                 update_tagsets.append(user_tags)
 
-    update_tags(dataset, update_tagsets, request.user)
+    update_tags(dataset, update_tagsets, user)
 
     return _get_tags(request, dataset)

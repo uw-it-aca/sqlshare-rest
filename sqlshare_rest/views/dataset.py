@@ -6,11 +6,17 @@ from datetime import datetime
 from django.utils import timezone
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User, Query
-from sqlshare_rest.views import get_oauth_user, get403, get404
+from sqlshare_rest.views import get_oauth_user, get403, get404, get405
 from sqlshare_rest.views.sql import response_for_query
+from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.dao.dataset import create_dataset_from_snapshot
+from sqlshare_rest.dao.dataset import create_preview_for_dataset
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.util.query import get_sample_data_for_query
+from sqlshare_rest.logger import getLogger
+
+logger = getLogger(__name__)
 
 
 @csrf_exempt
@@ -32,15 +38,54 @@ def download(request, owner, name):
     except Exception as ex:
         raise
 
-    if not dataset.user_has_read_access(request.user):
+    user = get_user(request)
+    if not dataset.user_has_read_access(user):
         return get403()
 
     backend = get_backend()
-    user = backend.get_user(request.user.username)
     sql = backend.get_download_sql_for_dataset(dataset)
 
     download_name = "%s.csv" % name
     return response_for_query(sql, user, download_name)
+
+
+@csrf_exempt
+@protected_resource()
+def snapshot(request, owner, name):
+    get_oauth_user(request)
+    if request.META['REQUEST_METHOD'] != "POST":
+        return get405()
+
+    try:
+        dataset = get_dataset_by_owner_and_name(owner, name)
+    except Dataset.DoesNotExist:
+        return get404()
+    except User.DoesNotExist:
+        return get404()
+    except Exception as ex:
+        raise
+
+    user = get_user(request)
+    if not dataset.user_has_read_access(user):
+        return get403()
+
+    values = json.loads(request.body.decode("utf-8"))
+    new_name = values["name"]
+    description = values["description"]
+    is_public = getattr(values, "is_public", True)
+    logger.info("POST dataset snapshot; owner: %s; name: %s; "
+                "destination_name: %s; is_public: %s" % (owner,
+                                                         name,
+                                                         new_name,
+                                                         is_public),
+                request)
+
+    new_dataset = create_dataset_from_snapshot(user, new_name, dataset)
+
+    response = HttpResponse("")
+    response["location"] = new_dataset.get_url()
+    response.status_code = 201
+    return response
 
 
 @csrf_exempt
@@ -70,7 +115,8 @@ def _get_dataset(request, owner, name):
     except Exception as ex:
         raise
 
-    if not dataset.user_has_read_access(request.user):
+    user = get_user(request)
+    if not dataset.user_has_read_access(user):
         return get403()
 
     if dataset.popularity:
@@ -83,7 +129,7 @@ def _get_dataset(request, owner, name):
     data = dataset.json_data()
 
     if dataset.preview_is_finished:
-        username = request.user.username
+        username = user.username
         query = Query.objects.get(is_preview_for=dataset)
         sample_data, columns = get_sample_data_for_query(query,
                                                          username)
@@ -91,12 +137,14 @@ def _get_dataset(request, owner, name):
         data["sample_data"] = sample_data
         data["columns"] = columns
 
+    logger.info("GET dataset; owner: %s; name: %s" % (owner, name), request)
     data["qualified_name"] = get_backend().get_qualified_name(dataset)
     return HttpResponse(json.dumps(data))
 
 
 def _put_dataset(request, owner, name):
-    username = request.user.username
+    user = get_user(request)
+    username = user.username
     if username != owner:
         raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
 
@@ -113,11 +161,14 @@ def _put_dataset(request, owner, name):
     response = HttpResponse(json.dumps(dataset.json_data()))
     response.status_code = 201
 
+    logger.info("PUT dataset; owner: %s; name: %s" % (owner, name), request)
+
     return response
 
 
 def _patch_dataset(request, owner, name):
-    username = request.user.username
+    user = get_user(request)
+    username = user.username
     if username != owner:
         raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
 
@@ -128,10 +179,23 @@ def _patch_dataset(request, owner, name):
     updated = False
     if "description" in data:
         dataset.description = data["description"]
+        logger.info("PATCH dataset description; owner: %s; name: %s; "
+                    "description: %s" % (owner, name, data["description"]),
+                    request)
         updated = True
+
+    if "sql_code" in data:
+        dataset.sql = data["sql_code"]
+        updated = True
+        logger.info("PATCH dataset sql_code; owner: %s; name: %s; "
+                    "sql_code: %s" % (owner, name, dataset.sql), request)
+        create_preview_for_dataset(dataset)
 
     if "is_public" in data:
         dataset.is_public = data["is_public"]
+        logger.info("PATCH dataset is_public; owner: %s; name: %s; "
+                    "is_public: %s" % (owner, name, dataset.is_public),
+                    request)
         updated = True
 
     dataset.save()
@@ -140,7 +204,8 @@ def _patch_dataset(request, owner, name):
 
 
 def _delete_dataset(request, owner, name):
-    username = request.user.username
+    user = get_user(request)
+    username = user.username
     if username != owner:
         raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
 
@@ -152,5 +217,6 @@ def _delete_dataset(request, owner, name):
         response.status_code = 404
         return response
 
+    logger.info("DELETE dataset; owner: %s; name: %s" % (owner, name), request)
     dataset.delete()
     return response

@@ -20,6 +20,7 @@ class User(models.Model):
     db_username = models.CharField(max_length=250, db_index=True, unique=True)
     # db_password = EncryptedCharField(max_length=200)
     db_password = models.CharField(max_length=200)
+    override_as = models.ForeignKey("User", null=True)
 
     def get_full_name(self):
         # TODO
@@ -48,6 +49,8 @@ class Dataset(models.Model):
     preview_is_finished = models.BooleanField(default=False)
     preview_error = models.TextField(null=True)
     rows_total = models.IntegerField(null=True)
+    snapshot_source = models.ForeignKey('Dataset', null=True)
+    snapshot_finished = models.NullBooleanField()
 
     class Meta:
         unique_together = (("name", "owner"),)
@@ -179,6 +182,8 @@ class Query(models.Model):
                                         default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     rows_total = models.IntegerField(null=True)
+    process_queue_id = models.IntegerField(null=True)
+    terminated = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         super(Query, self).save(*args, **kwargs)
@@ -193,8 +198,6 @@ class Query(models.Model):
         if self.date_finished:
             finish_date = self.date_finished.strftime(JSON_DATE)
         create_date = self.date_created.strftime(JSON_DATE)
-
-        user = User.objects.get(username=request.user.username)
 
         return {
             "sql_code": self.sql,
