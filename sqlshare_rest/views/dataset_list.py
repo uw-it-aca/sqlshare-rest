@@ -21,6 +21,8 @@ def dataset_list(request):
     user = get_user(request)
     datasets = get_datasets_owned_by_user(user)
 
+    datasets = _filter_list_from_request(datasets, request)
+
     data = []
     for dataset in datasets:
         data.append(dataset.json_data())
@@ -58,6 +60,26 @@ def dataset_tagged_list(request, tag):
         data.append(dataset.json_data())
     logger.info("GET tagged dataset list; tag: %s" % (tag), request)
     return HttpResponse(json.dumps(data))
+
+
+def _filter_list_from_request(query_set, request):
+    if "order_by" in request.GET:
+        if request.GET["order_by"] == "updated":
+            query_set = query_set.order_by("-date_modified")
+    else:
+        query_set = query_set.order_by("pk")
+
+    if "page" in request.GET:
+        page_size = 50
+        if "page_size" in request.GET:
+            page_size = int(request.GET["page_size"])
+
+        page_num = int(request.GET["page"])
+        start = (page_num - 1) * page_size
+        end = start + page_size
+        query_set = query_set[start:end]
+
+    return query_set
 
 
 @csrf_exempt

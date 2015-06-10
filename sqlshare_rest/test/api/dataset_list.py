@@ -279,6 +279,48 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
         self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
 
+    def test_pagination(self):
+        owner = "test_pagination_owner"
+        self.remove_users.append(owner)
+        datasets = []
+        for i in range(200):
+            ds = create_dataset_from_query(owner, "test_paging_%s" % i, "SELECT (%s)" % i)
+            ds.is_public = True
+            if i < 120:
+                ds.description = "Find the elephant"
+            ds.save()
+
+        auth_headers = self.get_auth_header_for_username(owner)
+        url = reverse("sqlshare_view_dataset_list")
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 200)
+
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_199")
+
+        response = self.client.get(url, { "page": 2, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_149")
+
+        response = self.client.get(url, { "page": 100, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+        response = self.client.get(url, { "page": 10, "page_size": 10, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 10)
+
+        response = self.client.get(url, { "page": 1 }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_0")
+
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):
