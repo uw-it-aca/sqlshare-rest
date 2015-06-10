@@ -19,7 +19,7 @@ def dataset_list(request):
     get_oauth_user(request)
 
     user = get_user(request)
-    datasets = get_datasets_owned_by_user(user)
+    datasets = get_datasets_owned_by_user(user, request)
 
     data = []
     for dataset in datasets:
@@ -36,7 +36,7 @@ def dataset_shared_list(request):
 
     user = get_user(request)
 
-    datasets = get_datasets_shared_with_user(user)
+    datasets = get_datasets_shared_with_user(user, request)
 
     data = []
     for dataset in datasets:
@@ -51,7 +51,7 @@ def dataset_tagged_list(request, tag):
     get_oauth_user(request)
     user = get_user(request)
 
-    datasets = get_all_datasets_tagged_for_user(user, tag_label=tag)
+    datasets = get_all_datasets_tagged_for_user(user, request, tag_label=tag)
 
     data = []
     for dataset in datasets:
@@ -66,7 +66,7 @@ def dataset_all_list(request):
     get_oauth_user(request)
 
     user = get_user(request)
-    datasets = get_all_datasets_for_user(user)
+    datasets = get_all_datasets_for_user(user, request)
 
     data = []
     for dataset in datasets:

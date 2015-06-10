@@ -279,6 +279,103 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
         self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
 
+    def test_pagination(self):
+        owner = "test_pagination_owner"
+        public = "test_pagination_public"
+        shared = "test_pagination_shared"
+        self.remove_users.append(owner)
+        self.remove_users.append(public)
+        self.remove_users.append(shared)
+
+        backend = get_backend()
+        backend.get_user(public)
+        backend.get_user(shared)
+        auth_headers = self.get_auth_header_for_username(owner)
+        public_auth_headers = self.get_auth_header_for_username(public)
+        shared_auth_headers = self.get_auth_header_for_username(shared)
+
+        never_seen = create_dataset_from_query(public, "test_paging_public_owner_first", "SELECT (1)")
+
+        account_data = { "accounts": [ shared ] }
+        for i in range(200):
+            dataset_name = "test_paging_%s" % i
+            ds = create_dataset_from_query(owner, dataset_name, "SELECT (%s)" % i)
+            ds.is_public = True
+            set_dataset_accounts(ds, [ shared ])
+
+            if i < 120:
+                ds.description = "Find the elephant"
+            ds.save()
+
+        url = reverse("sqlshare_view_dataset_list")
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 200)
+
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_199")
+
+        response = self.client.get(url, { "page": 2, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_149")
+
+        response = self.client.get(url, { "page": 100, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+        response = self.client.get(url, { "page": 10, "page_size": 10, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 10)
+
+        response = self.client.get(url, { "page": 1 }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_0")
+
+        url = reverse("sqlshare_view_dataset_shared_list")
+
+        response = self.client.get(url, **shared_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 200)
+
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **shared_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_199")
+
+        url = reverse("sqlshare_view_dataset_all_list")
+
+        response = self.client.get(url, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertTrue(len(data) >= 200)
+
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_199")
+
+        new_public = create_dataset_from_query(public, "test_paging_public_owner", "SELECT (1)")
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_public_owner")
+        self.assertEquals(data[1]["name"], "test_paging_199")
+
+        # Now for searching...
+        response = self.client.get(url, { "q": "elephant" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 120)
+
+        response = self.client.get(url, { "q": "elephant", "page": 1, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_119")
+
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):
