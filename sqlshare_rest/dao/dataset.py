@@ -1,7 +1,7 @@
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Dataset, User, SharingEmail, DatasetTag, Tag
 from sqlshare_rest.models import DatasetSharingEmail
-from sqlshare_rest.models import Query
+from sqlshare_rest.models import Query, RecentDatasetView
 from sqlshare_rest.exceptions import InvalidAccountException
 from django.db.models import Q
 
@@ -25,6 +25,14 @@ def get_datasets_shared_with_user(user, request, page_list=True):
 def get_public_datasets(request, page_list=True):
     base = Dataset.objects.filter(is_public=True)
     return _filter_list_from_request(base, request, page_list)
+
+
+def get_recent_datasets_viewed_by_user(user, request, page_list=True):
+    base = RecentDatasetView.objects.filter(user=user).order_by("-timestamp",
+                                                                "-pk")
+    paged = _page_dataset_list(base, request)
+
+    return map(lambda x: x.dataset, paged)
 
 
 def _get_all_dataset_querysets(user, request):
