@@ -353,7 +353,9 @@ def _update_tag_popularity(tag_label):
 def _filter_list_from_request(query_set, request, page_list):
     if "order_by" in request.GET:
         if request.GET["order_by"] == "updated":
-            query_set = query_set.order_by("-date_modified")
+            # mysql doesn't have the timestamp resolution needed to be
+            # able to just filter by date modified during unit tests
+            query_set = query_set.order_by("-date_modified", "-pk")
     else:
         query_set = query_set.order_by("pk")
 
