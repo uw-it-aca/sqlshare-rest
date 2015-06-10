@@ -3,6 +3,7 @@ from sqlshare_rest.models import Dataset, User, SharingEmail, DatasetTag, Tag
 from sqlshare_rest.models import DatasetSharingEmail
 from sqlshare_rest.models import Query
 from sqlshare_rest.exceptions import InvalidAccountException
+from django.db.models import Q
 
 
 def get_datasets_owned_by_user(user, request, page_list=True):
@@ -351,6 +352,10 @@ def _update_tag_popularity(tag_label):
 
 
 def _filter_list_from_request(query_set, request, page_list):
+    if "q" in request.GET:
+        q = request.GET["q"]
+        query_set = query_set.filter(Q(name__icontains=q) | Q(description__icontains=q))
+
     if "order_by" in request.GET:
         if request.GET["order_by"] == "updated":
             # mysql doesn't have the timestamp resolution needed to be

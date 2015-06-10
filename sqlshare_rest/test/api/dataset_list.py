@@ -365,6 +365,17 @@ class DatsetListAPITest(BaseAPITest):
         self.assertEquals(data[0]["name"], "test_paging_public_owner")
         self.assertEquals(data[1]["name"], "test_paging_199")
 
+        # Now for searching...
+        response = self.client.get(url, { "q": "elephant" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 120)
+
+        response = self.client.get(url, { "q": "elephant", "page": 1, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_119")
+
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):
