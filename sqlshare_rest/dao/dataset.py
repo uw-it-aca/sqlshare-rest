@@ -5,49 +5,50 @@ from sqlshare_rest.models import Query
 from sqlshare_rest.exceptions import InvalidAccountException
 
 
-def get_datasets_owned_by_user(user):
+def get_datasets_owned_by_user(user, request, page_list=True):
     # Django auth user vs sqlshare user
     backend = get_backend()
     user_obj = backend.get_user(user.username)
-    return Dataset.objects.filter(owner=user_obj)
+    base = Dataset.objects.filter(owner=user_obj)
+    return _filter_list_from_request(base, request, page_list)
 
 
-def get_datasets_shared_with_user(user):
+def get_datasets_shared_with_user(user, request, page_list=True):
     # Django auth user vs sqlshare user
     backend = get_backend()
     user_obj = backend.get_user(user.username)
-    return Dataset.objects.filter(shared_with__in=[user_obj])
+    base = Dataset.objects.filter(shared_with__in=[user_obj])
+    return _filter_list_from_request(base, request, page_list)
 
 
-def get_public_datasets():
-    return Dataset.objects.filter(is_public=True)
+def get_public_datasets(request, page_list=True):
+    base = Dataset.objects.filter(is_public=True)
+    return _filter_list_from_request(base, request, page_list)
 
 
-def _get_all_dataset_querysets(user):
-    return (get_datasets_owned_by_user(user),
-            get_datasets_shared_with_user(user),
-            get_public_datasets())
+def _get_all_dataset_querysets(user, request):
+    return (get_datasets_owned_by_user(user, request, page_list=False),
+            get_datasets_shared_with_user(user, request, page_list=False),
+            get_public_datasets(request, page_list=False))
 
 
 def _dataset_unique_list(mine, shared, public):
-    datasets = list(mine)
-    datasets.extend(list(shared))
-    datasets.extend(list(public))
-
-    return list(set(datasets))
+    return mine | shared | public
 
 
-def get_all_datasets_for_user(user):
-    mine, shared, public = _get_all_dataset_querysets(user)
-    return _dataset_unique_list(mine, shared, public)
+def get_all_datasets_for_user(user, request):
+    mine, shared, public = _get_all_dataset_querysets(user, request)
+    unique = _dataset_unique_list(mine, shared, public)
+
+    return _page_dataset_list(unique, request)
 
 
-def get_all_datasets_tagged_for_user(user, tag_label):
+def get_all_datasets_tagged_for_user(user, request, tag_label):
     try:
         tags = Tag.objects.filter(tag__iexact=tag_label)
     except Tag.DoesNotExist:
         return []
-    datasets = get_all_datasets_for_user(user)
+    datasets = get_all_datasets_for_user(user, request)
 
     dataset_tags = DatasetTag.objects.filter(dataset__in=datasets,
                                              tag__in=tags)
@@ -347,3 +348,30 @@ def _update_tag_popularity(tag_label):
     count = DatasetTag.objects.filter(tag=tag_obj).count()
     tag_obj.popularity = count
     tag_obj.save()
+
+
+def _filter_list_from_request(query_set, request, page_list):
+    if "order_by" in request.GET:
+        if request.GET["order_by"] == "updated":
+            query_set = query_set.order_by("-date_modified")
+    else:
+        query_set = query_set.order_by("pk")
+
+    if page_list:
+        query_set = _page_dataset_list(query_set, request)
+
+    return query_set
+
+
+def _page_dataset_list(query_set, request):
+    if "page" in request.GET:
+        page_size = 50
+        if "page_size" in request.GET:
+            page_size = int(request.GET["page_size"])
+
+        page_num = int(request.GET["page"])
+        start = (page_num - 1) * page_size
+        end = start + page_size
+        query_set = query_set[start:end]
+
+    return query_set
