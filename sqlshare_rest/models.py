@@ -130,6 +130,15 @@ class Dataset(models.Model):
         return False
 
 
+class RecentDatasetView(models.Model):
+    dataset = models.ForeignKey(Dataset)
+    user = models.ForeignKey(User)
+    timestamp = models.DateTimeField(null=True)
+
+    class Meta:
+        unique_together = (('dataset', 'user'),)
+
+
 class SharingEmail(models.Model):
     email = models.CharField(max_length=200)
 

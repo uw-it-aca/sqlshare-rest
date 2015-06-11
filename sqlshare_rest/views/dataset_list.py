@@ -1,6 +1,7 @@
 from sqlshare_rest.views import get_oauth_user
 from sqlshare_rest.dao.dataset import get_datasets_owned_by_user
 from sqlshare_rest.dao.dataset import get_datasets_shared_with_user
+from sqlshare_rest.dao.dataset import get_recent_datasets_viewed_by_user
 from sqlshare_rest.dao.dataset import get_all_datasets_tagged_for_user
 from sqlshare_rest.dao.dataset import get_all_datasets_for_user
 from sqlshare_rest.dao.user import get_user
@@ -19,7 +20,7 @@ def dataset_list(request):
     get_oauth_user(request)
 
     user = get_user(request)
-    datasets = get_datasets_owned_by_user(user)
+    datasets = get_datasets_owned_by_user(user, request)
 
     data = []
     for dataset in datasets:
@@ -36,7 +37,7 @@ def dataset_shared_list(request):
 
     user = get_user(request)
 
-    datasets = get_datasets_shared_with_user(user)
+    datasets = get_datasets_shared_with_user(user, request)
 
     data = []
     for dataset in datasets:
@@ -51,7 +52,7 @@ def dataset_tagged_list(request, tag):
     get_oauth_user(request)
     user = get_user(request)
 
-    datasets = get_all_datasets_tagged_for_user(user, tag_label=tag)
+    datasets = get_all_datasets_tagged_for_user(user, request, tag_label=tag)
 
     data = []
     for dataset in datasets:
@@ -62,11 +63,27 @@ def dataset_tagged_list(request, tag):
 
 @csrf_exempt
 @protected_resource()
+def dataset_recent_list(request):
+    get_oauth_user(request)
+
+    user = get_user(request)
+    datasets = get_recent_datasets_viewed_by_user(user, request)
+
+    data = []
+    for dataset in datasets:
+        data.append(dataset.json_data())
+
+    logger.info("GET my dataset list", request)
+    return HttpResponse(json.dumps(data))
+
+
+@csrf_exempt
+@protected_resource()
 def dataset_all_list(request):
     get_oauth_user(request)
 
     user = get_user(request)
-    datasets = get_all_datasets_for_user(user)
+    datasets = get_all_datasets_for_user(user, request)
 
     data = []
     for dataset in datasets:
