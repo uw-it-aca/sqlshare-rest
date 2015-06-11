@@ -1,6 +1,8 @@
 from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.models import Dataset
 from sqlshare_rest.parser import Parser
+from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.util.snapshot_queue import process_snapshot_queue
 from django.db import connection
 from sqlshare_rest.util.db import is_mssql, is_sql_azure, get_backend
 import unittest
@@ -424,6 +426,37 @@ class TestMSSQLBackend(CleanUpTestCase):
             backend.close_user_connection(user2)
             backend.close_user_connection(user3)
 
+    def test_snapshot(self):
+        import pyodbc
+        owner = "test_user_snapshot1"
+        self.remove_users.append(owner)
+        backend = get_backend()
+        user = backend.get_user(owner)
+
+        try:
+            ds_source = create_dataset_from_query(owner, "my_snap_source1", "SELECT (1), (2), (4), (8)")
+            result2 = backend.run_query("SELECT * FROM test_user_snapshot1.my_snap_source1", user)
+            self.assertEquals(result2[0][2], 4)
+
+            ds_source = Dataset.objects.get(name="my_snap_source1", owner=user)
+            ds_dest = Dataset.objects.create(name="my_snap_destination", owner=user)
+            backend.create_snapshot_dataset(ds_source, ds_dest, user)
+
+            self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_snapshot1.my_snap_destination", user)
+
+            process_snapshot_queue(verbose=True)
+
+            result4 = backend.run_query("SELECT * FROM [test_user_snapshot1].[table_my_snap_destination]", user)
+            self.assertEquals(result4[0][2], 4)
+
+
+            result3 = backend.run_query("SELECT * FROM [test_user_snapshot1].[my_snap_destination]", user)
+            self.assertEquals(result3[0][2], 4)
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
+
 
     @classmethod
     def setUpClass(cls):
@@ -459,6 +492,7 @@ class TestMSSQLBackend(CleanUpTestCase):
         _run_query("drop login test_remove_user1")
         _run_query("drop login test_remove_user3")
         _run_query("drop login test_mysql_qualified_dataset_name")
+        _run_query("drop login test_user_snapshot1")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

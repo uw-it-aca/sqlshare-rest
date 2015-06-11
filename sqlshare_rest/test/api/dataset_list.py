@@ -16,6 +16,7 @@ from sqlshare_rest.util.query_queue import process_queue
 from django.utils import timezone
 import json
 from testfixtures import LogCapture
+from time import sleep
 
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
@@ -278,6 +279,177 @@ class DatsetListAPITest(BaseAPITest):
         self.assertTrue("ds_public" not in lookup["ds_list_user9"])
         self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
         self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
+
+    def test_pagination(self):
+        owner = "test_pagination_owner"
+        public = "test_pagination_public"
+        shared = "test_pagination_shared"
+        self.remove_users.append(owner)
+        self.remove_users.append(public)
+        self.remove_users.append(shared)
+
+        backend = get_backend()
+        backend.get_user(public)
+        backend.get_user(shared)
+        auth_headers = self.get_auth_header_for_username(owner)
+        public_auth_headers = self.get_auth_header_for_username(public)
+        shared_auth_headers = self.get_auth_header_for_username(shared)
+
+        never_seen = create_dataset_from_query(public, "test_paging_public_owner_first", "SELECT (1)")
+
+        account_data = { "accounts": [ shared ] }
+        for i in range(200):
+            dataset_name = "test_paging_%s" % i
+            ds = create_dataset_from_query(owner, dataset_name, "SELECT (%s)" % i)
+            ds.is_public = True
+            set_dataset_accounts(ds, [ shared ])
+
+            if i < 120:
+                ds.description = "Find the elephant"
+            ds.save()
+
+        url = reverse("sqlshare_view_dataset_list")
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 200)
+
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_199")
+
+        response = self.client.get(url, { "page": 2, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_149")
+
+        response = self.client.get(url, { "page": 100, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+        response = self.client.get(url, { "page": 10, "page_size": 10, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 10)
+
+        response = self.client.get(url, { "page": 1 }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_0")
+
+        url = reverse("sqlshare_view_dataset_shared_list")
+
+        response = self.client.get(url, **shared_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 200)
+
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **shared_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_199")
+
+        url = reverse("sqlshare_view_dataset_all_list")
+
+        response = self.client.get(url, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertTrue(len(data) >= 200)
+
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_199")
+
+        new_public = create_dataset_from_query(public, "test_paging_public_owner", "SELECT (1)")
+        response = self.client.get(url, { "page": 1, "page_size": 50, "order_by": "updated" }, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_public_owner")
+        self.assertEquals(data[1]["name"], "test_paging_199")
+
+        # Now for searching...
+        response = self.client.get(url, { "q": "elephant" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 120)
+
+        response = self.client.get(url, { "q": "elephant", "page": 1, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 50)
+        self.assertEquals(data[0]["name"], "test_paging_119")
+
+    def test_recent_datasets(self):
+        owner = "test_recents_owner"
+        public = "test_recents_public"
+
+        self.remove_users.append(owner)
+        self.remove_users.append(public)
+
+        ds1 = create_dataset_from_query(owner, "recent_ds1", "SELECT (1)")
+        ds2 = create_dataset_from_query(owner, "recent_ds2", "SELECT (1)")
+
+        add_public_access(ds1)
+        add_public_access(ds2)
+
+        url = reverse("sqlshare_view_dataset_recent_list")
+
+        auth_headers = self.get_auth_header_for_username(owner)
+        public_auth_headers = self.get_auth_header_for_username(public)
+
+        # initial state - neither user has visited any dataset
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+        response = self.client.get(url, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+        # Test public user ds1/ds2 - still no items for the owner
+        ds1_url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                            'name': "recent_ds1"})
+        ds2_url = reverse("sqlshare_view_dataset", kwargs={ 'owner': owner,
+                                                            'name': "recent_ds2"})
+
+        response = self.client.get(ds1_url, **public_auth_headers)
+        sleep(1.1)
+        response = self.client.get(ds2_url, **public_auth_headers)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 0)
+
+        response = self.client.get(url, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 2)
+
+        self.assertEquals(data[0]["name"], "recent_ds2")
+        self.assertEquals(data[1]["name"], "recent_ds1")
+
+        response = self.client.get(ds2_url, **auth_headers)
+        sleep(1.1)
+        response = self.client.get(ds1_url, **auth_headers)
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 2)
+        self.assertEquals(data[0]["name"], "recent_ds1")
+        self.assertEquals(data[1]["name"], "recent_ds2")
+
+        response = self.client.get(url, **public_auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 2)
+
+        self.assertEquals(data[0]["name"], "recent_ds2")
+        self.assertEquals(data[1]["name"], "recent_ds1")
+
+        # Go and visit #1 again, make sure we have things in the right order.
+        sleep(1.1)
+        response = self.client.get(ds2_url, **auth_headers)
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 2)
+        self.assertEquals(data[0]["name"], "recent_ds2")
+        self.assertEquals(data[1]["name"], "recent_ds1")
+
 
     @classmethod
     def setUpClass(cls):

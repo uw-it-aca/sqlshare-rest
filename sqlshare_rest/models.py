@@ -49,6 +49,8 @@ class Dataset(models.Model):
     preview_is_finished = models.BooleanField(default=False)
     preview_error = models.TextField(null=True)
     rows_total = models.IntegerField(null=True)
+    snapshot_source = models.ForeignKey('Dataset', null=True)
+    snapshot_finished = models.NullBooleanField()
 
     class Meta:
         unique_together = (("name", "owner"),)
@@ -126,6 +128,15 @@ class Dataset(models.Model):
             return val
 
         return False
+
+
+class RecentDatasetView(models.Model):
+    dataset = models.ForeignKey(Dataset)
+    user = models.ForeignKey(User)
+    timestamp = models.DateTimeField(null=True)
+
+    class Meta:
+        unique_together = (('dataset', 'user'),)
 
 
 class SharingEmail(models.Model):

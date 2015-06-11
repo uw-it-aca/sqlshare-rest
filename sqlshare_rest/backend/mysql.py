@@ -85,23 +85,6 @@ class MySQLBackend(DBInterface):
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) as x LIMIT 100" % sql
 
-    def _create_snapshot_sql(self, source_dataset, destination_datset):
-        """
-        Requires the source to be quoted, the destination to not be.
-
-        Source could be another user's dataset, so we can't quote that.
-        """
-        return "CREATE TABLE `%s` AS SELECT * FROM %s" % (destination_datset,
-                                                          source_dataset)
-
-    def create_snapshot(self, source_dataset, destination_datset, user):
-        table_name = self._get_table_name_for_dataset(destination_datset)
-        sql = self._create_snapshot_sql(source_dataset, table_name)
-        self.run_query(sql, user)
-        self.create_view(destination_datset,
-                         self._get_view_sql_for_dataset(table_name, user),
-                         user)
-
     def _add_read_access_sql(self, dataset, owner, reader):
         return "GRANT SELECT ON `%s`.`%s` TO `%s`" % (owner.schema,
                                                       dataset,
@@ -215,6 +198,19 @@ class MySQLBackend(DBInterface):
     def get_query_sample_sql(self, query_id):
         QUERY_SCHEMA = self.get_query_cache_db_name()
         return "SELECT * FROM %s.query_%s LIMIT 100" % (QUERY_SCHEMA, query_id)
+
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        sql = "CREATE TABLE `%s` AS SELECT * FROM %s" % (table_name,
+                                                         source_dataset.name)
+
+        self.run_query(sql, user)
+
+    def _get_snapshot_view_sql(self, dataset):
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        return ("CREATE OR REPLACE VIEW `%s` AS "
+                "SELECT * FROM `%s`.`%s`" % (dataset.name,
+                                             dataset.owner.schema,
+                                             table_name))
 
     def _get_column_definitions_for_cursor(self, cursor):
         import pymysql

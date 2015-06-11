@@ -5,11 +5,12 @@ import json
 from datetime import datetime
 from django.utils import timezone
 from sqlshare_rest.util.db import get_backend
-from sqlshare_rest.models import Dataset, User, Query
-from sqlshare_rest.views import get_oauth_user, get403, get404
+from sqlshare_rest.models import Dataset, User, Query, RecentDatasetView
+from sqlshare_rest.views import get_oauth_user, get403, get404, get405
 from sqlshare_rest.views.sql import response_for_query
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.dao.dataset import create_dataset_from_snapshot
 from sqlshare_rest.dao.dataset import create_preview_for_dataset
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
 from sqlshare_rest.util.query import get_sample_data_for_query
@@ -50,6 +51,45 @@ def download(request, owner, name):
 
 @csrf_exempt
 @protected_resource()
+def snapshot(request, owner, name):
+    get_oauth_user(request)
+    if request.META['REQUEST_METHOD'] != "POST":
+        return get405()
+
+    try:
+        dataset = get_dataset_by_owner_and_name(owner, name)
+    except Dataset.DoesNotExist:
+        return get404()
+    except User.DoesNotExist:
+        return get404()
+    except Exception as ex:
+        raise
+
+    user = get_user(request)
+    if not dataset.user_has_read_access(user):
+        return get403()
+
+    values = json.loads(request.body.decode("utf-8"))
+    new_name = values["name"]
+    description = values["description"]
+    is_public = getattr(values, "is_public", True)
+    logger.info("POST dataset snapshot; owner: %s; name: %s; "
+                "destination_name: %s; is_public: %s" % (owner,
+                                                         name,
+                                                         new_name,
+                                                         is_public),
+                request)
+
+    new_dataset = create_dataset_from_snapshot(user, new_name, dataset)
+
+    response = HttpResponse("")
+    response["location"] = new_dataset.get_url()
+    response.status_code = 201
+    return response
+
+
+@csrf_exempt
+@protected_resource()
 def dataset(request, owner, name):
     get_oauth_user(request)
     if request.META['REQUEST_METHOD'] == "GET":
@@ -85,6 +125,11 @@ def _get_dataset(request, owner, name):
         dataset.popularity = 1
     dataset.last_viewed = timezone.now()
     dataset.save()
+
+    get_or_create = RecentDatasetView.objects.get_or_create
+    recent_view, created = get_or_create(dataset=dataset, user=user)
+    recent_view.timestamp = timezone.now()
+    recent_view.save()
 
     data = dataset.json_data()
 

@@ -601,6 +601,55 @@ class DatasetPermissionsAPITest(BaseAPITest):
         emails = data["emails"]
         self.assertEquals(emails, ["test_user1@example.com"])
 
+    def test_flat_auth_list(self):
+        owner = "permissions_flat_user1"
+        dataset_name = "ds_flat1"
+        other_user1 = "permissions_flat_user2"
+        other_user2 = "permissions_flat_user3"
+        self.remove_users.append(owner)
+        self.remove_users.append(other_user1)
+        self.remove_users.append(other_user2)
+
+        backend = get_backend()
+        backend.get_user(other_user1)
+        backend.get_user(other_user2)
+        ds1 = create_dataset_from_query(owner, dataset_name, "SELECT(1)")
+
+        permissions_url = reverse("sqlshare_view_dataset_permissions", kwargs={'owner':owner, 'name':dataset_name})
+        new_data = { "authlist": [ other_user1, other_user2, "test@example.com", "not_email_but_whatever"] }
+
+        owner_auth_headers = self.get_auth_header_for_username(owner)
+        response = self.client.put(permissions_url, data=json.dumps(new_data), **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode("utf-8"), "")
+
+        response = self.client.get(permissions_url, **owner_auth_headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(data["is_public"], False)
+        self.assertEquals(data["is_shared"], True)
+
+        accounts = data["accounts"]
+        lookup = {}
+        for account in accounts:
+            lookup[account["login"]] = True
+
+        self.assertEquals(lookup, { "permissions_flat_user2": True, "permissions_flat_user3": True })
+
+        lookup = {}
+        emails = data["emails"]
+        for email in emails:
+            lookup[email] = True
+
+        self.assertEquals(lookup, { "test@example.com": True, "not_email_but_whatever": True })
+        # empty out the memory outbox:
+        mail.outbox = []
+        # Now make sure we send 1 email
+        send_new_emails()
+        # empty out the memory outbox:
+        mail.outbox = []
+
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):
@@ -616,6 +665,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
         _run_query("drop login permissions_preview_user8")
         _run_query("drop login permissions_preview_user2")
         _run_query("drop login permissions_preview_user6")
+        _run_query("drop login permissions_preview_user7")
         _run_query("drop login permissions_token_user1")
         _run_query("drop login permissions_xpublic_user1")
         _run_query("drop login permissions_user1")

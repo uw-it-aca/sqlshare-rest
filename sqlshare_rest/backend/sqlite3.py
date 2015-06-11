@@ -49,6 +49,17 @@ class SQLite3Backend(DBInterface):
     def create_db_schema(self, db_username, schema_name):
         return
 
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        sql = "CREATE TABLE `%s` AS SELECT * FROM %s" % (table_name,
+                                                         source_dataset.name)
+
+        self.run_query(sql, user)
+
+    def _get_snapshot_view_sql(self, dataset):
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        return "CREATE VIEW `%s` AS SELECT * FROM `%s`" % (dataset.name,
+                                                           table_name)
+
     def run_query(self, sql, username, params=None, return_cursor=False):
         cursor = connection.cursor()
         cursor.execute(sql, params)
