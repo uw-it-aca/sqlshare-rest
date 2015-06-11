@@ -30,6 +30,14 @@ def get_public_datasets(request, page_list=True):
 def get_recent_datasets_viewed_by_user(user, request, page_list=True):
     base = RecentDatasetView.objects.filter(user=user).order_by("-timestamp",
                                                                 "-pk")
+
+    # This needs to be different than _filter_list_from_request, because
+    # of the foreign key to dataset...
+    if "q" in request.GET:
+        q = request.GET["q"]
+        base = base .filter(Q(dataset__name__icontains=q) |
+                            Q(dataset__description__icontains=q))
+
     paged = _page_dataset_list(base, request)
 
     return map(lambda x: x.dataset, paged)
