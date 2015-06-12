@@ -22,4 +22,4 @@ def get_recent_activity(username):
                                 terminated=False,
                                 date_created__gte=starting_at)
 
-    return base.order_by("-date_created")
+    return base.order_by("-pk")
