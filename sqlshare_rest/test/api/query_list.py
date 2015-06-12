@@ -76,9 +76,9 @@ class QueryListAPITest(BaseAPITest):
         request.user = User.objects.get(username=owner)
 
         full_data = [
-            query1.json_data(request),
-            query2.json_data(request),
             query3.json_data(request),
+            query2.json_data(request),
+            query1.json_data(request),
         ]
 
         self.assertEquals(data, full_data)
@@ -90,9 +90,22 @@ class QueryListAPITest(BaseAPITest):
         data = json.loads(response.content.decode("utf-8"))
 
         full_data = [
+            query3.json_data(request),
             query2.json_data(request),
+        ]
+
+        self.assertEquals(data, full_data)
+
+        query2.terminated = True
+        query2.save()
+
+        response = self.client.get(url, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+
+        full_data = [
             query3.json_data(request),
         ]
 
         self.assertEquals(data, full_data)
+
 
