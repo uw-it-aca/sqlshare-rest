@@ -78,7 +78,7 @@
 
             }
             
-            .sql-wayf-sponsors {
+            .sql-wayf-sponsors { margin-top: 3em;
                 h3 { text-transform: uppercase; font-family: 'Oswald', sans-serif; color: @asbestos; font-size: 18px; }
             }
                 
@@ -98,12 +98,12 @@
         
         <h1 class="sql-wayf-logo"><i class="fa fa-database"></i> SQL<span>SHARE</span></h1>
         
-        <p class="sql-wayf-headline">SQLShare is an easier way to store and share your data.</strong>  Get answers to your research questions right now.</p>
+        <p class="sql-wayf-headline">SQLShare is a secure and easier way to store your research data.</strong>  No need to install or administer a database server. Just upload and start analyzing your data instantly.</p>
         
         <div class="sql-wayf-login">
-            <h2>log in</h2>
+            <h2>Log in:</h2>
             
-            <button class="btn btn-primary btn-lg" onclick="go_to_login('{% url 'sqlshare_rest.views.auth.require_uw_login' %}');">UW</button>
+            <button class="btn btn-primary btn-lg" onclick="go_to_login('{% url 'sqlshare_rest.views.auth.require_uw_login' %}');"><i class="fa fa-university"></i> UW</button>
             <button class="btn btn-primary btn-lg" onclick="go_to_login('{% url 'sqlshare_rest.views.auth.require_google_login' %}');"><i class="fa fa-google"></i> Google</button>
         </div>
         
@@ -111,25 +111,26 @@
         <p><strong>Don&rsquo;t have an account?</strong> Create a <a href="https://www.google.com/accounts/NewAccount">Google Account</a> and start using SQLShare.</p>
         </div>
         
-        <p style="text-align:right; font-size:13px; margin:0;"><a href="https://www.flickr.com/photos/rdecom/7222825892" title="Army scientists energize battery research by U.S. Army RDECOM, on Flickr"><i class="fa fa-flickr"></i> photo credit</a></p>
+        <p style="text-align:right; font-size:13px; margin:0;"><a href="https://www.flickr.com/photos/rdecom/7222825892" title="Army scientists energize battery research by U.S. Army RDECOM, on Flickr" style="text-decoration:none; color:#ccc;"><i class="fa fa-flickr"></i> photo credit</a></p>
         
       </div>
     </div>
 
     <div class="container">
+      
       <!-- Example row of columns -->
       <div class="row">
         <div class="col-md-4">
           <h2><i class="fa fa-upload"></i> Upload</h2>
-          <p>Upload any tabular data and start analyzing instantly.  No need to install, configure, or design a database.</p>
+          <p>Just upload any tabular data and start analyzing instantly. No need to mess with server installations and purchasing hardware.</p>
         </div>
         <div class="col-md-4">
           <h2><i class="fa fa-gears"></i> Query</h2>
-          <p>Exercise the full power of SQL even with zero programming experience: joins, subqueries, set operations.</p>
+          <p>Exercise the full power of SQL even with zero programming experience: joins, subqueries, set operations. You can do it all within SQLShare.</p>
        </div>
         <div class="col-md-4">
           <h2><i class="fa fa-users"></i> Collaborate</h2>
-          <p>Analyze and compare your data collaboratively.  Derive new datasets and share them with your colleagues.</p>
+          <p>Create datasets and share them with your colleagues. No need to send huge files across email or wait for long downloads. </p>
         </div>
       </div>
       
@@ -139,10 +140,8 @@
 
         <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/ss-wayf-escience.png" style="" /><br/>eScience Institute</div>
         <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/moore-foundation-logo.gif" style="" /></div>
-        <div class="clear"></div>
-
-    </div>
-
+ 
+      </div>
 
 
       <hr>
@@ -150,6 +149,7 @@
       <footer>
         <p>Copyright &copy; {% now "Y" %} eScience Institute &amp; Academic and Collaborative Applications <span><a href="http://www.washington.edu/online/privacy/">Privacy</a></span> <span><a href="http://www.washington.edu/online/terms/">Terms</a></span></p>
       </footer>
+    
     </div> <!-- /container -->
     
 
