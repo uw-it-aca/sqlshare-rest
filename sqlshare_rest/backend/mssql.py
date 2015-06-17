@@ -43,8 +43,7 @@ class MSSQLBackend(DBInterface):
         return password
 
     def _run_create_db_user(self, conn, username, password):
-        connection = self._get_user_db_connection()
-        cursor = connection.cursor()
+        cursor = conn.cursor()
         sql = "CREATE LOGIN %s WITH PASSWORD = '%s'" % (username, password)
         cursor.execute(sql)
         cursor.close()
@@ -66,7 +65,6 @@ class MSSQLBackend(DBInterface):
 
     # Maybe this could become separate files at some point?
     def create_db_schema(self, username, schema):
-        connection = self._get_user_db_connection()
         cursor = connection.cursor()
         cursor.execute("CREATE SCHEMA %s AUTHORIZATION %s" % (schema,
                                                               username))
@@ -184,24 +182,6 @@ class MSSQLBackend(DBInterface):
         cursor.close()
         return data
 
-    def _get_user_db_connection(self):
-        import pyodbc
-        pyodbc.pooling = False
-        user_database = settings.DATABASES['default']['NAME']
-        if hasattr(settings, "SQLSHARE_USER_DATABASE"):
-            user_database = settings.SQLSHARE_USER_DATABASE
-
-        string = "DSN=%s;UID=%s;PWD=%s;DATABASE=%s;%s" % (
-            settings.DATABASES['default']['OPTIONS']['dsn'],
-            settings.DATABASES['default']['USER'],
-            settings.DATABASES['default']['PASSWORD'],
-            user_database,
-            settings.DATABASES['default']['OPTIONS']['extra_params'],
-            )
-
-        conn = pyodbc.connect(string, autocommit=True)
-        return conn
-
     def _create_user_connection(self, user):
         import pyodbc
         pyodbc.pooling = False
@@ -210,15 +190,11 @@ class MSSQLBackend(DBInterface):
         password = user.db_password
         schema = user.schema
 
-        user_database = settings.DATABASES['default']['NAME']
-        if hasattr(settings, "SQLSHARE_USER_DATABASE"):
-            user_database = settings.SQLSHARE_USER_DATABASE
-
         string = "DSN=%s;UID=%s;PWD=%s;DATABASE=%s;%s" % (
             settings.DATABASES['default']['OPTIONS']['dsn'],
             username,
             password,
-            user_database,
+            settings.DATABASES['default']['NAME'],
             settings.DATABASES['default']['OPTIONS']['extra_params'],
             )
 
