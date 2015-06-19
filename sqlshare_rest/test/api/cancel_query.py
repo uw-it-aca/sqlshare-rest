@@ -5,6 +5,7 @@ from time import sleep
 from multiprocessing import Process
 import json
 import re
+import os
 from sqlshare_rest.util.db import get_backend, is_mssql, is_mysql
 from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.test import missing_url
@@ -103,7 +104,10 @@ class CancelQueryAPITest(BaseAPITest):
 
             # This is another lame timing thing.  1 second wasn't reliably
             # long enough on travis.
-            sleep(3)
+            # 3 seconds also wasn't long enough :(  Making it configurable
+            # from the environment
+            wait_time = float(os.environ.get("SQLSHARE_KILL_QUERY_WAIT", 1))
+            sleep(wait_time)
 
             has_query = False
             queries = backend.get_running_queries()

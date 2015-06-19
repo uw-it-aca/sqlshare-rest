@@ -8,6 +8,7 @@ from sqlshare_rest.models import Query
 from sqlshare_rest.util.query import get_sample_data_for_query
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 from sqlshare_rest.logger import getLogger
+import datetime
 import json
 
 logger = getLogger(__name__)
@@ -33,6 +34,11 @@ def details(request, id):
     return _get_query(request, id, query)
 
 
+def json_serializer(obj):
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+
+
 def _get_query(request, id, query):
     data = query.json_data(request)
     user = get_user(request)
@@ -43,7 +49,7 @@ def _get_query(request, id, query):
     data["sample_data"] = sample_data
     data["columns"] = columns
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(json.dumps(data, default=json_serializer))
 
     if not query.is_finished:
         response.status_code = 202

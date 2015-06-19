@@ -5,6 +5,7 @@ from django.db import connection
 from django.conf import settings
 from contextlib import closing
 from decimal import Decimal
+import datetime
 import string
 import random
 import re
@@ -237,15 +238,48 @@ class MSSQLBackend(DBInterface):
                     ", ".join(columns)
                )
 
-    def _load_table_sql(self, table_name, row, user):
+    def _load_table_sql(self, table_name, row, user, row_count):
         placeholders = map(lambda x: "?", row)
-        return "INSERT INTO [%s].[%s] VALUES (%s)" % (user.schema, table_name,
-                                                      ", ".join(placeholders))
+        ph_str = ", ".join(placeholders)
+
+        all_rows = map(lambda x: "(%s)" % ph_str, range(row_count))
+
+        return "INSERT INTO [%s].[%s] VALUES %s" % (user.schema, table_name,
+                                                    ", ".join(all_rows))
 
     def _load_table(self, table_name, data_handle, user):
+        connection = self.get_connection_for_user(user)
+        connection.autocommit = False
+        data_len = 0
+        current_data = []
+        sql_100 = ""
         for row in data_handle:
-            sql = self._load_table_sql(table_name, row, user)
-            self.run_query(sql, user, row, return_cursor=True).close()
+            data_len += 1
+            current_data.extend(row)
+
+            if data_len == 100:
+                if not sql_100:
+                    sql_100 = self._load_table_sql(table_name, row, user, 100)
+
+                cursor = self.run_query(sql_100,
+                                        user,
+                                        current_data,
+                                        return_cursor=True)
+
+                current_data = []
+                data_len = 0
+
+        if data_len:
+            sql = self._load_table_sql(table_name, row, user, data_len)
+
+            cursor = self.run_query(sql,
+                                    user,
+                                    current_data,
+                                    return_cursor=True)
+
+        connection.commit()
+        if cursor:
+            cursor.close()
 
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
@@ -263,6 +297,8 @@ class MSSQLBackend(DBInterface):
         int_type = type(1)
         float_type = type(0.0)
         decimal_type = type(Decimal(0.0))
+        boolean_type = type(bool())
+        datetime_type = datetime.datetime
         str_type = type("")
 
         for col in cursor.description:
@@ -282,6 +318,18 @@ class MSSQLBackend(DBInterface):
                     column_defs.append("%s INT" % column_name)
                 else:
                     column_defs.append("%s INT NOT NULL" % column_name)
+
+            elif col_type == datetime_type:
+                if null_ok:
+                    column_defs.append("%s DATETIME" % column_name)
+                else:
+                    column_defs.append("%s DATETIME NOT NULL" % column_name)
+
+            elif col_type == boolean_type:
+                if null_ok:
+                    column_defs.append("%s BIT " % column_name)
+                else:
+                    column_defs.append("%s BIT NOT NULL" % column_name)
 
             elif col_type == str_type and col_len:
                 if null_ok:
