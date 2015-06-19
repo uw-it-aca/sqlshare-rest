@@ -1,1 +1,1 @@
--e git+https://github.com/lionheart/django-pyodbc.git#egg=django-pyodbc
+-e git+https://github.com/vegitron/django-pyodbc.git#egg=django-pyodbc
