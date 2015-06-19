@@ -245,7 +245,7 @@ class MSSQLBackend(DBInterface):
         all_rows = map(lambda x: "(%s)" % ph_str, range(row_count))
 
         return "INSERT INTO [%s].[%s] VALUES %s" % (user.schema, table_name,
-                                                      ", ".join(all_rows))
+                                                    ", ".join(all_rows))
 
     def _load_table(self, table_name, data_handle, user):
         connection = self.get_connection_for_user(user)
