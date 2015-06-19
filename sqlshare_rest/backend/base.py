@@ -84,13 +84,11 @@ class DBInterface(object):
 
     def create_table_from_parser(self, dataset_name, parser, user):
         table_name = self._get_table_name_for_dataset(dataset_name)
-        print "Creating table:"
         self._create_table(table_name=table_name,
                            column_names=parser.column_names(),
                            column_types=parser.column_types(),
                            user=user)
 
-        print "Loading tble:"
         self._load_table(table_name, parser.get_data_handle(), user)
         return table_name
 
