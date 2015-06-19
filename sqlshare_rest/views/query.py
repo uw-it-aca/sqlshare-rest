@@ -33,9 +33,11 @@ def details(request, id):
 
     return _get_query(request, id, query)
 
+
 def json_serializer(obj):
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
+
 
 def _get_query(request, id, query):
     data = query.json_data(request)
