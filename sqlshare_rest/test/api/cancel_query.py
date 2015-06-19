@@ -106,7 +106,7 @@ class CancelQueryAPITest(BaseAPITest):
             # long enough on travis.
             # 3 seconds also wasn't long enough :(  Making it configurable
             # from the environment
-            wait_time = os.environ.get("SQLSHARE_KILL_QUERY_WAIT", 1)
+            wait_time = float(os.environ.get("SQLSHARE_KILL_QUERY_WAIT", 1))
             sleep(wait_time)
 
             has_query = False
