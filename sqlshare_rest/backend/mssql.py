@@ -5,6 +5,7 @@ from django.db import connection
 from django.conf import settings
 from contextlib import closing
 from decimal import Decimal
+import datetime
 import string
 import random
 import re
@@ -263,6 +264,8 @@ class MSSQLBackend(DBInterface):
         int_type = type(1)
         float_type = type(0.0)
         decimal_type = type(Decimal(0.0))
+        boolean_type = type(bool())
+        datetime_type = datetime.datetime
         str_type = type("")
 
         for col in cursor.description:
@@ -282,6 +285,18 @@ class MSSQLBackend(DBInterface):
                     column_defs.append("%s INT" % column_name)
                 else:
                     column_defs.append("%s INT NOT NULL" % column_name)
+
+            elif col_type == datetime_type:
+                if null_ok:
+                    column_defs.append("%s DATETIME" % column_name)
+                else:
+                    column_defs.append("%s DATETIME NOT NULL" % column_name)
+
+            elif col_type == boolean_type:
+                if null_ok:
+                    column_defs.append("%s BIT " % column_name)
+                else:
+                    column_defs.append("%s BIT NOT NULL" % column_name)
 
             elif col_type == str_type and col_len:
                 if null_ok:
