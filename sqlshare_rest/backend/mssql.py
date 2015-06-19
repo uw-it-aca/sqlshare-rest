@@ -301,13 +301,26 @@ class MSSQLBackend(DBInterface):
         datetime_type = datetime.datetime
         str_type = type("")
 
+        def make_unique_name(name, existing):
+            if name not in existing:
+                return name
+
+            return make_unique_name("%s_1" % name, existing)
+
+        existing_column_names = {}
         for col in cursor.description:
+            column_name = col[0]
             index = index + 1
             col_type = col[1]
             col_len = col[3]
             null_ok = col[6]
 
-            column_name = "COLUMN%s" % index
+            if column_name == "":
+                column_name = "COLUMN%s" % index
+
+            column_name = make_unique_name(column_name, existing_column_names)
+            existing_column_names[column_name] = True
+
             if (col_type == float_type) or (col_type == decimal_type):
                 if null_ok:
                     column_defs.append("%s FLOAT" % column_name)
