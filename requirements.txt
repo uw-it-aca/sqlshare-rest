@@ -4,10 +4,10 @@ django-compressor==1.5
 # django-fields
 unittest2
 django-oauth-toolkit
-django-mssql
 pytz
 python-dateutil
 google-api-python-client
 AuthZ-Group
 -e git+https://github.com/uw-it-aca/django-supporttools.git@develop#egg=SupportTools
 testfixtures
+django-userservice

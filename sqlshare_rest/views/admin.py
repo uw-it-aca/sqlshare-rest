@@ -38,7 +38,7 @@ def user_override(request):
 
     g = Group()
     group_name = settings.USERSERVICE_ADMIN_GROUP
-    is_admin = g.is_member_of_group(actual_user, group_name)
+    is_admin = g.is_member_of_group(actual_user.username, group_name)
     if not is_admin:
         return render_to_response('no_access.html', {})
 
