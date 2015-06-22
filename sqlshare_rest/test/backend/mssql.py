@@ -1,10 +1,11 @@
 from sqlshare_rest.test import CleanUpTestCase
-from sqlshare_rest.models import Dataset
+from sqlshare_rest.models import Dataset, Query
 from sqlshare_rest.parser import Parser
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.snapshot_queue import process_snapshot_queue
 from django.db import connection
 from sqlshare_rest.util.db import is_mssql, is_sql_azure, get_backend
+from sqlshare_rest.util.query_queue import process_queue
 import unittest
 import six
 if six.PY2:
@@ -457,6 +458,39 @@ class TestMSSQLBackend(CleanUpTestCase):
         finally:
             backend.close_user_connection(user)
 
+    def test_column_types(self):
+        owner = "test_column_types_user"
+        self.remove_users.append(owner)
+        backend = get_backend()
+        user = backend.get_user(owner)
+
+        try:
+            backend.run_query("CREATE TABLE [test_column_types_user].[testing_col_types] (c1 bigint, c2 bit, c3 decimal, c4 int, c5 money, c6 numeric, c7 smallint, c8 smallmoney, c9 tinyint, c10 float, c11 real, c12 date, c13 datetime2, c14 datetime, c15 datetimeoffset, c16 smalldatetime, c17 time, c18 char, c19 text, c20 varchar(30), c21 nchar, c22 ntext, c23 nvarchar(30), c24 binary(80), c25 image, c26 varbinary(20), c28 hierarchyid, c31 timestamp, c32 uniqueidentifier, c33 xml, c34 geometry, c35 geography)", user, return_cursor=True).close()
+
+            backend.run_query("INSERT INTO [test_column_types_user].[testing_col_types] VALUES (100, 0, 1.1, 1, 10.12, 123, 1, 1.10, 1, 1.001, 1.1, '2013-01-01', '2013-01-01T13:32:01.0000123', '2013-01-01T23:23:12.004', '2015-06-22T09:47:00Z', '2007-05-08 12:35:00', '19:00:01', 'w', 'sfwewf', 'wfwefwef', 'v', 'wefwefwe', 'wevwevwe', CAST( 123456 AS BINARY(2) ), CAST( 123456 AS BINARY(2) ), CAST( 123456 AS BINARY(2) ), '/0.1/0.2/', DEFAULT, '0E984725-C51C-4BF4-9960-E1C80E27ABA0', '<node></node>', geometry::STGeomFromText('POLYGON ((0 0, 150 0, 150 150, 0 150, 0 0))', 0), geography::STGeomFromText('POLYGON((-122.358 47.653 , -122.348 47.649, -122.348 47.658, -122.358 47.658, -122.358 47.653))', 4326))", user, return_cursor=True).close()
+
+
+            # Clear out any existing query objects...
+            Query.objects.all().delete()
+        
+            model = create_dataset_from_query(username=owner, dataset_name="test1", sql="SELECT * FROM [test_column_types_user].[testing_col_types]")
+
+            query = Query.objects.all()[0]
+            remove_pk = query.pk
+            process_queue(verbose=True)
+
+        except Exception as ex:
+            print "E1: ", ex
+        finally:
+            try:
+                backend.run_query("DROP TABLE [test_column_types_user].[testing_col_types]", user, return_cursor=True).close()
+            except Exception:
+                pass
+
+            try:
+                get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
+            except Exception:
+                pass
 
     @classmethod
     def setUpClass(cls):
@@ -493,6 +527,7 @@ class TestMSSQLBackend(CleanUpTestCase):
         _run_query("drop login test_remove_user3")
         _run_query("drop login test_mysql_qualified_dataset_name")
         _run_query("drop login test_user_snapshot1")
+        _run_query("drop login test_column_types_user")
 
     def setUp(self):
         # Try to cleanup from any previous test runs...
