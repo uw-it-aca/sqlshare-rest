@@ -3,11 +3,11 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.views import login as login_view
 from sqlshare_rest.models import CredentialsModel, FlowModel
 from django.contrib.auth.models import User
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render_to_response
 from django.conf import settings
 from apiclient.discovery import build
 from oauth2client.django_orm import Storage
-from oauth2client.client import OAuth2WebServerFlow
+from oauth2client.client import OAuth2WebServerFlow, FlowExchangeError
 import httplib2
 
 import six
@@ -87,7 +87,14 @@ def _login_user(request, login_name, name, last_name, email):
 
 def google_return(request):
     f = FlowModel.objects.get(id=request.session.session_key)
-    credential = f.flow.step2_exchange(request.REQUEST)
+
+    try:
+        credential = f.flow.step2_exchange(request.REQUEST)
+    except FlowExchangeError as ex:
+        if ex[0] == "access_denied":
+            return render_to_response("oauth2/denied.html", {})
+        print "OK!", ex[0]
+        raise
 
     flow = f.flow
     if type(flow) == 'str':
