@@ -480,7 +480,7 @@ class TestMSSQLBackend(CleanUpTestCase):
             process_queue(verbose=True)
 
         except Exception as ex:
-            print "E1: ", ex
+            print ("E1: ", ex)
         finally:
             try:
                 backend.run_query("DROP TABLE [test_column_types_user].[testing_col_types]", user, return_cursor=True).close()
