@@ -235,6 +235,7 @@ class Query(models.Model):
 
 
 class FileUpload(models.Model):
+    MAX_PARSER_PREVIEW = 50
     owner = models.ForeignKey(User, db_index=True)
     has_parser_values = models.BooleanField(default=False)
     has_column_header = models.NullBooleanField(null=True)
@@ -260,11 +261,12 @@ class FileUpload(models.Model):
             column_data = list(map(lambda x: {"name": x},
                                    column_list))
 
+        max_rows = FileField.MAX_PARSER_PREVIEW
         return {
             "parser": {"delimiter": self.delimiter,
                        "has_column_headers": self.has_column_header},
             "columns": column_data,
-            "sample_data": json.loads(self.sample_data)
+            "sample_data": json.loads(self.sample_data)[:max_rows]
         }
 
 
