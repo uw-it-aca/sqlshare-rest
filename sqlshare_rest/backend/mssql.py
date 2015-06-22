@@ -267,7 +267,8 @@ class MSSQLBackend(DBInterface):
 
             if data_len == max_rows:
                 if not sql_max:
-                    sql_max = self._load_table_sql(table_name, row, user, max_rows)
+                    sql_max = self._load_table_sql(table_name,
+                                                   row, user, max_rows)
 
                 cursor = self.run_query(sql_max,
                                         user,
