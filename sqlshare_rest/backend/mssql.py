@@ -463,7 +463,6 @@ class MSSQLBackend(DBInterface):
                                                     dataset,
                                                     reader.db_username)
 
-
     def _remove_read_access_to_query_sql(self, query_id, user):
         schema = self.get_query_cache_schema_name()
 
