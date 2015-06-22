@@ -261,7 +261,7 @@ class FileUpload(models.Model):
             column_data = list(map(lambda x: {"name": x},
                                    column_list))
 
-        max_rows = FileField.MAX_PARSER_PREVIEW
+        max_rows = FileUpload.MAX_PARSER_PREVIEW
         return {
             "parser": {"delimiter": self.delimiter,
                        "has_column_headers": self.has_column_header},
