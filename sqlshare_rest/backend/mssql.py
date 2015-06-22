@@ -463,6 +463,15 @@ class MSSQLBackend(DBInterface):
                                                     dataset,
                                                     reader.db_username)
 
+
+    def _remove_read_access_to_query_sql(self, query_id, user):
+        schema = self.get_query_cache_schema_name()
+
+        username = user.db_username
+        return "REVOKE ALL ON [%s].[query_%s] TO [%s] CASCADE" % (schema,
+                                                                  query_id,
+                                                                  username)
+
     def _read_access_to_query_sql(self, query_id, user):
         db = self.get_query_cache_schema_name()
         return "GRANT SELECT ON [%s].[query_%s] TO [%s]" % (db,
@@ -483,6 +492,11 @@ class MSSQLBackend(DBInterface):
 
     def add_read_access_to_query(self, query_id, user):
         sql = self._read_access_to_query_sql(query_id, user)
+        cursor = connection.cursor()
+        cursor.execute(sql)
+
+    def remove_read_access_to_query(self, query_id, user):
+        sql = self._remove_read_access_to_query_sql(query_id, user)
         cursor = connection.cursor()
         cursor.execute(sql)
 
