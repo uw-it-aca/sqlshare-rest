@@ -68,6 +68,7 @@ class DownloadAPITest(BaseAPITest):
         for line in response2.streaming_content:
             response_body += line
 
+        print "|%s|" % response_body
         self.assertEqual(response_body, "\"1\"\n\"1\"\n")
 
         # Ensure download only works once
