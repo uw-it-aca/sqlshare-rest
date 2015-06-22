@@ -18,6 +18,9 @@ import hashlib
 
 
 class MSSQLBackend(DBInterface):
+    COLUMN_MAX_LENGTH = 2147483647
+    MAX_PARAMETERS = 2099
+
     def get_user(self, user):
         """
         Overriding this method to force a DB reset.  Seems like a bad sign,
@@ -252,16 +255,22 @@ class MSSQLBackend(DBInterface):
         connection.autocommit = False
         data_len = 0
         current_data = []
-        sql_100 = ""
+        sql_max = ""
+        max_rows = None
         for row in data_handle:
             data_len += 1
             current_data.extend(row)
 
-            if data_len == 100:
-                if not sql_100:
-                    sql_100 = self._load_table_sql(table_name, row, user, 100)
+            if not max_rows:
+                cols = len(row)
+                max_rows = int(MSSQLBackend.MAX_PARAMETERS / cols)
 
-                cursor = self.run_query(sql_100,
+            if data_len == max_rows:
+                if not sql_max:
+                    sql_max = self._load_table_sql(table_name,
+                                                   row, user, max_rows)
+
+                cursor = self.run_query(sql_max,
                                         user,
                                         current_data,
                                         return_cursor=True)
@@ -294,12 +303,14 @@ class MSSQLBackend(DBInterface):
         index = 0
         column_defs = []
 
+        bigint_type = long
         int_type = type(1)
         float_type = type(0.0)
         decimal_type = type(Decimal(0.0))
         boolean_type = type(bool())
         datetime_type = datetime.datetime
         str_type = type("")
+        binary_type = buffer
 
         def make_unique_name(name, existing):
             if name not in existing:
@@ -326,6 +337,13 @@ class MSSQLBackend(DBInterface):
                     column_defs.append("%s FLOAT" % column_name)
                 else:
                     column_defs.append("%s FLOAT NOT NULL" % column_name)
+
+            elif col_type == bigint_type:
+                if null_ok:
+                    column_defs.append("%s BIGINT " % column_name)
+                else:
+                    column_defs.append("%s BIGINT NOT NULL" % column_name)
+
             elif col_type == int_type:
                 if null_ok:
                     column_defs.append("%s INT" % column_name)
@@ -344,13 +362,31 @@ class MSSQLBackend(DBInterface):
                 else:
                     column_defs.append("%s BIT NOT NULL" % column_name)
 
-            elif col_type == str_type and col_len:
-                if null_ok:
-                    column_defs.append("%s VARCHAR(%s)" % (column_name,
-                                                           col_len))
+            elif col_type == binary_type:
+                if col_len == MSSQLBackend.COLUMN_MAX_LENGTH:
+                    type_str = "BINARY(1000)"
                 else:
-                    base_str = "%s VARCHAR(%s) NOT NULL"
-                    column_defs.append(base_str % (column_name, col_len))
+                    type_str = "VARBINARY(%s)" % (col_len)
+
+                if null_ok:
+                    column_defs.append("%s %s" % (column_name,
+                                                  type_str))
+                else:
+                    base_str = "%s %s NOT NULL"
+                    column_defs.append(base_str % (column_name, type_str))
+
+            elif col_type == str_type and col_len:
+                if col_len == MSSQLBackend.COLUMN_MAX_LENGTH:
+                    type_str = "TEXT"
+                else:
+                    type_str = "VARCHAR(%s)" % (col_len)
+
+                if null_ok:
+                    column_defs.append("%s %s" % (column_name,
+                                                  type_str))
+                else:
+                    base_str = "%s %s NOT NULL"
+                    column_defs.append(base_str % (column_name, type_str))
             else:
                 column_defs.append("%s TEXT" % column_name)
 

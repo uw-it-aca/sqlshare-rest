@@ -664,6 +664,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
         # It gets added to when something like this blocks one of my test runs...
         _run_query("drop login permissions_preview_user8")
         _run_query("drop login permissions_preview_user2")
+        _run_query("drop login permissions_preview_user5")
         _run_query("drop login permissions_preview_user6")
         _run_query("drop login permissions_preview_user7")
         _run_query("drop login permissions_token_user1")
