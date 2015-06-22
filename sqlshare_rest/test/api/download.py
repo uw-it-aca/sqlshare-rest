@@ -40,7 +40,8 @@ class DownloadAPITest(BaseAPITest):
 
         values = json.loads(response.content.decode("utf-8"))
         url = values["url"]
-        query_id = url[-1:]
+        # grab query id from end of url
+        query_id = url.split('/')[-1]
         self.query_id = query_id
 
 
