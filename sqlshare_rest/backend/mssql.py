@@ -5,6 +5,7 @@ from django.db import connection
 from django.conf import settings
 from contextlib import closing
 from decimal import Decimal
+import datetime
 import string
 import random
 import re
@@ -17,6 +18,9 @@ import hashlib
 
 
 class MSSQLBackend(DBInterface):
+    COLUMN_MAX_LENGTH = 2147483647
+    MAX_PARAMETERS = 2099
+
     def get_user(self, user):
         """
         Overriding this method to force a DB reset.  Seems like a bad sign,
@@ -237,15 +241,54 @@ class MSSQLBackend(DBInterface):
                     ", ".join(columns)
                )
 
-    def _load_table_sql(self, table_name, row, user):
+    def _load_table_sql(self, table_name, row, user, row_count):
         placeholders = map(lambda x: "?", row)
-        return "INSERT INTO [%s].[%s] VALUES (%s)" % (user.schema, table_name,
-                                                      ", ".join(placeholders))
+        ph_str = ", ".join(placeholders)
+
+        all_rows = map(lambda x: "(%s)" % ph_str, range(row_count))
+
+        return "INSERT INTO [%s].[%s] VALUES %s" % (user.schema, table_name,
+                                                    ", ".join(all_rows))
 
     def _load_table(self, table_name, data_handle, user):
+        connection = self.get_connection_for_user(user)
+        connection.autocommit = False
+        data_len = 0
+        current_data = []
+        sql_max = ""
+        max_rows = None
         for row in data_handle:
-            sql = self._load_table_sql(table_name, row, user)
-            self.run_query(sql, user, row, return_cursor=True).close()
+            data_len += 1
+            current_data.extend(row)
+
+            if not max_rows:
+                cols = len(row)
+                max_rows = int(MSSQLBackend.MAX_PARAMETERS / cols)
+
+            if data_len == max_rows:
+                if not sql_max:
+                    sql_max = self._load_table_sql(table_name,
+                                                   row, user, max_rows)
+
+                cursor = self.run_query(sql_max,
+                                        user,
+                                        current_data,
+                                        return_cursor=True)
+
+                current_data = []
+                data_len = 0
+
+        if data_len:
+            sql = self._load_table_sql(table_name, row, user, data_len)
+
+            cursor = self.run_query(sql,
+                                    user,
+                                    current_data,
+                                    return_cursor=True)
+
+        connection.commit()
+        if cursor:
+            cursor.close()
 
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
@@ -260,36 +303,90 @@ class MSSQLBackend(DBInterface):
         index = 0
         column_defs = []
 
+        bigint_type = long
         int_type = type(1)
         float_type = type(0.0)
         decimal_type = type(Decimal(0.0))
+        boolean_type = type(bool())
+        datetime_type = datetime.datetime
         str_type = type("")
+        binary_type = buffer
 
+        def make_unique_name(name, existing):
+            if name not in existing:
+                return name
+
+            return make_unique_name("%s_1" % name, existing)
+
+        existing_column_names = {}
         for col in cursor.description:
+            column_name = col[0]
             index = index + 1
             col_type = col[1]
             col_len = col[3]
             null_ok = col[6]
 
-            column_name = "COLUMN%s" % index
+            if column_name == "":
+                column_name = "COLUMN%s" % index
+
+            column_name = make_unique_name(column_name, existing_column_names)
+            existing_column_names[column_name] = True
+
             if (col_type == float_type) or (col_type == decimal_type):
                 if null_ok:
                     column_defs.append("%s FLOAT" % column_name)
                 else:
                     column_defs.append("%s FLOAT NOT NULL" % column_name)
+
+            elif col_type == bigint_type:
+                if null_ok:
+                    column_defs.append("%s BIGINT " % column_name)
+                else:
+                    column_defs.append("%s BIGINT NOT NULL" % column_name)
+
             elif col_type == int_type:
                 if null_ok:
                     column_defs.append("%s INT" % column_name)
                 else:
                     column_defs.append("%s INT NOT NULL" % column_name)
 
-            elif col_type == str_type and col_len:
+            elif col_type == datetime_type:
                 if null_ok:
-                    column_defs.append("%s VARCHAR(%s)" % (column_name,
-                                                           col_len))
+                    column_defs.append("%s DATETIME" % column_name)
                 else:
-                    base_str = "%s VARCHAR(%s) NOT NULL"
-                    column_defs.append(base_str % (column_name, col_len))
+                    column_defs.append("%s DATETIME NOT NULL" % column_name)
+
+            elif col_type == boolean_type:
+                if null_ok:
+                    column_defs.append("%s BIT " % column_name)
+                else:
+                    column_defs.append("%s BIT NOT NULL" % column_name)
+
+            elif col_type == binary_type:
+                if col_len == MSSQLBackend.COLUMN_MAX_LENGTH:
+                    type_str = "BINARY(1000)"
+                else:
+                    type_str = "VARBINARY(%s)" % (col_len)
+
+                if null_ok:
+                    column_defs.append("%s %s" % (column_name,
+                                                  type_str))
+                else:
+                    base_str = "%s %s NOT NULL"
+                    column_defs.append(base_str % (column_name, type_str))
+
+            elif col_type == str_type and col_len:
+                if col_len == MSSQLBackend.COLUMN_MAX_LENGTH:
+                    type_str = "TEXT"
+                else:
+                    type_str = "VARCHAR(%s)" % (col_len)
+
+                if null_ok:
+                    column_defs.append("%s %s" % (column_name,
+                                                  type_str))
+                else:
+                    base_str = "%s %s NOT NULL"
+                    column_defs.append(base_str % (column_name, type_str))
             else:
                 column_defs.append("%s TEXT" % column_name)
 

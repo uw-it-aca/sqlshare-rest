@@ -17,6 +17,9 @@ def get_recent_activity(username):
     user_obj = backend.get_user(username)
 
     starting_at = timezone.now() - timedelta(days=7)
-    return Query.objects.filter(owner=user_obj,
+    base = Query.objects.filter(owner=user_obj,
                                 is_preview_for=None,
+                                terminated=False,
                                 date_created__gte=starting_at)
+
+    return base.order_by("-pk")

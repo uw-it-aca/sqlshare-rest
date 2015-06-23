@@ -73,6 +73,6 @@ def _update_from_parser(upload, parser):
     for row in parser:
         preview.append(row)
 
-    upload.sample_data = json.dumps(preview)
+    upload.sample_data = json.dumps(preview[:FileUpload.MAX_PARSER_PREVIEW])
     upload.has_parser_values = True
     upload.save()

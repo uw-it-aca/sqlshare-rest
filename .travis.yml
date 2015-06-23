@@ -32,6 +32,7 @@ env:
 #    - DB=azure
   global:
     - SUBSCRIPTION_ID=af6a4ccb-f42b-4319-b0c0-10b51fcdebee
+    - SQLSHARE_KILL_QUERY_WAIT=6
     - secure: "Fbcg+0YoUsYbcBsJzDbmo3xjfK335yadYhQVp7h8OOg6fYmnoXuXOqmwUZON1beZGRVsB2yFIVmE81+ljLeqMqyf0uSGGSqXf8pHE9nfJ7cBSAAmUTH7jBEZ8UEvoj4cMwxSPTZJ9KTJlp7tjhDplrGe5k9LkGvSduEFsrkjyN0="
     - secure: "RPYn4/QlfBbXE72hE2P6VqZjTqac5UpvjleWMB/PmArFfNK20qnRBj1WQRqufbgk5rfN0YLPbHVuOamnFrqzaAuXoyFLlo/54msEWR2BFgeocvgodBem5GRkZlQz4hX/4m5BrZCsFtS7aIZ+ta43BlzRiOcLNXIA3sFMH4BMNQA="
 matrix:

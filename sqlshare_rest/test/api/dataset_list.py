@@ -450,6 +450,12 @@ class DatsetListAPITest(BaseAPITest):
         self.assertEquals(data[0]["name"], "recent_ds2")
         self.assertEquals(data[1]["name"], "recent_ds1")
 
+        response = self.client.get(url, { "q": "ds2", "page": 1, "page_size": 50, "order_by": "updated" }, **auth_headers)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEquals(len(data), 1)
+        self.assertEquals(data[0]["name"], "recent_ds2")
+
+
 
     @classmethod
     def setUpClass(cls):
