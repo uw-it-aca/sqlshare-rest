@@ -2,7 +2,7 @@ from django.test import TestCase
 from unittest2 import skipIf
 from django.db import connection
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import parser
 from django.utils import timezone
 from sqlshare_rest.util.db import get_backend
@@ -525,6 +525,40 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(len(values), 2)
         self.assertEquals(values[1][0], "1")
 
+    def test_get_and_timestamps(self):
+        owner = "ds_owner_timestamp_test"
+        self.remove_users.append(owner)
+        ds1 = create_dataset_from_query(owner, "ds_timestamp1", "SELECT (1)")
+
+        my_date = timezone.now() - timedelta(days=30)
+        my_date_str = my_date.strftime("%D %T")
+
+        ds1.date_modified = my_date
+        ds1.save()
+
+        ds1 = Dataset.objects.get(pk=ds1.pk)
+        self.assertEquals(ds1.date_modified.strftime("%D %T"), my_date_str)
+
+        now = timezone.now() - timedelta(seconds=1)
+        future = now + timedelta(minutes=1)
+
+        ds1.description = "new timestamp description"
+        ds1.save()
+
+        ds1 = Dataset.objects.get(pk=ds1.pk)
+        self.assertTrue(ds1.date_modified >= now)
+        self.assertTrue(ds1.date_modified <= future)
+
+        self.assertTrue(ds1.should_update_modified_date("description"))
+        self.assertTrue(ds1.should_update_modified_date("is_public"))
+        self.assertTrue(ds1.should_update_modified_date("is_shared"))
+        self.assertTrue(ds1.should_update_modified_date("shared_with"))
+        self.assertTrue(ds1.should_update_modified_date("sql"))
+
+        self.assertFalse(ds1.should_update_modified_date("popularity"))
+        self.assertFalse(ds1.should_update_modified_date("last_viewed"))
+        self.assertFalse(ds1.should_update_modified_date("preview_is_finished"))
+
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):
@@ -549,4 +583,5 @@ class DatsetAPITest(BaseAPITest):
         _run_query("drop user meta_e1bc449093c")
         _run_query("drop user meta_9e311190103")
         _run_query("drop login put_user1")
+        _run_query("drop login ds_owner_timestamp_test")
         
