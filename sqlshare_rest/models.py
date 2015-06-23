@@ -8,6 +8,7 @@ from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 import uuid
 import six
 from six import add_metaclass
+from dirtyfields import DirtyFieldsMixin
 # from django_fields.fields import EncryptedCharField
 
 JSON_DATE = "%a, %-d %b %Y %-H:%M:%S %Z"
@@ -32,7 +33,7 @@ class User(models.Model):
         }
 
 
-class Dataset(models.Model):
+class Dataset(DirtyFieldsMixin, models.Model):
     """ A cached reference to a database view """
     name = models.CharField(max_length=200, db_index=True)
     owner = models.ForeignKey(User, db_index=True)
@@ -43,7 +44,7 @@ class Dataset(models.Model):
     shared_with = models.ManyToManyField(User, related_name="shared_with")
     date_created = models.DateTimeField(auto_now_add=True,
                                         default=timezone.now)
-    date_modified = models.DateTimeField(auto_now=True, default=timezone.now)
+    date_modified = models.DateTimeField(default=timezone.now)
     popularity = models.IntegerField(default=0)
     last_viewed = models.DateTimeField(null=True)
     preview_is_finished = models.BooleanField(default=False)
@@ -128,6 +129,30 @@ class Dataset(models.Model):
             return val
 
         return False
+
+    def should_update_modified_date(self, field_name):
+        modify_fields = {
+            "description": True,
+            "is_public": True,
+            "is_shared": True,
+            "sql": True,
+            "shared_with": True,
+        }
+
+        if field_name in modify_fields:
+            return True
+        return False
+
+    def save(self, *args, **kwargs):
+        dirty_fields = self.get_dirty_fields()
+        should_update = False
+        for field in dirty_fields:
+            if self.should_update_modified_date(field):
+                should_update = True
+
+        if should_update:
+            self.date_modified = timezone.now()
+        super(Dataset, self).save(*args, **kwargs)
 
 
 class RecentDatasetView(models.Model):
