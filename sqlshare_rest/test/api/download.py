@@ -12,6 +12,13 @@ from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.db import is_mssql, is_mysql
 
+import six
+if six.PY2:
+    from StringIO import StringIO
+elif six.PY3:
+    from io import StringIO
+
+
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
                                 'django.contrib.sessions.middleware.SessionMiddleware',
@@ -58,9 +65,7 @@ class DownloadAPITest(BaseAPITest):
         self.assertEqual(response2.status_code, 200)
         self.assertTrue(response2.streaming)
 
-        response_body = ""
-        for line in response2.streaming_content:
-            response_body += line
+        response_body = StringIO("".join(map(lambda x: x.decode("utf-8"), response2.streaming_content))).read()
 
         if is_mssql():
             resp = '""\n"1"\n'
