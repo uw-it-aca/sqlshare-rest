@@ -226,7 +226,7 @@ class MSSQLBackend(DBInterface):
                 return "[%s] int" % name
             if "float" == col_type["type"]:
                 return "[%s] float" % name
-            if "text" == col_type["type"]:
+            if "text" == col_type["type"] and col_type["max"] > 0:
                 return "[%s] varchar(%s)" % (name, col_type["max"])
             # Fallback to text is hopefully good?
             return "[%s] text" % name
