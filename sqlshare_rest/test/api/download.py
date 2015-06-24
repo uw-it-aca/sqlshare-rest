@@ -28,11 +28,11 @@ class DownloadAPITest(BaseAPITest):
     token = None
     query_id = None
 
-    def setUp(self):
-        self.remove_users = []
-        self.client = Client()
-        owner = "test_dataset_download"
+    def test_download(self):
+        owner = "test_dataset_download2"
+        self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
+
         data = {
             "sql": "select(1)"
         }
@@ -43,15 +43,8 @@ class DownloadAPITest(BaseAPITest):
         url = values["url"]
         # grab query id from end of url
         query_id = url.split('/')[-1]
-        self.query_id = query_id
 
-
-
-    def test_download(self):
-        owner = "test_dataset_download"
-        self.remove_users.append(owner)
-        auth_headers = self.get_auth_header_for_username(owner)
-        post_url = reverse("sqlshare_view_init_download", kwargs={'id': self.query_id})
+        post_url = reverse("sqlshare_view_init_download", kwargs={'id': query_id})
 
         response = self.client.post(post_url, content_type='application/json', **auth_headers)
         self.assertEqual(response.status_code, 200)
@@ -60,7 +53,7 @@ class DownloadAPITest(BaseAPITest):
 
         self.token = body['token']
 
-        post_url = reverse("sqlshare_view_run_download", kwargs={'id': self.query_id, 'token': self.token})
+        post_url = reverse("sqlshare_view_run_download", kwargs={'id': query_id, 'token': self.token})
         response2 = self.client.get(post_url, content_type='application/json', **auth_headers)
         self.assertEqual(response2.status_code, 200)
         self.assertTrue(response2.streaming)
@@ -79,7 +72,7 @@ class DownloadAPITest(BaseAPITest):
         self.assertEqual(response_body, resp)
 
         # Ensure download only works once
-        post_url = reverse("sqlshare_view_run_download", kwargs={'id': self.query_id, 'token': self.token})
+        post_url = reverse("sqlshare_view_run_download", kwargs={'id': query_id, 'token': self.token})
         response = self.client.get(post_url, content_type='application/json', **auth_headers)
         self.assertEqual(response.status_code, 403)
 
@@ -94,8 +87,24 @@ class DownloadAPITest(BaseAPITest):
         self.assertEqual(response.status_code, 404)
 
         # non-owned query
+        owner = "test_dataset_download3"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        data = {
+            "sql": "select(1)"
+        }
+        post_url = reverse("sqlshare_view_query_list")
+        response = self.client.post(post_url, data=json.dumps(data), content_type='application/json', **auth_headers)
+
+        values = json.loads(response.content.decode("utf-8"))
+        url = values["url"]
+        # grab query id from end of url
+        query_id = url.split('/')[-1]
+
+
         owner = "not_the_owner"
-        post_url = reverse("sqlshare_view_init_download", kwargs={'id': self.query_id})
+        post_url = reverse("sqlshare_view_init_download", kwargs={'id': query_id})
         auth_headers = self.get_auth_header_for_username(owner)
         response = self.client.post(post_url, content_type='application/json', **auth_headers)
         self.assertEqual(response.status_code, 403)
