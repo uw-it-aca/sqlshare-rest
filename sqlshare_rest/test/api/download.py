@@ -48,7 +48,7 @@ class DownloadAPITest(BaseAPITest):
 
         response = self.client.post(post_url, content_type='application/json', **auth_headers)
         self.assertEqual(response.status_code, 200)
-        body = json.loads(response.content)
+        body = json.loads(response.content.decode("utf-8"))
         self.assertTrue('token' in body)
 
         self.token = body['token']
