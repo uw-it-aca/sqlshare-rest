@@ -10,6 +10,7 @@ from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.util.db import is_mssql, is_mysql
 
 @skipIf(missing_url("sqlshare_view_dataset_list"), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
@@ -68,7 +69,13 @@ class DownloadAPITest(BaseAPITest):
         for line in response2.streaming_content:
             response_body += line
 
-        resp = '"(1)"\n"1"\n'
+        if is_mssql():
+            resp = '""\n"1"\n'
+        if is_mysql():
+            resp = '"1"\n"1"\n'
+        else:
+            resp = '"(1)"\n"1"\n'
+
         self.assertEqual(response_body, resp)
 
         # Ensure download only works once
