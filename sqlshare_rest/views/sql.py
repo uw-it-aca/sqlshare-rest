@@ -13,7 +13,7 @@ logger = getLogger(__name__)
 
 
 @csrf_exempt
-# @protected_resource()
+@protected_resource()
 def run(request):
     if request.META['REQUEST_METHOD'] != "POST":
         response = HttpResponse()
