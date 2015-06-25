@@ -10,7 +10,7 @@ from django.test.client import Client
 from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
-from sqlshare_rest.util.db import is_mssql, is_mysql
+from sqlshare_rest.util.db import is_mssql, is_mysql, is_sqlite3
 
 import six
 if six.PY2:
@@ -86,19 +86,20 @@ class DownloadAPITest(BaseAPITest):
         post_url = reverse("sqlshare_view_init_download")
         other_auth_headers = self.get_auth_header_for_username(other)
 
-        # Test a user w/ no access trying to download a dataset's content.
-        response = self.client.post(post_url, {'sql': sql, 'downloads': 1}, **other_auth_headers)
+        # Now try just invalid sql
+        response = self.client.post(post_url, {'sql': "SELECT (1", 'downloads': 1}, **other_auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]
         response2 = self.client.get(download_url, content_type='application/json')
         self.assertEqual(response2.status_code, 400)
 
-        post_url = reverse("sqlshare_view_init_download")
-        other_auth_headers = self.get_auth_header_for_username(other)
 
-        # Now try just invalid sql
-        response = self.client.post(post_url, {'sql': "SELECT (1", 'downloads': 1}, **other_auth_headers)
+        if is_sqlite3():
+            # sqlite3 doesn't have permissions for the test below to fail on...
+            return
+        # Test a user w/ no access trying to download a dataset's content.
+        response = self.client.post(post_url, {'sql': sql, 'downloads': 1}, **other_auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]
