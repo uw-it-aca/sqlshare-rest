@@ -61,7 +61,7 @@ class DownloadAPITest(BaseAPITest):
         self.token = body['token']
 
         post_url = reverse("sqlshare_view_run_download", kwargs={'id': query_id, 'token': self.token})
-        response2 = self.client.get(post_url, content_type='application/json', **auth_headers)
+        response2 = self.client.get(post_url, content_type='application/json')
         self.assertEqual(response2.status_code, 200)
         self.assertTrue(response2.streaming)
 
@@ -78,7 +78,7 @@ class DownloadAPITest(BaseAPITest):
 
         # Ensure download only works once
         post_url = reverse("sqlshare_view_run_download", kwargs={'id': query_id, 'token': self.token})
-        response = self.client.get(post_url, content_type='application/json', **auth_headers)
+        response = self.client.get(post_url, content_type='application/json')
         self.assertEqual(response.status_code, 403)
 
     def test_bad_query(self):
@@ -121,7 +121,7 @@ class DownloadAPITest(BaseAPITest):
         # bad query id
         post_url = reverse("sqlshare_view_run_download", kwargs={'id': 123123, 'token': 'asd'})
         auth_headers = self.get_auth_header_for_username(owner)
-        response = self.client.get(post_url, content_type='application/json', **auth_headers)
+        response = self.client.get(post_url, content_type='application/json')
         self.assertEqual(response.status_code, 404)
 
 
@@ -133,5 +133,5 @@ class DownloadAPITest(BaseAPITest):
         self.assertEqual(init_response.status_code, 405)
 
         download_url = reverse("sqlshare_view_run_download", kwargs={'id': 5948, 'token' : 'asd1234'})
-        download_response = self.client.post(download_url, content_type='application/json', **auth_headers)
+        download_response = self.client.post(download_url, content_type='application/json')
         self.assertEqual(download_response.status_code, 405)
