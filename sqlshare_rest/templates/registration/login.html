@@ -65,6 +65,8 @@
                 .sql-wayf-logo { text-transform: uppercase; font-family: 'Oswald', sans-serif; color: @base !important; font-size: 50px; margin-bottom: 1em;
                     i { color: rgba(255, 255, 255, 0.3); vertical-align: top; margin-top: 3px; }
                     span { color: @clouds; }
+                    
+                    .logo-beta { font-size: 14px; color: #d9534f; }
                 }
                 
                 .sql-wayf-login { margin-top: 4em; margin-bottom: 3em; 
@@ -100,7 +102,7 @@
     <div class="jumbotron">
       <div class="container">
         
-        <h1 class="sql-wayf-logo"><i class="fa fa-database"></i> SQL<span>SHARE</span></h1>
+        <h1 class="sql-wayf-logo"><i class="fa fa-database"></i> SQL<span>SHARE</span> <span class="logo-beta">BETA</span></h1>
         
         <p class="sql-wayf-headline">SQLShare is a secure and easier way to store your research data.</strong>  No need to install or administer a database server. Just upload and start analyzing your data instantly.</p>
         
@@ -151,9 +153,9 @@
       <hr>
 
       <footer class="sql-footer">
-        <p>Copyright &copy; {% now "Y" %} eScience Institute &amp; Academic and Collaborative Applications <span><a href="http://www.washington.edu/online/privacy/">Privacy</a></span> <span><a href="http://www.washington.edu/online/terms/">Terms</a></span></p>
+        <p>Copyright &copy; {% now "Y" %} eScience Institute<span><a href="http://www.washington.edu/online/privacy/">Privacy</a></span> <span><a href="http://www.washington.edu/online/terms/">Terms</a></span></p>
       </footer>
-    
+          
     </div> <!-- /container -->
     
 
