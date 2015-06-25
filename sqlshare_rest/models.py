@@ -305,18 +305,20 @@ class FlowModel(models.Model):
 
 class DownloadToken(models.Model):
     token = models.CharField(max_length=32)
-    query = models.ForeignKey(Query)
+    sql = models.TextField()
+    original_user = models.ForeignKey(User)
 
     def _generate_token(self):
         return uuid.uuid4().hex
 
-    def store_token_for_query(self, query):
-        self.query = query
+    def store_token_for_sql(self, sql, user):
+        self.sql = sql
+        self.original_user = user
         self.token = self._generate_token()
         self.save()
 
-    def validate_token(self, query, token):
+    def validate_token(self, token):
         # Deletes token on validation to ensure single-use
-        token = DownloadToken.objects.get(token=token, query=query)
+        token = DownloadToken.objects.get(token=token)
         token.delete()
-        return
+        return token

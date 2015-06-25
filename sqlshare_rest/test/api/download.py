@@ -42,7 +42,7 @@ class DownloadAPITest(BaseAPITest):
 
         post_url = reverse("sqlshare_view_init_download")
 
-        response = self.client.post(post_url, data={'sql': 'SELECT (1)', 'downloads': 1}, *auth_headers)
+        response = self.client.post(post_url, {'sql': 'SELECT (1)', 'downloads': 1}, **auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]
@@ -54,7 +54,7 @@ class DownloadAPITest(BaseAPITest):
 
         if is_mssql():
             resp = '""\n"1"\n'
-        if is_mysql():
+        elif is_mysql():
             resp = '"1"\n"1"\n'
         else:
             resp = '"(1)"\n"1"\n'
@@ -63,14 +63,15 @@ class DownloadAPITest(BaseAPITest):
 
         # Ensure download only works once
         response = self.client.get(download_url, content_type='application/json')
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
     def test_bad_query(self):
         owner = "test_invalid_download_owner"
         other = "test_invalid_download_sneak"
-        self.remove_users.application(owner)
-        self.remove_users.application(other)
+        self.remove_users.append(owner)
+        self.remove_users.append(other)
 
+        get_backend().get_user(other)
 
         model = create_dataset_from_query(username=owner, dataset_name="test_download_2", sql="SELECT (3)")
 
@@ -86,30 +87,23 @@ class DownloadAPITest(BaseAPITest):
         other_auth_headers = self.get_auth_header_for_username(other)
 
         # Test a user w/ no access trying to download a dataset's content.
-        response = self.client.post(post_url, data={'sql': sql, 'downloads': 1}, *other_auth_headers)
+        response = self.client.post(post_url, {'sql': sql, 'downloads': 1}, **other_auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]
         response2 = self.client.get(download_url, content_type='application/json')
-        self.assertEqual(response2.status_code, 200)
-
-        response_body = StringIO("".join(map(lambda x: x.decode("utf-8"), response2.streaming_content))).read()
-        self.assertTrue(re.match('Error\n', response_body))
+        self.assertEqual(response2.status_code, 400)
 
         post_url = reverse("sqlshare_view_init_download")
         other_auth_headers = self.get_auth_header_for_username(other)
 
         # Now try just invalid sql
-        response = self.client.post(post_url, data={'sql': "SELECT (1", 'downloads': 1}, *other_auth_headers)
+        response = self.client.post(post_url, {'sql': "SELECT (1", 'downloads': 1}, **other_auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]
         response2 = self.client.get(download_url, content_type='application/json')
-        self.assertEqual(response2.status_code, 200)
-
-        response_body = StringIO("".join(map(lambda x: x.decode("utf-8"), response2.streaming_content))).read()
-        self.assertTrue(re.match('Error\n', response_body))
-
+        self.assertEqual(response2.status_code, 400)
 
     def test_bad_download(self):
         owner = "query_user1"

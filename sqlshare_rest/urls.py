@@ -47,11 +47,11 @@ urlpatterns = patterns(
     url('v3/user/me', 'user.user',
         name="sqlshare_view_user"),
 
-    url('v3/db/query/(?P<id>[0-9]+)/download/(?P<token>[a-z0-9]+)',
+    url('v3/db/query/download/(?P<token>[a-z0-9]+)',
         'download.run',
         name="sqlshare_view_run_download"),
 
-    url('v3/db/query/(?P<id>[0-9]+)/download',
+    url('v3/db/query/download',
         'download.init',
         name="sqlshare_view_init_download"),
 
