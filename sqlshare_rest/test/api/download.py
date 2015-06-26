@@ -92,7 +92,7 @@ class DownloadAPITest(BaseAPITest):
 
         download_url = response["Location"]
         response2 = self.client.get(download_url, content_type='application/json')
-        self.assertEqual(response2.status_code, 400)
+        self.assertEqual(response2.status_code, 200)
 
 
         if is_sqlite3():
@@ -104,7 +104,7 @@ class DownloadAPITest(BaseAPITest):
 
         download_url = response["Location"]
         response2 = self.client.get(download_url, content_type='application/json')
-        self.assertEqual(response2.status_code, 400)
+        self.assertEqual(response2.status_code, 200)
 
     def test_bad_download(self):
         owner = "query_user1"

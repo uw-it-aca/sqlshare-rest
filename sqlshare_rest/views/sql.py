@@ -44,7 +44,9 @@ def response_for_query(sql, user, download_name):
         return response
     except Exception as ex:
         response = HttpResponse(str(ex))
-        response.status_code = 400
+        response.status_code = 200
+        disposition = 'attachment; filename="%s"' % download_name
+        response['Content-Disposition'] = disposition
         return response
 
 
