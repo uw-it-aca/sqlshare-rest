@@ -332,6 +332,9 @@ class MSSQLBackend(DBInterface):
             column_name = make_unique_name(column_name, existing_column_names)
             existing_column_names[column_name] = True
 
+            # Quote the column name - SQLSHR-147
+            column_name = "[%s]" % column_name
+
             if (col_type == float_type) or (col_type == decimal_type):
                 if null_ok:
                     column_defs.append("%s FLOAT" % column_name)
