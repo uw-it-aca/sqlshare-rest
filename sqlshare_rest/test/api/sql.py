@@ -54,12 +54,12 @@ class RunQueryAPITest(BaseAPITest):
 
         with LogCapture() as l:
             response = self.client.post(url, { "sql": "SELECT (1" }, **auth_headers)
-            self.assertEquals(response.status_code, 400)
+            self.assertEquals(response.status_code, 200)
             self.assertTrue(self._has_log(l, user, None, 'sqlshare_rest.views.sql', 'INFO', 'Running SQL: SELECT (1'))
 
 
         response = self.client.post(url, { }, **auth_headers)
-        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.status_code, 200)
 
         response = self.client.post(url, { "sql": "SELECT (1), (2)" }, **auth_headers)
         self.assertEquals(response.status_code, 200)
