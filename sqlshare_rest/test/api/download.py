@@ -42,7 +42,7 @@ class DownloadAPITest(BaseAPITest):
 
         post_url = reverse("sqlshare_view_init_download")
 
-        response = self.client.post(post_url, {'sql': 'SELECT (1)', 'downloads': 1}, **auth_headers)
+        response = self.client.post(post_url, data=json.dumps({'sql': 'SELECT (1)', 'downloads': 1}), content_type="application/json", **auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]
@@ -87,7 +87,7 @@ class DownloadAPITest(BaseAPITest):
         other_auth_headers = self.get_auth_header_for_username(other)
 
         # Now try just invalid sql
-        response = self.client.post(post_url, {'sql': "SELECT (1", 'downloads': 1}, **other_auth_headers)
+        response = self.client.post(post_url, data=json.dumps({'sql': "SELECT (1", 'downloads': 1}), content_type="application/json", **other_auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]
@@ -99,7 +99,7 @@ class DownloadAPITest(BaseAPITest):
             # sqlite3 doesn't have permissions for the test below to fail on...
             return
         # Test a user w/ no access trying to download a dataset's content.
-        response = self.client.post(post_url, {'sql': sql, 'downloads': 1}, **other_auth_headers)
+        response = self.client.post(post_url, data=json.dumps({'sql': sql, 'downloads': 1}), content_type="application/json", **other_auth_headers)
         self.assertEqual(response.status_code, 200)
 
         download_url = response["Location"]

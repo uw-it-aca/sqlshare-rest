@@ -37,7 +37,8 @@ def init(request):
 
     get_oauth_user(request)
 
-    sql = request.POST["sql"]
+    values = json.loads(request.body.decode("utf-8"))
+    sql = values["sql"]
     user = get_user(request)
     dt = DownloadToken()
     dt.store_token_for_sql(sql, user)
