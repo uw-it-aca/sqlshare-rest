@@ -141,7 +141,6 @@ class MSSQLBackend(DBInterface):
                                              dataset.owner.schema,
                                              table_name))
 
-
     def _create_placeholder_view(self, name, user):
         # Create a dummy view - if it fails, no problem, since the create views
         # are now all alter views.
