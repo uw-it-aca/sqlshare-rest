@@ -54,6 +54,9 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                                                     oldest.dataset_name,
                                                     dataset_sql)
 
+                dataset.description = oldest.dataset_description
+                dataset.is_public = oldest.dataset_is_public
+                dataset.save()
                 oldest.dataset = dataset
                 oldest.dataset_created = True
                 oldest.save()
