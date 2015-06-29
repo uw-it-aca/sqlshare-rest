@@ -128,6 +128,9 @@ class MSSQLBackend(DBInterface):
 
     def _create_view_of_snapshot(self, dataset, user):
         sql = self._get_snapshot_view_sql(dataset)
+
+        view_name = self._get_table_name_for_dataset(dataset.name)
+        self._create_placeholder_view(view_name, user)
         self.run_query(sql, user, return_cursor=True).close()
 
     def _get_snapshot_view_sql(self, dataset):
@@ -138,17 +141,31 @@ class MSSQLBackend(DBInterface):
                                              dataset.owner.schema,
                                              table_name))
 
+
+    def _create_placeholder_view(self, name, user):
+        # Create a dummy view - if it fails, no problem, since the create views
+        # are now all alter views.
+        schema = user.schema
+        sql = "CREATE VIEW [%s].[%s] AS SELECT (NULL) as a" % (schema, name)
+        try:
+            self.run_query(sql, user, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        return
+
     def create_view(self, name, sql, user, column_names=None):
         import pyodbc
         if column_names:
             columns = ",".join(column_names)
-            view_sql = "CREATE VIEW [%s].[%s] (%s) AS %s" % (user.schema,
-                                                             name,
-                                                             columns,
-                                                             sql)
+            view_sql = "ALTER VIEW [%s].[%s] (%s) AS %s" % (user.schema,
+                                                            name,
+                                                            columns,
+                                                            sql)
         else:
-            view_sql = "CREATE VIEW [%s].[%s] AS %s" % (user.schema, name, sql)
+            view_sql = "ALTER VIEW [%s].[%s] AS %s" % (user.schema, name, sql)
         try:
+            self._create_placeholder_view(name, user)
             self.run_query(view_sql, user, return_cursor=True).close()
         except pyodbc.ProgrammingError as ex:
             # If this is due to not having column names, let's go ahead and
