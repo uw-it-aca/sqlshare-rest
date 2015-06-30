@@ -349,6 +349,8 @@ class MSSQLBackend(DBInterface):
             column_name = make_unique_name(column_name, existing_column_names)
             existing_column_names[column_name] = True
 
+            column_name = "[%s]" % (column_name)
+
             if (col_type == float_type) or (col_type == decimal_type):
                 if null_ok:
                     column_defs.append("%s FLOAT" % column_name)
@@ -434,9 +436,13 @@ class MSSQLBackend(DBInterface):
 
         full_name = "[%s].[%s]" % (QUERY_SCHEMA, name)
         create_table = "CREATE TABLE %s (%s)" % (full_name, column_def)
+
         cursor.execute(create_table)
 
         row = source_cursor.fetchone()
+
+        if row is None:
+            return 0
 
         placeholders = ", ".join(list(map(lambda x: "?", row)))
         insert = "INSERT INTO %s VALUES (%s)" % (full_name, placeholders)
