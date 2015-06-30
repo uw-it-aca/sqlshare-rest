@@ -307,7 +307,6 @@ class MSSQLBackend(DBInterface):
 
             upload.save()
 
-
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
 
