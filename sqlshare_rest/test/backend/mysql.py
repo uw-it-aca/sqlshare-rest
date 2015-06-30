@@ -1,5 +1,6 @@
 from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.util.db import is_mysql, get_backend
+from sqlshare_rest.models import FileUpload
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.snapshot_queue import process_snapshot_queue
 from sqlshare_rest.parser import Parser
@@ -122,9 +123,10 @@ class TestMySQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user)
 
         try:
-            backend.create_dataset_from_parser("test_dataset1", parser, user)
+            backend.create_dataset_from_parser("test_dataset1", parser, ul, user)
             result = backend.run_query("SELECT * FROM %s.table_test_dataset1" % user.schema, user)
             self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
             result2 = backend.run_query("SELECT * FROM %s.test_dataset1" % user.schema, user)
@@ -158,9 +160,10 @@ class TestMySQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user)
 
         try:
-            backend.create_dataset_from_parser("soon_to_be_gone", parser, user)
+            backend.create_dataset_from_parser("soon_to_be_gone", parser, ul, user)
             result = backend.run_query("SELECT * FROM %s.soon_to_be_gone" % user.schema, user)
             self.assertEquals(((1, 3, 4, ), (2, 10, 12, )), result)
 
@@ -187,9 +190,10 @@ class TestMySQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user)
 
         try:
-            backend.create_dataset_from_parser("test_dataset2", parser, user)
+            backend.create_dataset_from_parser("test_dataset2", parser, ul, user)
             result = backend.run_query("SELECT * FROM %s.table_test_dataset2" % user.schema, user)
             self.assertEquals(((0, 1, 2, 3, 4, 5, ), (0, 1, 2, 3, None, None, ), (0, 1, None, None, None, None,)), result)
             result2 = backend.run_query("SELECT * FROM %s.test_dataset2" % user.schema, user)
@@ -210,9 +214,10 @@ class TestMySQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user)
 
         try:
-            backend.create_dataset_from_parser("test_dataset3", parser, user)
+            backend.create_dataset_from_parser("test_dataset3", parser, ul, user)
             result = backend.run_query("SELECT * FROM %s.table_test_dataset3" % user.schema, user)
             self.assertEquals(((0, 1.1, "a", "b",), (0, 1.2, "b", None ), (1, None, None, None, )), result)
             result2 = backend.run_query("SELECT * FROM %s.test_dataset3" % user.schema, user)
@@ -313,9 +318,10 @@ class TestMySQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user1)
 
         try:
-            backend.create_dataset_from_parser("share_me", parser, user1)
+            backend.create_dataset_from_parser("share_me", parser, ul, user1)
             # Not shared yet - no access
             self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_permissions1`.`share_me`", user2)
 
@@ -385,10 +391,11 @@ class TestMySQLBackend(CleanUpTestCase):
             handle2.seek(0)
             parser2.parse(handle2)
 
+            ul = FileUpload.objects.create(owner=user1)
 
             try:
-                backend.create_dataset_from_parser("share_me", parser, user1)
-                backend.create_dataset_from_parser("dont_share_me", parser2, user1)
+                backend.create_dataset_from_parser("share_me", parser, ul, user1)
+                backend.create_dataset_from_parser("dont_share_me", parser2, ul, user1)
                 # Not shared yet - no access
                 self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM `test_user_public_grant1`.`share_me`", user2)
 

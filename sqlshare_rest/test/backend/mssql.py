@@ -1,5 +1,5 @@
 from sqlshare_rest.test import CleanUpTestCase
-from sqlshare_rest.models import Dataset, Query
+from sqlshare_rest.models import Dataset, Query, FileUpload
 from sqlshare_rest.parser import Parser
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.snapshot_queue import process_snapshot_queue
@@ -141,9 +141,10 @@ class TestMSSQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user)
 
         try:
-            backend.create_dataset_from_parser("test_dataset1", parser, user)
+            backend.create_dataset_from_parser("test_dataset1", parser, ul, user)
             result = backend.run_query("SELECT * FROM [%s].[table_test_dataset1]" % user.schema, user)
             self.assertEquals(result[0][0], 1)
             self.assertEquals(result[0][1], 3)
@@ -200,9 +201,10 @@ class TestMSSQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user)
 
         try:
-            backend.create_dataset_from_parser("soon_to_be_gone", parser, user)
+            backend.create_dataset_from_parser("soon_to_be_gone", parser, ul, user)
             result = backend.run_query("SELECT * FROM %s.soon_to_be_gone" % user.schema, user)
             self.assertEquals(result[0][0], 1)
             self.assertEquals(result[0][1], 3)
@@ -280,9 +282,10 @@ class TestMSSQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user1)
 
         try:
-            backend.create_dataset_from_parser("share_me", parser, user1)
+            backend.create_dataset_from_parser("share_me", parser, ul, user1)
 
             # Just check that it's there:
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
@@ -360,9 +363,10 @@ class TestMSSQLBackend(CleanUpTestCase):
         parser.guess(handle.read(1024*20))
         handle.seek(0)
         parser.parse(handle)
+        ul = FileUpload.objects.create(owner=user1)
 
         try:
-            backend.create_dataset_from_parser("share_me", parser, user1)
+            backend.create_dataset_from_parser("share_me", parser, ul, user1)
             dataset = Dataset.objects.create(owner=user1, name="share_me")
 
             # Just check that it's there:
