@@ -670,4 +670,5 @@ class DatasetPermissionsAPITest(BaseAPITest):
         _run_query("drop login permissions_token_user1")
         _run_query("drop login permissions_xpublic_user1")
         _run_query("drop login permissions_user1")
+        _run_query("drop login email_permissions_user2")
 
