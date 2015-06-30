@@ -281,6 +281,12 @@ class FileUpload(models.Model):
     rows_total = models.IntegerField(null=True)
     rows_loaded = models.IntegerField(null=True)
 
+    def finalize_json_data(self):
+        return {
+            "rows_total": self.rows_total,
+            "rows_loaded": self.rows_loaded,
+        }
+
     def parser_json_data(self):
         column_data = None
         column_list = json.loads(self.column_list)

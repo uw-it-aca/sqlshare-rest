@@ -137,6 +137,10 @@ class FileUploadAPITest(BaseAPITest):
             self.assertEquals(response9.status_code, 202)
             self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, PUT finalize; ID: %s; name: test_dataset1; description: Just a test description; is_public: False' % (upload_id)))
 
+            data = json.loads(response9.content.decode("utf-8"))
+            self.assertEquals(data["rows_total"], 6)
+            self.assertEquals(data["rows_loaded"], 0)
+
 
         with LogCapture() as l:
             response10 = self.client.get(finalize_url, **auth_headers)
@@ -158,6 +162,10 @@ class FileUploadAPITest(BaseAPITest):
 
         response11 = self.client.get(finalize_url, **auth_headers)
         self.assertEquals(response11.status_code, 201)
+
+        data = json.loads(response11.content.decode("utf-8"))
+        self.assertEquals(data["rows_total"], 6)
+        self.assertEquals(data["rows_loaded"], 6)
 
         dataset_url = response11["Location"]
         self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user1/test_dataset1")
