@@ -145,8 +145,10 @@ class MySQLBackend(DBInterface):
                                                       public_user.db_username)
 
     def add_public_access(self, dataset, owner):
-        sql = self._add_public_access_sql(dataset, owner)
-        self.run_query(sql, owner)
+        return
+        # Dropping "public" access, since mysql doesn't have a public role
+        # sql = self._add_public_access_sql(dataset, owner)
+        # self.run_query(sql, owner)
 
     def _remove_public_access_sql(self, dataset, owner):
         public_user = self.get_public_user()
@@ -155,8 +157,9 @@ class MySQLBackend(DBInterface):
                                                       public_user.db_username)
 
     def remove_public_access(self, dataset, owner):
-        sql = self._remove_public_access_sql(dataset, owner)
-        self.run_query(sql, owner)
+        return
+        # sql = self._remove_public_access_sql(dataset, owner)
+        # self.run_query(sql, owner)
 
     def get_query_cache_db_name(self):
         return getattr(settings, "SQLSHARE_QUERY_CACHE_DB", "ss_query_db")
