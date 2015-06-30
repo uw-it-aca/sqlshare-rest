@@ -201,6 +201,11 @@ def _patch_dataset(request, owner, name):
         logger.info("PATCH dataset is_public; owner: %s; name: %s; "
                     "is_public: %s" % (owner, name, dataset.is_public),
                     request)
+
+        if dataset.is_public:
+            get_backend().add_public_access(dataset, user)
+        else:
+            get_backend().remove_public_access(dataset, user)
         updated = True
 
     dataset.save()

@@ -552,8 +552,8 @@ class MSSQLBackend(DBInterface):
             query = Query.objects.get(is_preview_for=dataset)
             sample_id = query.pk
 
-            return "REVOKE ALL ON [%s].[query_%s] FROM PUBLIC" % (schema,
-                                                                  sample_id)
+            return "REVOKE SELECT ON [%s].[query_%s] FROM PUBLIC" % (schema,
+                                                                     sample_id)
 
     def remove_public_access(self, dataset, owner):
         sql = self._remove_public_access_sql(dataset, owner)

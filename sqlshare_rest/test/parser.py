@@ -194,8 +194,5 @@ class TestParser(CleanUpTestCase):
         handle = StringIO("a,b,b,d")
         p.parse(handle)
 
-        print p.column_names(), p.column_types()
         self.assertEquals(len(p.column_names()), 4)
         self.assertEquals(len(p.column_types()), 4)
-
-
