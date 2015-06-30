@@ -143,9 +143,18 @@ class FileUploadAPITest(BaseAPITest):
             self.assertEquals(response10.status_code, 202)
             self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, GET finalize; ID: %s' % (upload_id)))
 
+        # Test that the file upload object is tracking the number of rows
+        upload_obj = FileUpload.objects.all()[0]
+        self.assertEquals(upload_obj.rows_total, 6)
+        self.assertEquals(upload_obj.rows_loaded, 0)
 
         # Process the dataset...
         process_dataset_queue()
+
+        # Test that the upload object has tracked all 6 rows as added.
+        upload_obj = FileUpload.objects.all()[0]
+        self.assertEquals(upload_obj.rows_total, 6)
+        self.assertEquals(upload_obj.rows_loaded, 6)
 
         response11 = self.client.get(finalize_url, **auth_headers)
         self.assertEquals(response11.status_code, 201)

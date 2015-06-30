@@ -46,6 +46,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 name = oldest.dataset_name
                 table_name = backend.create_table_from_parser(name,
                                                               p,
+                                                              oldest,
                                                               user)
 
                 dataset_sql = backend.get_view_sql_for_dataset(table_name,

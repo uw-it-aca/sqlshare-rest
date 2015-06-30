@@ -266,13 +266,13 @@ class MSSQLBackend(DBInterface):
         return "INSERT INTO [%s].[%s] VALUES %s" % (user.schema, table_name,
                                                     ", ".join(all_rows))
 
-    def _load_table(self, table_name, data_handle, user):
-        connection = self.get_connection_for_user(user)
-        connection.autocommit = False
+    def _load_table(self, table_name, data_handle, upload, user):
         data_len = 0
         current_data = []
         sql_max = ""
         max_rows = None
+        total_rows_loaded = 0
+
         for row in data_handle:
             data_len += 1
             current_data.extend(row)
@@ -286,25 +286,27 @@ class MSSQLBackend(DBInterface):
                     sql_max = self._load_table_sql(table_name,
                                                    row, user, max_rows)
 
-                cursor = self.run_query(sql_max,
-                                        user,
-                                        current_data,
-                                        return_cursor=True)
+                self.run_query(sql_max,
+                               user,
+                               current_data,
+                               return_cursor=True).close()
 
                 current_data = []
                 data_len = 0
+                total_rows_loaded += max_rows
+                upload.rows_loaded = total_rows_loaded
+                upload.save()
 
         if data_len:
             sql = self._load_table_sql(table_name, row, user, data_len)
 
-            cursor = self.run_query(sql,
-                                    user,
-                                    current_data,
-                                    return_cursor=True)
+            self.run_query(sql, user, current_data, return_cursor=True).close()
 
-        connection.commit()
-        if cursor:
-            cursor.close()
+            total_rows_loaded += data_len
+            upload.rows_loaded = total_rows_loaded
+
+            upload.save()
+
 
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)

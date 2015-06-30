@@ -94,6 +94,9 @@ def finalize(request, id):
                                                         description,
                                                         is_public),
                     request)
+
+        upload.rows_total = _get_total_upload_rows(upload)
+        upload.rows_loaded = 0
         upload.save()
 
     if request.META["REQUEST_METHOD"] == "GET":
@@ -110,6 +113,19 @@ def finalize(request, id):
         response.status_code = 202
 
     return response
+
+
+def _get_total_upload_rows(upload):
+    file_path = upload.user_file.path
+    handle = open(file_path, "r")
+
+    total_lines = 0
+    for line in handle:
+        total_lines += 1
+
+    if upload.has_column_header:
+        return total_lines - 1
+    return total_lines
 
 
 def dataset_name_invalid_check(name):

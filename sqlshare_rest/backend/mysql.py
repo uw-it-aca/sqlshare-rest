@@ -293,7 +293,7 @@ class MySQLBackend(DBInterface):
         return "INSERT INTO `%s`.`%s` VALUES (%s)" % (user.schema, table_name,
                                                       ", ".join(placeholders))
 
-    def _load_table(self, table_name, data_handle, user):
+    def _load_table(self, table_name, data_handle, upload, user):
         for row in data_handle:
             sql = self._load_table_sql(table_name, row, user)
             self.run_query(sql, user, row)

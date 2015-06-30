@@ -278,6 +278,8 @@ class FileUpload(models.Model):
     dataset_description = models.TextField(null=True)
     dataset_is_public = models.NullBooleanField()
     is_finalized = models.NullBooleanField(db_index=True)
+    rows_total = models.IntegerField(null=True)
+    rows_loaded = models.IntegerField(null=True)
 
     def parser_json_data(self):
         column_data = None

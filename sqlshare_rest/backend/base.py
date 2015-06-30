@@ -82,24 +82,34 @@ class DBInterface(object):
     def get_preview_sql_for_dataset(self, dataset_name, user):
         self._not_implemented("get_preview_sql_for_dataset")
 
-    def create_table_from_parser(self, dataset_name, parser, user):
+    def create_table_from_parser(self, dataset_name, parser, upload, user):
         table_name = self._get_table_name_for_dataset(dataset_name)
         self._create_table(table_name=table_name,
                            column_names=parser.column_names(),
                            column_types=parser.column_types(),
                            user=user)
 
-        self._load_table(table_name, parser.get_data_handle(), user)
+        self._load_table(table_name, parser.get_data_handle(), upload, user)
+
+        upload.rows_loaded = upload.rows_total
         return table_name
 
-    def create_dataset_from_parser(self, dataset_name, parser, user):
+    def create_dataset_from_parser(self, dataset_name, parser, upload, user):
         """
-        Turns a parser object into a dataset.
+        Turns a parser object into a dataset.  This process should update
+        the rows_loaded attribute of the upload object as it is processed.
+        rows_loaded will be set to rows_total at the end of
+        create_table_from_parser().
+
         # Creates a table based on the parser columns
         # Loads the data that's in the handle for the parser
         # Creates the view for the dataset
         """
-        table_name = self.create_table_from_parser(dataset_name, parser, user)
+        table_name = self.create_table_from_parser(dataset_name,
+                                                   parser,
+                                                   upload,
+                                                   user)
+        upload.save()
         self.create_view(dataset_name,
                          self._get_view_sql_for_dataset(table_name, user),
                          user)
