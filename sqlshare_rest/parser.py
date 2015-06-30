@@ -128,6 +128,10 @@ class Parser(object):
         for row in self:
             self._guess_column_types_by_row(row, values)
 
+        if values == []:
+            for name in self.column_names():
+                values.append({"type": "text", "max": 100})
+
         self._handle.seek(0)
         self._column_types = values
         return values
