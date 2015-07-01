@@ -5,6 +5,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_upload_queue_processing
 from sqlshare_rest.util.queue_triggers import UPLOAD_QUEUE_PORT_NUMBER
+from sqlshare_rest.logger import getLogger
 import atexit
 
 import socket
@@ -22,6 +23,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
     q = Queue()
 
     def worker():
+        logger = getLogger(__name__)
         """
         Get a file upload object from the queue, and turn it into a dataset.
         """
@@ -29,8 +31,10 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
         keep_looping = True
         while keep_looping:
             oldest = q.get()
+            msg = "Processing file upload: %s" % oldest.pk
+            logger.info(msg)
             if verbose:
-                print("Processing file upload: %s" % oldest.pk)
+                print(msg)
             user = oldest.owner
             backend = get_backend()
             try:
@@ -62,8 +66,10 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 oldest.dataset_created = True
                 oldest.save()
             except Exception as ex:
+                msg = "Error on %s: %s" % (oldest.pk, str(ex))
+                logger.error(msg)
                 if verbose:
-                    print("Error on %s: %s" % (oldest.pk, str(ex)))
+                    print(msg)
                 oldest.has_error = True
                 oldest.error = str(ex)
                 oldest.save()
@@ -71,8 +77,10 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 backend.close_user_connection(user)
 
             q.task_done()
+            msg = "Finished file upload %s." % oldest.pk
+            logger.info(msg)
             if verbose:
-                print("Finished file upload %s." % oldest.pk)
+                print(msg)
             if run_once:
                 keep_looping = False
 

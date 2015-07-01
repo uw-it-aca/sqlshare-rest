@@ -154,21 +154,27 @@ def _put_dataset(request, owner, name):
         raise Exception("Owner doesn't match user: %s, %s" % (owner, username))
 
     data = json.loads(request.body.decode("utf-8"))
-    dataset = create_dataset_from_query(username, name, data["sql_code"])
+    try:
+        dataset = create_dataset_from_query(username, name, data["sql_code"])
 
-    description = data.get("description", "")
-    is_public = data.get("is_public", False)
-    dataset.description = description
-    dataset.is_public = is_public
+        description = data.get("description", "")
+        is_public = data.get("is_public", False)
+        dataset.description = description
+        dataset.is_public = is_public
 
-    dataset.save()
+        dataset.save()
 
-    response = HttpResponse(json.dumps(dataset.json_data()))
-    response.status_code = 201
+        response = HttpResponse(json.dumps(dataset.json_data()))
+        response.status_code = 201
 
-    logger.info("PUT dataset; owner: %s; name: %s" % (owner, name), request)
+        logger.info("PUT dataset; owner: %s; name: %s" % (owner, name),
+                    request)
 
-    return response
+        return response
+    except Exception as ex:
+        response = HttpResponse("Error saving dataset: %s" % ex)
+        response.status_code = 400
+        return response
 
 
 def _patch_dataset(request, owner, name):
@@ -201,6 +207,11 @@ def _patch_dataset(request, owner, name):
         logger.info("PATCH dataset is_public; owner: %s; name: %s; "
                     "is_public: %s" % (owner, name, dataset.is_public),
                     request)
+
+        if dataset.is_public:
+            get_backend().add_public_access(dataset, user)
+        else:
+            get_backend().remove_public_access(dataset, user)
         updated = True
 
     dataset.save()

@@ -93,7 +93,6 @@ def google_return(request):
     except FlowExchangeError as ex:
         if ex[0] == "access_denied":
             return render_to_response("oauth2/denied.html", {})
-        print "OK!", ex[0]
         raise
 
     flow = f.flow

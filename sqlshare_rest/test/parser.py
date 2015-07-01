@@ -185,3 +185,14 @@ class TestParser(CleanUpTestCase):
         self.assertEquals(data_handle.next(), [0, 1.1, 'a', 'b'])
         self.assertEquals(data_handle.next(), [0, 1.2, 'b', None])
         self.assertEquals(data_handle.next(), [1, None, None, None])
+
+    def test_no_data(self):
+        p = Parser()
+        p.delimiter(",")
+        p.has_header_row(True)
+
+        handle = StringIO("a,b,b,d")
+        p.parse(handle)
+
+        self.assertEquals(len(p.column_names()), 4)
+        self.assertEquals(len(p.column_types()), 4)

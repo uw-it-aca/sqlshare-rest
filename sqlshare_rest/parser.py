@@ -112,6 +112,7 @@ class Parser(object):
 
         Resets the handle to position 0.
         """
+        MAX_COLUMN_TYPE_GUESS = 1000
 
         if self._column_types:
             return self._column_types
@@ -125,8 +126,16 @@ class Parser(object):
         if self.has_header_row():
             self.next()
 
+        row_num = 0
         for row in self:
+            row_num += 1
+            if row_num > MAX_COLUMN_TYPE_GUESS:
+                break
             self._guess_column_types_by_row(row, values)
+
+        if values == []:
+            for name in self.column_names():
+                values.append({"type": "text", "max": 100})
 
         self._handle.seek(0)
         self._column_types = values
@@ -231,6 +240,9 @@ class Parser(object):
 
 
 class DataHandler(object):
+    """
+    To track errors in iteration, look for a string instead of list.
+    """
     def __init__(self, parser):
         self._parser = parser
         self._columns = parser.column_types()
@@ -243,20 +255,24 @@ class DataHandler(object):
         typed = []
         raw = self._parser.next()
 
-        for i in range(0, len(self._columns)):
-            col_type = self._columns[i]["type"]
+        try:
+            for i in range(0, len(self._columns)):
+                col_type = self._columns[i]["type"]
 
-            if len(raw) <= i:
-                # Make the data square!
-                typed.append(None)
-            else:
-                value = raw[i]
-                if "int" == col_type:
-                    typed.append(int(value))
-                elif "float" == col_type:
-                    typed.append(float(value))
+                if len(raw) <= i:
+                    # Make the data square!
+                    typed.append(None)
                 else:
-                    typed.append(value)
-        return typed
+                    value = raw[i]
+                    if "int" == col_type:
+                        typed.append(int(value))
+                    elif "float" == col_type:
+                        typed.append(float(value))
+                    else:
+                        typed.append(value)
+            return typed
+
+        except Exception as ex:
+            return str(ex)
 
     __next__ = next

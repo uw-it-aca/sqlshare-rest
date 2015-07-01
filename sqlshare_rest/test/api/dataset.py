@@ -55,7 +55,7 @@ class DatsetAPITest(BaseAPITest):
             response = self.client.get(url, **auth_headers)
 
             self.assertEquals(response.content.decode("utf-8"), '[]')
-            self.assertTrue(self._has_log(l, "test_user1", None, 'sqlshare_rest.views.dataset_list', 'INFO', 'GET my dataset list'))
+            self.assertTrue(self._has_log(l, "test_user1", None, 'sqlshare_rest.views.dataset_list', 'INFO', "GET my dataset list; search ''; order_by: 'updated'; page_num: 1, page_size: 50"))
 
     def test_no_description(self):
         """

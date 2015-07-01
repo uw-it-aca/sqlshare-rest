@@ -59,6 +59,7 @@ class Dataset(DirtyFieldsMixin, models.Model):
     def json_data(self):
         mod_date = self.date_modified.strftime(JSON_DATE)
         create_date = self.date_created.strftime(JSON_DATE)
+        upload_errors = self.get_upload_errors()
 
         description = self.description
         if not description:
@@ -80,7 +81,17 @@ class Dataset(DirtyFieldsMixin, models.Model):
             "sample_data_status": self.get_sample_data_status(),
             "sample_data_error": self.preview_error,
             "rows_total": self.rows_total,
+            "upload_errors": upload_errors,
         }
+
+    def get_upload_errors(self):
+        try:
+            file_uploads = FileUpload.objects.filter(dataset__pk=self.pk)
+            if file_uploads:
+                return file_uploads[0].error
+        except FileUpload.DoesNotExist:
+            return ""
+        return ""
 
     def get_sample_data_status(self):
         if self.preview_is_finished and not self.preview_error:
