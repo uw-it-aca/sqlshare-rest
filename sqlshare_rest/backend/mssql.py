@@ -278,12 +278,18 @@ class MSSQLBackend(DBInterface):
         errors = ""
 
         def _handle_error_table_set(current_data):
-            sql = self._load_table_sql(table_name, current_data[0]["data"], user, 1)
+            sql = self._load_table_sql(table_name,
+                                       current_data[0]["data"],
+                                       user,
+                                       1)
             errors = ""
 
             for row in current_data:
                 try:
-                    self.run_query(sql, user, row["data"], return_cursor=True).close()
+                    self.run_query(sql,
+                                   user,
+                                   row["data"],
+                                   return_cursor=True).close()
                 except Exception as ex:
                     row_num = row["row"]
                     errors += "Error on row %s: %s\n" % (row_num, str(ex))
@@ -334,7 +340,10 @@ class MSSQLBackend(DBInterface):
             for row in current_data:
                 insert_data.extend(row["data"])
             try:
-                self.run_query(sql, user, insert_data, return_cursor=True).close()
+                self.run_query(sql,
+                               user,
+                               insert_data,
+                               return_cursor=True).close()
             except Exception:
                 errors += _handle_error_table_set(current_data)
 
