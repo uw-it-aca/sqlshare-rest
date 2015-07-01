@@ -227,6 +227,7 @@ class MSSQLBackend(DBInterface):
                                          table_name,
                                          column_names,
                                          column_types)
+
             self.run_query(sql, user, return_cursor=True).close()
         except Exception as ex:
             drop_sql = self._drop_exisisting_table_sql(user, table_name)
@@ -272,10 +273,33 @@ class MSSQLBackend(DBInterface):
         sql_max = ""
         max_rows = None
         total_rows_loaded = 0
+        current_row = 0
+
+        errors = ""
+
+        def _handle_error_table_set(current_data):
+            sql = self._load_table_sql(table_name, current_data[0]["data"], user, 1)
+            errors = ""
+
+            for row in current_data:
+                try:
+                    self.run_query(sql, user, row["data"], return_cursor=True).close()
+                except Exception as ex:
+                    row_num = row["row"]
+                    errors += "Error on row %s: %s\n" % (row_num, str(ex))
+
+            return errors
 
         for row in data_handle:
+            current_row += 1
+            if type(row) == str:
+                # This is an error in the iteration - eg:
+                #  invalid literal for int() with base 10: '72.7273'
+                errors += "Error on row %s: %s\n" % (current_row, row)
+                continue
+
             data_len += 1
-            current_data.extend(row)
+            current_data.append({"row": current_row, "data": row})
 
             if not max_rows:
                 cols = len(row)
@@ -286,11 +310,17 @@ class MSSQLBackend(DBInterface):
                     sql_max = self._load_table_sql(table_name,
                                                    row, user, max_rows)
 
-                self.run_query(sql_max,
-                               user,
-                               current_data,
-                               return_cursor=True).close()
+                insert_data = []
+                for row in current_data:
+                    insert_data.extend(row["data"])
+                try:
+                    self.run_query(sql_max,
+                                   user,
+                                   insert_data,
+                                   return_cursor=True).close()
 
+                except Exception as ex:
+                    errors += _handle_error_table_set(current_data)
                 current_data = []
                 data_len = 0
                 total_rows_loaded += max_rows
@@ -300,11 +330,21 @@ class MSSQLBackend(DBInterface):
         if data_len:
             sql = self._load_table_sql(table_name, row, user, data_len)
 
-            self.run_query(sql, user, current_data, return_cursor=True).close()
+            insert_data = []
+            for row in current_data:
+                insert_data.extend(row["data"])
+            try:
+                self.run_query(sql, user, insert_data, return_cursor=True).close()
+            except Exception:
+                errors += _handle_error_table_set(current_data)
 
             total_rows_loaded += data_len
             upload.rows_loaded = total_rows_loaded
 
+            upload.save()
+
+        if errors:
+            upload.error = errors
             upload.save()
 
     def _get_view_sql_for_dataset(self, table_name, user):
