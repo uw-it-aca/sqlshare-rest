@@ -27,6 +27,20 @@ def get_public_datasets(request, page_list=True):
     return _filter_list_from_request(base, request, page_list)
 
 
+def get_paged_dataset_log_message(list_type, request):
+    search = request.GET.get("q", "")
+    order_by = request.GET.get("order_by", "updated")
+    page_num = request.GET.get("page", "1")
+    page_size = request.GET.get("page_size", "50")
+
+    return ("GET %s dataset list; search '%s'; order_by: '%s'; "
+            "page_num: %s, page_size: %s" % (list_type,
+                                             search,
+                                             order_by,
+                                             page_num,
+                                             page_size))
+
+
 def get_recent_datasets_viewed_by_user(user, request, page_list=True):
     base = RecentDatasetView.objects.filter(user=user).order_by("-timestamp",
                                                                 "-pk")
