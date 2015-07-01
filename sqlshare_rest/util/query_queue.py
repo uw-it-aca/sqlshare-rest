@@ -5,6 +5,7 @@ from django.utils import timezone
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
+from sqlshare_rest.logger import getLogger
 import atexit
 import signal
 import sys
@@ -19,6 +20,7 @@ from multiprocessing import Process, Manager, Queue
 def process_queue(thread_count=0, run_once=True, verbose=False):
 
     def worker(q, process_id):
+        logger = getLogger(__name__)
         """
         Get a query from the queue, and process it...
         """
@@ -37,9 +39,13 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
             else:
                 oldest_query.save()
+                msg = "Processing query id %s, in process %s" % (
+                    oldest_query.pk,
+                    process_id
+                )
+                logger.info(msg)
                 if verbose:
-                    print("Processing query id %s, "
-                          "in process %s." % (oldest_query.pk, process_id))
+                    print(msg)
                 user = oldest_query.owner
                 row_count = 0
                 try:
@@ -59,9 +65,11 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                     except:
                         raise
                 except Exception as ex:
+                    msg = "Error running query %s: %s" % (oldest_query.pk,
+                                                          str(ex))
+                    logger.error(msg)
                     if verbose:
-                        print("Error running query %s: %s" % (oldest_query.pk,
-                                                              str(ex)))
+                        print(msg)
                     oldest_query.has_error = True
                     oldest_query.error = str(ex)
                 finally:
@@ -82,9 +90,12 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                         dataset.save()
                 except Exception as ex:
                     print("Error: %s" % str(ex))
+                    logger.error("Error: %s" % str(ex))
 
+            msg = "Finished query id %s." % oldest_query.pk
+            logger.info(msg)
             if verbose:
-                print("Finished query id %s." % oldest_query.pk)
+                print(msg)
             if run_once:
                 keep_looping = False
             else:
@@ -111,8 +122,10 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         """
         while True:
             sleep(5)
+            msg = "Triggering periodic processing."
+            logger.debug(msg)
             if verbose:
-                print("Triggering periodic processing.")
+                print(msg)
             trigger_query_queue_processing()
 
     q = Queue()
