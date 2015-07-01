@@ -83,7 +83,7 @@ class DatsetListAPITest(BaseAPITest):
             self.assertEquals(data[2]["sql_code"], "SELECT(3)")
             self.assertEquals(data[3]["sql_code"], "SELECT(4)")
 
-            self.assertTrue(self._has_log(l, "ds_list_user1", None, 'sqlshare_rest.views.dataset_list', 'INFO', 'GET my dataset list'))
+            self.assertTrue(self._has_log(l, "ds_list_user1", None, 'sqlshare_rest.views.dataset_list', 'INFO', "GET my dataset list; search ''; order_by: 'updated'; page_num: 1, page_size: 50"))
 
 
     def test_new_user(self):
@@ -121,7 +121,7 @@ class DatsetListAPITest(BaseAPITest):
             self.assertEquals(ds_list[0]["owner"], "ds_list_user3")
             self.assertEquals(ds_list[0]["name"], "ds_shared1")
 
-            self.assertTrue(self._has_log(l, "ds_list_shared_with1", None, 'sqlshare_rest.views.dataset_list', 'INFO', 'GET shared dataset list'))
+            self.assertTrue(self._has_log(l, "ds_list_shared_with1", None, 'sqlshare_rest.views.dataset_list', 'INFO', "GET shared dataset list; search ''; order_by: 'updated'; page_num: 1, page_size: 50"))
 
 
     def test_all_url(self):
@@ -195,7 +195,7 @@ class DatsetListAPITest(BaseAPITest):
             get_backend().remove_table_for_query_by_name("query_%s" % remove_id2)
             get_backend().remove_table_for_query_by_name("query_%s" % remove_id3)
 
-            self.assertTrue(self._has_log(l, "ds_list_user4", None, 'sqlshare_rest.views.dataset_list', 'INFO', 'GET all dataset list'))
+            self.assertTrue(self._has_log(l, "ds_list_user4", None, 'sqlshare_rest.views.dataset_list', 'INFO', "GET all dataset list; search ''; order_by: 'updated'; page_num: 1, page_size: 50"))
 
     def test_tagged_list(self):
         owner1 = "ds_list_user7"
@@ -266,7 +266,7 @@ class DatsetListAPITest(BaseAPITest):
             self.assertTrue("ds_shared" not in lookup["ds_list_user8"])
             self.assertTrue("ds_owned" not in lookup["ds_list_user7"])
 
-            self.assertTrue(self._has_log(l, "ds_list_user7", None, 'sqlshare_rest.views.dataset_list', 'INFO', 'GET tagged dataset list; tag: __test_tag_api__'))
+            self.assertTrue(self._has_log(l, "ds_list_user7", None, 'sqlshare_rest.views.dataset_list', 'INFO', "GET tagged dataset list; search ''; order_by: 'updated'; page_num: 1, page_size: 50"))
 
         # Test case-insensitivity
         url = reverse("sqlshare_view_dataset_tagged_list", kwargs={"tag": "__TEST_TAG_API__" })

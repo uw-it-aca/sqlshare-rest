@@ -27,7 +27,7 @@ def dataset_list(request):
     for dataset in datasets:
         data.append(dataset.json_data())
 
-    logger.info(get_paged_dataset_log_message("my", request))
+    logger.info(get_paged_dataset_log_message("my", request), request)
     return HttpResponse(json.dumps(data))
 
 
@@ -43,7 +43,7 @@ def dataset_shared_list(request):
     data = []
     for dataset in datasets:
         data.append(dataset.json_data())
-    logger.info(get_paged_dataset_log_message("shared", request))
+    logger.info(get_paged_dataset_log_message("shared", request), request)
     return HttpResponse(json.dumps(data))
 
 
@@ -58,7 +58,7 @@ def dataset_tagged_list(request, tag):
     data = []
     for dataset in datasets:
         data.append(dataset.json_data())
-    logger.info(get_paged_dataset_log_message("tagged", request))
+    logger.info(get_paged_dataset_log_message("tagged", request), request)
     return HttpResponse(json.dumps(data))
 
 
@@ -74,7 +74,7 @@ def dataset_recent_list(request):
     for dataset in datasets:
         data.append(dataset.json_data())
 
-    logger.info(get_paged_dataset_log_message("recent", request))
+    logger.info(get_paged_dataset_log_message("recent", request), request)
     return HttpResponse(json.dumps(data))
 
 
@@ -89,5 +89,5 @@ def dataset_all_list(request):
     data = []
     for dataset in datasets:
         data.append(dataset.json_data())
-    logger.info(get_paged_dataset_log_message("all", request))
+    logger.info(get_paged_dataset_log_message("all", request), request)
     return HttpResponse(json.dumps(data))
