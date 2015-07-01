@@ -86,10 +86,12 @@ class Dataset(DirtyFieldsMixin, models.Model):
 
     def get_upload_errors(self):
         try:
-            file_upload = FileUpload.objects.get(dataset__pk=self.pk)
-            return file_upload.error
+            file_uploads = FileUpload.objects.filter(dataset__pk=self.pk)
+            if file_uploads:
+                return file_uploads[0].error
         except FileUpload.DoesNotExist:
             return ""
+        return ""
 
     def get_sample_data_status(self):
         if self.preview_is_finished and not self.preview_error:
