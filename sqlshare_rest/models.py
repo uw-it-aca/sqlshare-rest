@@ -366,3 +366,17 @@ class DownloadToken(models.Model):
         token = DownloadToken.objects.get(token=token)
         token.delete()
         return token
+
+
+class LogoutToken(models.Model):
+    token = models.CharField(max_length=32)
+    user = models.ForeignKey(User)
+    date_created = models.DateTimeField(default=timezone.now)
+
+    def _generate_token(self):
+        return uuid.uuid4().hex
+
+    def store_token_for_user(self, user):
+        self.user = user
+        self.token = self._generate_token()
+        self.save()
