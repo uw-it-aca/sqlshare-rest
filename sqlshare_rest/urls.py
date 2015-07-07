@@ -47,6 +47,11 @@ urlpatterns = patterns(
     url('v3/user/me', 'user.user',
         name="sqlshare_view_user"),
 
+    url(r'^v3/user/logout/(?P<token>.*)', 'user.logout_process',
+        name="user_logout"),
+    url(r'^v3/user/logout', 'user.logout_init'),
+    url(r'^logout', 'user.post_logout', name="post_logout_url"),
+
     url('v3/db/query/download/(?P<token>[a-z0-9]+)',
         'download.run',
         name="sqlshare_view_run_download"),
@@ -98,6 +103,7 @@ urlpatterns = patterns(
     url(r'^uw/', 'auth.require_uw_login'),
 
     url(r'user/', 'admin.user_override'),
+
 )
 
 # OAuth urls.  Doing this instead of including the oauth2_provider urls so we
