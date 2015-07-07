@@ -6,6 +6,7 @@ from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_upload_queue_processing
 from sqlshare_rest.util.queue_triggers import UPLOAD_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
+from django.db.utils import DatabaseError
 import atexit
 
 import socket
@@ -144,16 +145,23 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             # We don't actually have a protocol to speak...
             clientsocket.close()
 
-            uploads = FileUpload.objects.filter(dataset_created=False,
-                                                is_finalized=True,
-                                                has_error=False,
-                                                pk__gt=newest_pk)
-            for upload in uploads:
-                if upload.pk > newest_pk:
-                    newest_pk = upload.pk
-                if verbose:
-                    print("Adding upload ID %s to the queue." % upload.pk)
-                q.put(upload)
+            try:
+                uploads = FileUpload.objects.filter(dataset_created=False,
+                                                    is_finalized=True,
+                                                    has_error=False,
+                                                    pk__gt=newest_pk)
+                for upload in uploads:
+                    if upload.pk > newest_pk:
+                        newest_pk = upload.pk
+                    if verbose:
+                        print("Adding upload ID %s to the queue." % upload.pk)
+                    q.put(upload)
+            except DatabaseError as ex:
+                ex_str = str(ex)
+                # If there's just, say, a network glitch, carry on.
+                # If it's anything else, re-raise the error.
+                if str_ex.find("Read from the server failed") < 0:
+                    raise
 
     q.join()
 
