@@ -65,7 +65,7 @@ def logout_process(request, token):
             else:
                 # Log out uw account
                 logout_url = _get_uw_logout_url(request)
-                return HttpResponse(logout_url)
+                return HttpResponseRedirect(logout_url)
     except LogoutToken.DoesNotExist:
         pass
 
