@@ -120,6 +120,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         Every 5 seconds, do a check for new queries.  Just in case something
         needs processing, but didn't call trigger_processing() itself.
         """
+        logger = getLogger(__name__)
         while True:
             sleep(5)
             msg = "Triggering periodic processing."
