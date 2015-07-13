@@ -537,9 +537,10 @@ class MSSQLBackend(DBInterface):
 
     def _remove_read_access_to_query_sql(self, query_id, user):
         db = self.get_query_cache_schema_name()
+        username = user.db_username
         return "REVOKE SELECT ON [%s].[query_%s] FROM [%s]" % (db,
-                                                            query_id,
-                                                            user.db_username)
+                                                               query_id,
+                                                               username)
 
     def _read_access_to_query_sql(self, query_id, user):
         db = self.get_query_cache_schema_name()
