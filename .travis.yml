@@ -1,3 +1,4 @@
+sudo: false
 language: python
 python:
   - "2.7"
@@ -13,10 +14,12 @@ before_script:
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'create user "sqlshare_user" identified by "ss_pass"'; fi
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant all on *.* to sqlshare_user'; fi
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant grant option on *.* to sqlshare_user'; fi
-  - sudo apt-get install unixODBC-dev
-  - sudo apt-get install freetds-common
-  - sudo apt-get install tdsodbc
-  - sudo apt-get install odbcinst1debian2
+# These were only needed for azure - commenting out for containerized travis-ci.  If we go back to testing on azure, there's this alternative:
+# http://docs.travis-ci.com/user/migrating-from-legacy/?utm_source=legacy-notice&utm_medium=banner&utm_campaign=legacy-upgrade#How-do-I-install-APT-sources-and-packages%3F
+#  - sudo apt-get install unixODBC-dev
+#  - sudo apt-get install freetds-common
+#  - sudo apt-get install tdsodbc
+#  - sudo apt-get install odbcinst1debian2
   - dpkg-query -L odbcinst1debian2
   - pip install coverage
   - pip install python-coveralls
