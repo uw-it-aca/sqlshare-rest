@@ -136,5 +136,11 @@ def add_token_access(request, token):
 
     user = get_user(request)
     dataset = sharing_email.dataset
+
+    logger.info("Adding access to dataset by token; owner: %s; "
+                "name: %s; new account: %s" % (dataset.owner.username,
+                                               dataset.name, user.username),
+                request)
+
     add_account_to_dataset(dataset, user.username)
     return HttpResponse(json.dumps(dataset.json_data()))
