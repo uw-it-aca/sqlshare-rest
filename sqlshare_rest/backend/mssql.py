@@ -535,6 +535,13 @@ class MSSQLBackend(DBInterface):
                                                     dataset,
                                                     reader.db_username)
 
+    def _remove_read_access_to_query_sql(self, query_id, user):
+        db = self.get_query_cache_schema_name()
+        username = user.db_username
+        return "REVOKE SELECT ON [%s].[query_%s] FROM [%s]" % (db,
+                                                               query_id,
+                                                               username)
+
     def _read_access_to_query_sql(self, query_id, user):
         db = self.get_query_cache_schema_name()
         return "GRANT SELECT ON [%s].[query_%s] TO [%s]" % (db,
@@ -562,6 +569,11 @@ class MSSQLBackend(DBInterface):
         # test round one:
         sql = self._add_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
+
+    def remove_read_access_to_query(self, query_id, user):
+        sql = self._remove_read_access_to_query_sql(query_id, user)
+        cursor = connection.cursor()
+        cursor.execute(sql)
 
     def remove_access_to_dataset(self, dataset, owner, reader):
         sql = self._remove_read_access_sql(dataset, owner, reader)
