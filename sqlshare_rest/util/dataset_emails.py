@@ -3,7 +3,10 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from sqlshare_rest.logger import getLogger
 import re
+
+logger = getLogger(__name__)
 
 
 def send_new_emails():
@@ -44,6 +47,13 @@ def _send_email(email):
     from_email = "sqlshare-noreply@uw.edu"
     # The sharing email's email field
     to = email.email.email
+
+    msg = "Sending sharing email to %s.  Dataset: %s" % (to, dataset_name)
+    logger.info(msg)
+
     msg = EmailMultiAlternatives(subject, text_version, from_email, [to])
     msg.attach_alternative(html_version, "text/html")
-    msg.send()
+    try:
+        msg.send()
+    except Exception as ex:
+        logger.error("Unable to send email to %s.  Error: %s" % (to, str(ex)))
