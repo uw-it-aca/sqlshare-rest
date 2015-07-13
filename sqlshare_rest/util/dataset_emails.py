@@ -6,8 +6,9 @@ from django.template.loader import render_to_string
 from sqlshare_rest.logger import getLogger
 import re
 
-
 logger = getLogger(__name__)
+
+
 def send_new_emails():
     unsent = DatasetSharingEmail.objects.filter(email_sent=False)
     for email in unsent:
