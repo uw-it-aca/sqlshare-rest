@@ -341,10 +341,6 @@ class TestMSSQLBackend(CleanUpTestCase):
             backend.close_user_connection(user2)
             backend.close_user_connection(user3)
 
-    def test_dataset_preview_sql(self):
-        backend = get_backend()
-        self.assertEquals("SELECT TOP 100 * FROM (SELECT (1)) as x", backend.get_preview_sql_for_query("SELECT (1)"))
-
     def test_public_permissions_control(self):
         import pyodbc
         self.remove_users.append("test_user_public_permissions1")
@@ -461,6 +457,20 @@ class TestMSSQLBackend(CleanUpTestCase):
             raise
         finally:
             backend.close_user_connection(user)
+
+    def test_top_rows_query_sql(self):
+        backend = get_backend()
+
+        self.assertEquals("SELECT TOP 100 (1), (2)", backend.get_preview_sql_for_query("SELECT (1), (2)"))
+        self.assertEquals("SELECT TOP 100 (1), (2)", backend.get_preview_sql_for_query("           SELECT               (1), (2)"))
+        self.assertEquals("SELECT TOP 100 (1), (2)", backend.get_preview_sql_for_query("SELECT TOP 400 (1), (2)"))
+        self.assertEquals("SELECT TOP 100 (1), (2)", backend.get_preview_sql_for_query("SELECT TOP(400) (1), (2)"))
+        self.assertEquals("SELECT TOP 100 (1), (2)", backend.get_preview_sql_for_query("SELECT TOP(20) PERCENT (1), (2)"))
+        self.assertEquals("SELECT TOP 100 (1), (2)", backend.get_preview_sql_for_query("select top (20) percent (1), (2)"))
+        self.assertEquals("select top (20) (1), (2)", backend.get_preview_sql_for_query("select top (20) (1), (2)"))
+        self.assertEquals("select top(20) (1), (2)", backend.get_preview_sql_for_query("select top(20) (1), (2)"))
+        self.assertEquals("select top  20  (1), (2)", backend.get_preview_sql_for_query("select top  20  (1), (2)"))
+        self.assertEquals("INSERT INTO BLAH...", backend.get_preview_sql_for_query("INSERT INTO BLAH..."))
 
     def test_column_types(self):
         owner = "test_column_types_user"

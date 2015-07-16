@@ -230,6 +230,7 @@ class MSSQLBackend(DBInterface):
 
             self.run_query(sql, user, return_cursor=True).close()
         except Exception as ex:
+            print("Error creating table: %s" % str(ex))
             drop_sql = self._drop_exisisting_table_sql(user, table_name)
             self.run_query(drop_sql, user, return_cursor=True).close()
             self.run_query(sql, user, return_cursor=True).close()
@@ -515,7 +516,38 @@ class MSSQLBackend(DBInterface):
         return "SELECT TOP 100 * FROM [%s].[%s]" % (user.schema, dataset_name)
 
     def get_preview_sql_for_query(self, sql):
-        return "SELECT TOP 100 * FROM (%s) as x" % sql
+        try:
+            # We only want to modify select statements, though that is the
+            # 'expected' type of query here...
+            if re.match('\s*select\s', sql, re.IGNORECASE):
+                # If they already have a TOP value in their query we need to
+                # modify it
+                if re.match('\s*select\s+top', sql, re.IGNORECASE):
+                    # Don't allow the top percentage syntax
+                    percent_string = '\s*select\s+top\s*\(?[\d]+\)?\s+percent'
+                    if re.match(percent_string, sql, re.IGNORECASE):
+                        sub_str = '(?i)%s\s*' % percent_string
+                        return re.sub(sub_str, 'SELECT TOP 100 ', sql)
+                    else:
+                        test = '\s*select\s+top\s*\(?([\d]+)\)?\s+'
+                        value = re.match(test, sql, re.IGNORECASE).group(1)
+
+                        # They're limiting more than we would, no problem
+                        if int(value) <= 100:
+                            return sql
+
+                        # String out their limit, add ours
+                        replace = '(?i)%s' % test
+                        return re.sub(replace, 'SELECT TOP 100 ', sql)
+
+                else:
+                    # Otherwise, just add the top 100.
+                    return re.sub('(?i)\s*select\s+', 'SELECT TOP 100 ', sql)
+        except Exception as ex:
+            print("Error on sql statement %s: %s", sql, str(ex))
+            return sql
+
+        return sql
 
     def delete_table(self, table, owner):
         sql = "DROP TABLE [%s].[%s]" % (owner.schema, table)

@@ -225,10 +225,10 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(len(current_list), 1)
         process_dataset_queue()
 
-        response11 = self.client.get(finalize_url, **auth_headers)
-        self.assertEquals(response11.status_code, 400)
-        current_list = get_initial_filter_list()
-        self.assertEquals(len(current_list), 0)
+#        response11 = self.client.get(finalize_url, **auth_headers)
+#        self.assertEquals(response11.status_code, 400)
+#        current_list = get_initial_filter_list()
+#        self.assertEquals(len(current_list), 0)
 
 
     def test_name_chars(self):
