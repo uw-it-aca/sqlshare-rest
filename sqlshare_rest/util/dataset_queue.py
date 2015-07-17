@@ -7,83 +7,114 @@ from sqlshare_rest.util.queue_triggers import trigger_upload_queue_processing
 from sqlshare_rest.util.queue_triggers import UPLOAD_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
 from django.db.utils import DatabaseError
+from django.conf import settings
 import atexit
+import time
+import sys
+import os
 
 import socket
 from threading import Thread
 
-import six
-
-if six.PY2:
-    from Queue import Queue
-elif six.PY3:
-    from queue import Queue
+TERMINATE_TRIGGER_FILE = getattr(settings,
+                                 "SQLSHARE_TERMINATE_UPLOAD_QUEUE_PATH",
+                                 "/tmp/sqlshare_terminate_upload_queue")
 
 
 def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
-    q = Queue()
+    def start_upload(upload, background=True):
+        upload.is_started = True
+        upload.save()
+        upload_id = upload.pk
+        if background:
+            from django.db import connection
+            connection.close()
 
-    def worker():
-        logger = getLogger(__name__)
-        """
-        Get a file upload object from the queue, and turn it into a dataset.
-        """
-        backend = get_backend()
-        keep_looping = True
-        while keep_looping:
-            oldest = q.get()
-            msg = "Processing file upload: %s" % oldest.pk
-            logger.info(msg)
-            if verbose:
-                print(msg)
-            user = oldest.owner
-            backend = get_backend()
+            if os.fork():
+                # This is the main process
+                return
+
+            os.setsid()
+
+            if os.fork():
+                # Double fork the daemon
+                sys.exit(0)
+
+            # Close stdin/out/err
+            sys.stdin.flush()
+            sys.stdout.flush()
+            sys.stderr.flush()
+            null = os.open(os.devnull, os.O_RDWR)
+            os.dup2(null, sys.stdin.fileno())
+            os.dup2(null, sys.stdout.fileno())
+            os.dup2(null, sys.stderr.fileno())
+            os.close(null)
+
+        try:
+            process_upload(upload_id)
+        except Exception as ex:
             try:
-                p = Parser()
-                p.delimiter(oldest.delimiter)
-                p.has_header_row(oldest.has_column_header)
+                upload = FileUpload.objects.get(pk=upload_id)
+                upload.has_error = True
+                upload.error = str(ex)
+                upload.is_finished = True
+                upload.save()
+            except:
+                # That try is just trying to get info out to the user, it's
+                # relatively ok if that fails
+                pass
+            logger = getLogger(__name__)
+            logger.error("Error on %s: %s" % (upload_id, str(ex)))
 
-                file_path = oldest.user_file.path
-                handle = open(file_path, "rt")
-                handle.seek(0)
-                p.parse(handle)
+        if background:
+            sys.exit(0)
 
-                name = oldest.dataset_name
-                table_name = backend.create_table_from_parser(name,
-                                                              p,
-                                                              oldest,
-                                                              user)
+    def process_upload(upload_id):
+        logger = getLogger(__name__)
+        upload = FileUpload.objects.get(pk=upload_id)
+        msg = "Processing file upload: %s" % upload.pk
+        logger.info(msg)
+        user = upload.owner
+        backend = get_backend()
+        try:
+            p = Parser()
+            p.delimiter(upload.delimiter)
+            p.has_header_row(upload.has_column_header)
 
-                dataset_sql = backend.get_view_sql_for_dataset(table_name,
-                                                               user)
-                dataset = create_dataset_from_query(user.username,
-                                                    oldest.dataset_name,
-                                                    dataset_sql)
+            file_path = upload.user_file.path
+            handle = open(file_path, "rt")
+            handle.seek(0)
+            p.parse(handle)
 
-                dataset.description = oldest.dataset_description
-                dataset.is_public = oldest.dataset_is_public
-                dataset.save()
-                oldest.dataset = dataset
-                oldest.dataset_created = True
-                oldest.save()
-            except Exception as ex:
-                msg = "Error on %s: %s" % (oldest.pk, str(ex))
-                logger.error(msg)
-                if verbose:
-                    print(msg)
-                oldest.has_error = True
-                oldest.error = str(ex)
-                oldest.save()
-            finally:
-                backend.close_user_connection(user)
+            name = upload.dataset_name
+            table_name = backend.create_table_from_parser(name,
+                                                          p,
+                                                          upload,
+                                                          user)
 
-            q.task_done()
-            msg = "Finished file upload %s." % oldest.pk
-            logger.info(msg)
-            if verbose:
-                print(msg)
-            if run_once:
-                keep_looping = False
+            dataset_sql = backend.get_view_sql_for_dataset(table_name,
+                                                           user)
+            dataset = create_dataset_from_query(user.username,
+                                                upload.dataset_name,
+                                                dataset_sql)
+
+            dataset.description = upload.dataset_description
+            dataset.is_public = upload.dataset_is_public
+            dataset.save()
+            upload.dataset = dataset
+            upload.dataset_created = True
+            upload.save()
+        except Exception as ex:
+            msg = "Error on %s: %s" % (upload.pk, str(ex))
+            logger.error(msg)
+            upload.has_error = True
+            upload.error = str(ex)
+            upload.save()
+        finally:
+            backend.close_user_connection(user)
+
+        msg = "Finished file upload %s." % upload.pk
+        logger.info(msg)
 
     def periodic_check():
         """
@@ -96,30 +127,19 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 print("Triggering periodic processing.")
             trigger_upload_queue_processing()
 
-    filtered = get_initial_filter_list()
+    filtered = FileUpload.objects.filter(is_started=False, is_finalized=True)
 
     if run_once:
         try:
             oldest = filtered.order_by('id')[:1].get()
         except FileUpload.DoesNotExist:
             return
-        q.put(oldest)
-        worker()
-    else:
-        # Track the oldest query, so we only select ones newer that
-        newest_pk = 0
-        for i in range(thread_count):
-            t = Thread(target=worker)
-            t.setDaemon(True)
-            t.start()
 
+        start_upload(oldest, background=False)
+    else:
         # Start with any queries already in the queue:
         for upload in filtered:
-            if upload.pk > newest_pk:
-                newest_pk = upload.pk
-            if verbose:
-                print("Adding file upload ID %s to the queue." % upload.pk)
-            q.put(upload)
+            start_upload(upload)
 
         # Just in case things get off the rails - maybe a connection to the
         # server gets blocked? - periodically trigger a check for new queries
@@ -142,20 +162,19 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
         server.listen(5)
         while True:
             (clientsocket, address) = server.accept()
+            # Check to see if we should exit...
+            if os.path.isfile(TERMINATE_TRIGGER_FILE):
+                sys.exit(0)
+
             # We don't actually have a protocol to speak...
             clientsocket.close()
 
             try:
-                uploads = FileUpload.objects.filter(dataset_created=False,
-                                                    is_finalized=True,
-                                                    has_error=False,
-                                                    pk__gt=newest_pk)
+                uploads = FileUpload.objects.filter(is_started=False,
+                                                    is_finalized=True)
+
                 for upload in uploads:
-                    if upload.pk > newest_pk:
-                        newest_pk = upload.pk
-                    if verbose:
-                        print("Adding upload ID %s to the queue." % upload.pk)
-                    q.put(upload)
+                    start_upload(upload)
             except DatabaseError as ex:
                 ex_str = str(ex)
                 # If there's just, say, a network glitch, carry on.
@@ -163,10 +182,28 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 if str_ex.find("Read from the server failed") < 0:
                     raise
 
-    q.join()
 
+def kill_dataset_queue():
+    # Create the file that triggers the termination
+    f = open(TERMINATE_TRIGGER_FILE, "w")
+    f.write("OK")
+    f.close()
 
-def get_initial_filter_list():
-    return FileUpload.objects.filter(dataset_created=False,
-                                     has_error=False,
-                                     is_finalized=True)
+    # Trigger the check...
+    trigger_upload_queue_processing()
+
+    # Just a quick pause before polling
+    time.sleep(0.3)
+
+    # Poll to see if the process is still running...
+    for i in range(10):
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(('localhost', UPLOAD_QUEUE_PORT_NUMBER))
+            time.sleep(1)
+        except socket.error as ex:
+            os.remove(TERMINATE_TRIGGER_FILE)
+            return True
+
+    os.remove(TERMINATE_TRIGGER_FILE)
+    return False

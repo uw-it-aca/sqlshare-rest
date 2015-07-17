@@ -15,7 +15,6 @@ from django.core.urlresolvers import reverse
 from sqlshare_rest.test.api.base import BaseAPITest
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.dataset_queue import process_dataset_queue
-from sqlshare_rest.util.dataset_queue import get_initial_filter_list
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import FileUpload, Query
 from sqlshare_rest.util.db import is_mysql, is_sqlite3
@@ -221,7 +220,7 @@ class FileUploadAPITest(BaseAPITest):
         response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
         self.assertEquals(response9.status_code, 202)
 
-        current_list = get_initial_filter_list()
+        current_list = FileUpload.objects.filter(is_started=False, is_finalized=True)
         self.assertEquals(len(current_list), 1)
         process_dataset_queue()
 
@@ -263,13 +262,13 @@ class FileUploadAPITest(BaseAPITest):
         response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
         self.assertEquals(response9.status_code, 202)
 
-        current_list = get_initial_filter_list()
+        current_list = FileUpload.objects.filter(is_started=False, is_finalized=True)
         self.assertEquals(len(current_list), 1)
         process_dataset_queue(verbose=True)
 
         response11 = self.client.get(finalize_url, **auth_headers)
         self.assertEquals(response11.status_code, 201)
-        current_list = get_initial_filter_list()
+        current_list = FileUpload.objects.filter(is_started=False, is_finalized=True)
         self.assertEquals(len(current_list), 0)
 
     def test_rejected_characters(self):

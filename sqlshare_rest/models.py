@@ -289,6 +289,7 @@ class FileUpload(models.Model):
     dataset_name = models.TextField(null=True)
     dataset_description = models.TextField(null=True)
     dataset_is_public = models.NullBooleanField()
+    is_started = models.BooleanField(default=False)
     is_finalized = models.NullBooleanField(db_index=True)
     rows_total = models.IntegerField(null=True)
     rows_loaded = models.IntegerField(null=True)
