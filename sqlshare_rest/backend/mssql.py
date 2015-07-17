@@ -503,7 +503,6 @@ class MSSQLBackend(DBInterface):
             return "INSERT INTO %s VALUES %s" % (table_name,
                                                  ", ".join(all_rows))
 
-
         try:
             # XXX - refactor with _load_table
             data_len = 0
