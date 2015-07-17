@@ -9,111 +9,132 @@ from sqlshare_rest.logger import getLogger
 import atexit
 import signal
 import sys
+import os
 
 import socket
 from threading import Thread
 
 import six
-from multiprocessing import Process, Manager, Queue
 
 
 def process_queue(thread_count=0, run_once=True, verbose=False):
+    def start_query(query, background=True):
+        query.is_started = True
+        query.save()
+        query_id = query.pk
 
-    def worker(q, process_id):
+        if background:
+            from django.db import connection
+            connection.close()
+
+            if os.fork():
+                # This is the main process
+                return
+
+            os.setsid()
+
+            if os.fork():
+                # Double fork the daemon
+                sys.exit(0)
+
+            # Close stdin/out/err
+            sys.stdin.flush()
+            sys.stdout.flush()
+            sys.stderr.flush()
+            null = os.open(os.devnull, os.O_RDWR)
+            os.dup2(null, sys.stdin.fileno())
+            os.dup2(null, sys.stdout.fileno())
+            os.dup2(null, sys.stderr.fileno())
+            os.close(null)
+
+        try:
+            process_query(query_id)
+        except Exception as ex:
+            try:
+                query = Query.objects.get(pk=query_id)
+                query.has_error = True
+                query.error = str(ex)
+                query.is_finished = True
+                query.save()
+            except:
+                # That try is just trying to get info out to the user, it's
+                # relatively ok if that fails
+                pass
+            logger = getLogger(__name__)
+            logger.error("Error on %s: %s" % (query_id, str(ex)))
+
+        if background:
+            sys.exit(0)
+
+    def process_query(query_id):
         logger = getLogger(__name__)
-        """
-        Get a query from the queue, and process it...
-        """
+        query = Query.objects.get(pk=query_id)
+        # queries can be cancelled before we see them.  clean it up now.
+
+        if query.terminated:
+            query.is_finished = True
+            query.has_error = True
+            query.error = "Query cancelled"
+            query.save()
+            return
+
+        pid = os.getpid()
+        query.process_queue_id = pid
+        query.save()
+
+        msg = "Processing query id %s, in process %s" % (
+            query.pk,
+            pid
+        )
+        logger.info(msg)
+        if verbose:
+            print(msg)
+        user = query.owner
+        row_count = 0
         backend = get_backend()
-        keep_looping = True
-        while keep_looping:
-            oldest_query = q.get()
-            oldest_query.process_queue_id = process_id
+        try:
+            start = timezone.now()
+            cursor = backend.run_query(query.sql,
+                                       user,
+                                       return_cursor=True)
 
-            # queries can be cancelled before we see them.  clean it up now.
-            if oldest_query.terminated:
-                oldest_query.is_finished = True
-                oldest_query.has_error = True
-                oldest_query.error = "Query cancelled"
-                oldest_query.save()
+            name = "query_%s" % query.pk
+            try:
+                create_table = backend.create_table_from_query_result
+                row_count = create_table(name, cursor)
+                backend.add_owner_read_access_to_query(query.pk,
+                                                       user)
 
-            else:
-                oldest_query.save()
-                msg = "Processing query id %s, in process %s" % (
-                    oldest_query.pk,
-                    process_id
-                )
-                logger.info(msg)
-                if verbose:
-                    print(msg)
-                user = oldest_query.owner
-                row_count = 0
-                try:
-                    start = timezone.now()
-                    cursor = backend.run_query(oldest_query.sql,
-                                               user,
-                                               return_cursor=True)
+                end = timezone.now()
+            except:
+                raise
+        except Exception as ex:
+            msg = "Error running query %s: %s" % (query.pk,
+                                                  str(ex))
+            logger.error(msg)
+            query.has_error = True
+            query.error = str(ex)
+        finally:
+            backend.close_user_connection(user)
 
-                    name = "query_%s" % oldest_query.pk
-                    try:
-                        create_table = backend.create_table_from_query_result
-                        row_count = create_table(name, cursor)
-                        backend.add_owner_read_access_to_query(oldest_query.pk,
-                                                               user)
+        try:
+            query.is_finished = True
+            query.date_finished = timezone.now()
+            query.rows_total = row_count
+            query.save()
 
-                        end = timezone.now()
-                    except:
-                        raise
-                except Exception as ex:
-                    msg = "Error running query %s: %s" % (oldest_query.pk,
-                                                          str(ex))
-                    logger.error(msg)
-                    if verbose:
-                        print(msg)
-                    oldest_query.has_error = True
-                    oldest_query.error = str(ex)
-                finally:
-                    backend.close_user_connection(user)
+            if query.is_preview_for:
+                dataset = query.is_preview_for
+                dataset.preview_is_finished = True
+                dataset.preview_error = query.error
+                # Make sure all current users can see the preview table
+                reset_dataset_account_access(dataset)
+                dataset.save()
+        except Exception as ex:
+            logger.error("Error: %s" % str(ex))
 
-                try:
-                    oldest_query.is_finished = True
-                    oldest_query.date_finished = timezone.now()
-                    oldest_query.rows_total = row_count
-                    oldest_query.save()
-
-                    if oldest_query.is_preview_for:
-                        dataset = oldest_query.is_preview_for
-                        dataset.preview_is_finished = True
-                        dataset.preview_error = oldest_query.error
-                        # Make sure all current users can see the preview table
-                        reset_dataset_account_access(dataset)
-                        dataset.save()
-                except Exception as ex:
-                    print("Error: %s" % str(ex))
-                    logger.error("Error: %s" % str(ex))
-
-            msg = "Finished query id %s." % oldest_query.pk
-            logger.info(msg)
-            if verbose:
-                print(msg)
-            if run_once:
-                keep_looping = False
-            else:
-                # This is designed to protect against this scenario:
-                # 1) user cancels running query
-                # 2) we fetch that query from the db, call kill_query in the
-                #    main process
-                # 3) the query finishes, and the worker process selects a new
-                #    query to run
-                # 4) we kill the wrong query.
-                #
-                # This should be very unlikely, but it would be a nasty bug to
-                # try to figure out, since it doesn't happen often, but
-                # potentially has very bad outcomes.
-                #
-                # On the plus side, the time between 2 and 3 should be very
-                # short, so hopefully this 1 second pause more than covers us
-                sleep(1)
+        msg = "Finished query id %s." % query.pk
+        logger.info(msg)
 
     def periodic_check():
         """
@@ -129,47 +150,19 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 print(msg)
             trigger_query_queue_processing()
 
-    q = Queue()
-    filtered = Query.objects.filter(is_finished=False)
+    filtered = Query.objects.filter(is_started=False)
     if run_once:
         try:
             oldest_query = filtered.order_by('id')[:1].get()
         except Query.DoesNotExist:
             return
-        q.put(oldest_query)
-        worker(q, 0)
+
+        start_query(oldest_query, background=False)
 
     else:
-        # Track the oldest query, so we only select ones newer that
-        newest_pk = 0
-        process_lookup = {}
-
-        max_current_thread = 0
-        for i in range(thread_count):
-            max_current_thread += 1
-            t = Process(target=worker, args=(q, max_current_thread,))
-            process_lookup[max_current_thread] = t
-            t.start()
-
-        def handle_kill(_signo, _stack_frame):
-            for pid in process_lookup:
-                try:
-                    process_lookup[pid].terminate()
-                    process_lookup[pid].join()
-                except Exception as ex:
-                    if verbose:
-                        print("Error killing process: %s" % ex)
-            sys.exit(0)
-
-        signal.signal(signal.SIGTERM, handle_kill)
-
         # Start with any queries already in the queue:
         for query in filtered:
-            if query.pk > newest_pk:
-                newest_pk = query.pk
-            if verbose:
-                print("Adding query ID %s to the queue." % query.pk)
-            q.put(query)
+            start_query(query)
 
         # Just in case things get off the rails - maybe a connection to the
         # server gets blocked? - periodically trigger a check for new queries
@@ -189,29 +182,17 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
         atexit.register(close_socket)
 
-        def kill_query(query, max_current_thread):
+        def kill_query(query):
+            logger = getLogger(__name__)
             pid = query.process_queue_id
+            query.is_started = True
             query.is_finished = True
             query.has_error = True
             query.error = "Query cancelled"
             query.save()
-            if pid in process_lookup:
-                p = process_lookup[pid]
-                if verbose:
-                    print("Killing pid: %s to "
-                          "terminate query: %s" % (pid,
-                                                   query.pk))
-                try:
-                    p.terminate()
-                    p.join()
-                except Exception as ex:
-                    if verbose:
-                        print("Error terminating process: %s", ex)
 
-                max_current_thread += 1
-                t = Process(target=worker, args=(q, max_current_thread,))
-                t.start()
-            return max_current_thread, t
+            logger.info("Cancelling query: %s" % query.pk)
+            os.kill(pid, signal.SIGKILL)
 
         server.listen(5)
         while True:
@@ -222,14 +203,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                                                   is_finished=False)
 
             for query in terminate_list:
-                max_current_thread, process = kill_query(query,
-                                                         max_current_thread)
-                process_lookup[max_current_thread] = process
+                kill_query(query)
 
-            queries = Query.objects.filter(is_finished=False, pk__gt=newest_pk)
+            queries = Query.objects.filter(is_started=False)
             for query in queries:
-                if query.pk > newest_pk:
-                    newest_pk = query.pk
-                if verbose:
-                    print("Adding query ID %s to the queue." % query.pk)
-                q.put(query)
+                start_query(query)

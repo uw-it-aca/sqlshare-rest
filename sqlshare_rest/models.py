@@ -219,6 +219,7 @@ class DatasetTag(models.Model):
 class Query(models.Model):
     sql = models.TextField(null=True)
     is_finished = models.BooleanField(default=False)
+    is_started = models.BooleanField(default=False)
     has_error = models.BooleanField(default=False)
     error = models.TextField(null=True)
     is_preview_for = models.ForeignKey(Dataset, null=True)
