@@ -230,6 +230,7 @@ class MSSQLBackend(DBInterface):
 
             self.run_query(sql, user, return_cursor=True).close()
         except Exception as ex:
+            print("Error creating table: %s" % str(ex))
             drop_sql = self._drop_exisisting_table_sql(user, table_name)
             self.run_query(drop_sql, user, return_cursor=True).close()
             self.run_query(sql, user, return_cursor=True).close()
@@ -474,33 +475,82 @@ class MSSQLBackend(DBInterface):
         # Make sure the db exists to stash query results into
         QUERY_SCHEMA = self.get_query_cache_schema_name()
         cursor = connection.cursor()
+        import time
 
+        t1 = time.time()
         sql = "SELECT name FROM sys.schemas WHERE name = ?"
         cursor.execute(sql, (QUERY_SCHEMA, ))
 
         if not cursor.rowcount:
             cursor.execute("CREATE SCHEMA %s" % (QUERY_SCHEMA))
 
+        t2 = time.time()
         column_def = self._get_column_definitions_for_cursor(source_cursor)
+        t3 = time.time()
 
         full_name = "[%s].[%s]" % (QUERY_SCHEMA, name)
         create_table = "CREATE TABLE %s (%s)" % (full_name, column_def)
 
         cursor.execute(create_table)
+        t4 = time.time()
 
-        row = source_cursor.fetchone()
+        def _insert_sql(table_name, row, row_count):
+            placeholders = map(lambda x: "?", row)
+            ph_str = ", ".join(placeholders)
 
-        if row is None:
-            return 0
+            all_rows = map(lambda x: "(%s)" % ph_str, range(row_count))
 
-        placeholders = ", ".join(list(map(lambda x: "?", row)))
-        insert = "INSERT INTO %s VALUES (%s)" % (full_name, placeholders)
-        row_count = 0
-        while row:
-            cursor.execute(insert, row)
-            row = source_cursor.fetchone()
-            row_count += 1
-        return row_count
+            return "INSERT INTO %s VALUES %s" % (table_name,
+                                                 ", ".join(all_rows))
+
+        try:
+            # XXX - refactor with _load_table
+            data_len = 0
+            current_data = []
+            sql_max = ""
+            max_rows = None
+            total_rows_loaded = 0
+            current_row = 0
+
+            for row in source_cursor:
+                current_row += 1
+
+                data_len += 1
+                current_data.append({"row": current_row, "data": row})
+
+                if not max_rows:
+                    cols = len(row)
+                    max_rows = int(MSSQLBackend.MAX_PARAMETERS / cols)
+
+                if data_len == max_rows:
+                    if not sql_max:
+                        sql_max = _insert_sql(full_name, row, max_rows)
+
+                    insert_data = []
+                    for row in current_data:
+                        insert_data.extend(row["data"])
+
+                    cursor.execute(sql_max, insert_data)
+
+                    current_data = []
+                    data_len = 0
+                    total_rows_loaded += max_rows
+
+            if data_len:
+                sql = _insert_sql(full_name, row, data_len)
+
+                insert_data = []
+                for row in current_data:
+                    insert_data.extend(row["data"])
+                cursor.execute(sql, insert_data)
+
+                total_rows_loaded += data_len
+        except Exception as ex:
+            print("Ex: ", (str(ex)))
+
+        t5 = time.time()
+
+        return total_rows_loaded
 
     def get_query_cache_schema_name(self):
         return getattr(settings, "SQLSHARE_QUERY_CACHE_SCHEMA", "QUERY_SCHEMA")
@@ -515,7 +565,38 @@ class MSSQLBackend(DBInterface):
         return "SELECT TOP 100 * FROM [%s].[%s]" % (user.schema, dataset_name)
 
     def get_preview_sql_for_query(self, sql):
-        return "SELECT TOP 100 * FROM (%s) as x" % sql
+        try:
+            # We only want to modify select statements, though that is the
+            # 'expected' type of query here...
+            if re.match('\s*select\s', sql, re.IGNORECASE):
+                # If they already have a TOP value in their query we need to
+                # modify it
+                if re.match('\s*select\s+top', sql, re.IGNORECASE):
+                    # Don't allow the top percentage syntax
+                    percent_string = '\s*select\s+top\s*\(?[\d]+\)?\s+percent'
+                    if re.match(percent_string, sql, re.IGNORECASE):
+                        sub_str = '(?i)%s\s*' % percent_string
+                        return re.sub(sub_str, 'SELECT TOP 100 ', sql)
+                    else:
+                        test = '\s*select\s+top\s*\(?([\d]+)\)?\s+'
+                        value = re.match(test, sql, re.IGNORECASE).group(1)
+
+                        # They're limiting more than we would, no problem
+                        if int(value) <= 100:
+                            return sql
+
+                        # String out their limit, add ours
+                        replace = '(?i)%s' % test
+                        return re.sub(replace, 'SELECT TOP 100 ', sql)
+
+                else:
+                    # Otherwise, just add the top 100.
+                    return re.sub('(?i)\s*select\s+', 'SELECT TOP 100 ', sql)
+        except Exception as ex:
+            print("Error on sql statement %s: %s", sql, str(ex))
+            return sql
+
+        return sql
 
     def delete_table(self, table, owner):
         sql = "DROP TABLE [%s].[%s]" % (owner.schema, table)

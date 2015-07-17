@@ -35,7 +35,13 @@ def _start_query(request):
     sql = data["sql"]
 
     user = get_user(request)
-    query = create_query(user.username, data["sql"])
+    base_sql = data["sql"]
+
+    # Force this down to the top 100 rows...
+    sql = data["sql"]
+    is_preview = data.get("is_preview", False)
+
+    query = create_query(user.username, sql, is_preview)
 
     response = HttpResponse(json.dumps(query.json_data(request)))
     response["Location"] = query.get_url()
