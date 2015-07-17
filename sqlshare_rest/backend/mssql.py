@@ -546,7 +546,7 @@ class MSSQLBackend(DBInterface):
 
                 total_rows_loaded += data_len
         except Exception as ex:
-            print "Ex: ", (str(ex))
+            print("Ex: ", (str(ex)))
 
         t5 = time.time()
 
