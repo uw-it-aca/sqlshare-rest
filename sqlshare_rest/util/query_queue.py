@@ -2,12 +2,14 @@ from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.models import Query
 from sqlshare_rest.dao.dataset import reset_dataset_account_access
 from django.utils import timezone
+from django.conf import settings
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
 import atexit
 import signal
+import time
 import sys
 import os
 
@@ -15,6 +17,9 @@ import socket
 from threading import Thread
 
 import six
+TERMINATE_TRIGGER_FILE = getattr(settings,
+                                 "SQLSHARE_TERMINATE_QUERY_QUEUE_PATH",
+                                 "/tmp/sqlshare_terminate_query_queue")
 
 
 def process_queue(thread_count=0, run_once=True, verbose=False):
@@ -197,6 +202,9 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         server.listen(5)
         while True:
             (clientsocket, address) = server.accept()
+            # Check to see if we should exit...
+            if os.path.isfile(TERMINATE_TRIGGER_FILE):
+                sys.exit(0)
             # We don't actually have a protocol to speak...
             clientsocket.close()
             terminate_list = Query.objects.filter(terminated=True,
@@ -208,3 +216,29 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             queries = Query.objects.filter(is_started=False)
             for query in queries:
                 start_query(query)
+
+
+def kill_query_queue():
+    # Create the file that triggers the termination
+    f = open(TERMINATE_TRIGGER_FILE, "w")
+    f.write("OK")
+    f.close()
+
+    # Trigger the check...
+    trigger_query_queue_processing()
+
+    # Just a quick pause before polling
+    time.sleep(0.3)
+
+    # Poll to see if the process is still running...
+    for i in range(10):
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(('localhost', QUERY_QUEUE_PORT_NUMBER))
+            time.sleep(1)
+        except socket.error as ex:
+            os.remove(TERMINATE_TRIGGER_FILE)
+            return True
+
+    os.remove(TERMINATE_TRIGGER_FILE)
+    return False
