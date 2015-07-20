@@ -55,6 +55,10 @@ class MSSQLBackend(DBInterface):
         sql = "CREATE USER %s FROM LOGIN %s" % (username, username)
         cursor.execute(sql)
         cursor.close()
+        cursor = connection.cursor()
+        sql = "GRANT SHOWPLAN TO [%s]" % (username)
+        cursor.execute(sql)
+        cursor.close()
 
     def create_db_user(self, username, password):
         return self._run_create_db_user(connection, username, password)
@@ -186,19 +190,23 @@ class MSSQLBackend(DBInterface):
         return result[0][0]
 
     def get_query_plan(self, sql, user):
-        connection = self.get_connection_for_user(user)
-        cursor = connection.cursor()
-        cursor.execute("SET SHOWPLAN_XML ON")
         try:
-            cursor.execute(sql)
-            data = cursor.fetchall()[0][0]
-        except Exception:
-            raise
-        finally:
-            cursor.execute("SET SHOWPLAN_XML OFF")
+            connection = self.get_connection_for_user(user)
+            cursor = connection.cursor()
+            cursor.execute("SET SHOWPLAN_XML ON")
+            try:
+                cursor.execute(sql)
+                data = cursor.fetchall()[0][0]
+            except Exception:
+                raise
+            finally:
+                cursor.execute("SET SHOWPLAN_XML OFF")
 
-        cursor.close()
-        return data
+            cursor.close()
+            return data
+        except Exception as ex:
+            # Need to sort out a permissions issue
+            return ""
 
     def run_query(self, sql, user, params=None, return_cursor=False):
         connection = self.get_connection_for_user(user)
