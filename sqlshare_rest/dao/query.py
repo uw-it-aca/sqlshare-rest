@@ -8,10 +8,9 @@ def create_query(username, sql, is_preview=False):
     backend = get_backend()
     user_obj = backend.get_user(username)
 
-    if is_preview:
-        sql = backend.get_preview_sql_for_query(sql)
-
-    query = Query.objects.create(sql=sql, owner=user_obj)
+    query = Query.objects.create(sql=sql,
+                                 owner=user_obj,
+                                 is_ui_preview=is_preview)
 
     return query
 

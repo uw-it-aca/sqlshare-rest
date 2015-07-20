@@ -116,7 +116,12 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             query_plan = backend.get_query_plan(query.sql, user)
 
             t1 = time.time()
-            cursor = backend.run_query(query.sql,
+
+            sql = query.sql
+            if query.is_ui_preview:
+                sql = backend.get_preview_sql_for_query(sql)
+
+            cursor = backend.run_query(sql,
                                        user,
                                        return_cursor=True)
 
