@@ -1,5 +1,6 @@
 # This module exists to prevent circular imports.
 from sqlshare_rest.util.db import get_backend
+import json
 
 
 def get_sample_data_for_query(query, username):
@@ -7,6 +8,9 @@ def get_sample_data_for_query(query, username):
     user_obj = backend.get_user(username)
 
     if query.is_finished and not query.error:
+        data = json.loads(query.preview_content)
+
+        return data["data"], data["columns"]
         try:
             cursor = get_query_sample_data(user_obj, query.id)
             data = []

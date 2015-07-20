@@ -191,10 +191,6 @@ class DatsetListAPITest(BaseAPITest):
             self.assertTrue(lookup["ds_list_user5"]["ds_shared"])
             self.assertTrue(lookup["ds_list_user6"]["ds_public"])
 
-            get_backend().remove_table_for_query_by_name("query_%s" % remove_id1)
-            get_backend().remove_table_for_query_by_name("query_%s" % remove_id2)
-            get_backend().remove_table_for_query_by_name("query_%s" % remove_id3)
-
             self.assertTrue(self._has_log(l, "ds_list_user4", None, 'sqlshare_rest.views.dataset_list', 'INFO', "GET all dataset list; search ''; order_by: 'updated'; page_num: 1, page_size: 50"))
 
     def test_tagged_list(self):

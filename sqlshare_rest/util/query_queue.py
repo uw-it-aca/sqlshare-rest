@@ -126,6 +126,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 all_data = []
                 for row in cursor:
                     all_data.append(list(row))
+                    row_count += 1
 
                 columns = get_column_names_from_cursor(cursor)
                 formatted = json.dumps({"columns": columns, "data": all_data})

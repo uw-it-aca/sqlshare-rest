@@ -164,13 +164,6 @@ class MySQLBackend(DBInterface):
     def get_query_cache_db_name(self):
         return getattr(settings, "SQLSHARE_QUERY_CACHE_DB", "ss_query_db")
 
-    def remove_table_for_query_by_name(self, name):
-        QUERY_SCHEMA = self.get_query_cache_db_name()
-        cursor = connection.cursor()
-        full_name = "`%s`.`%s`" % (QUERY_SCHEMA, name)
-        drop_table = "DROP TABLE %s" % (full_name)
-        cursor.execute(drop_table)
-
     def create_table_from_query_result(self, name, source_cursor):
         # Make sure the db exists to stash query results into
         QUERY_SCHEMA = self.get_query_cache_db_name()

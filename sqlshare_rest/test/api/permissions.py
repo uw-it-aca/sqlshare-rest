@@ -374,12 +374,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         data = json.loads(response.content.decode("utf-8"))
 
-        if is_sqlite3():
-            self.assertEquals(data["sample_data"], [['1']])
-        else:
-            self.assertEquals(data["sample_data"], [[1]])
-
-        backend.remove_table_for_query_by_name("query_%s" % remove_pk)
+        self.assertEquals(data["sample_data"], [[1]])
 
     def test_preview_table_permissions_pre_process(self):
         # We need to process the preview query - purge any existing queries
@@ -422,11 +417,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         data = json.loads(response.content.decode("utf-8"))
 
-        if is_sqlite3():
-            self.assertEquals(data["sample_data"], [['1']])
-        else:
-            self.assertEquals(data["sample_data"], [[1]])
-        backend.remove_table_for_query_by_name("query_%s" % remove_pk)
+        self.assertEquals(data["sample_data"], [[1]])
 
     def test_preview_table_permissions_public(self):
         # We need to process the preview query - purge any existing queries
@@ -466,14 +457,11 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         data = json.loads(response.content.decode("utf-8"))
 
-        if is_sqlite3():
-            self.assertEquals(data["sample_data"], [['1']])
-        elif is_mysql():
+        if is_mysql():
             # :(
             self.assertEquals(data["sample_data"], None)
         else:
             self.assertEquals(data["sample_data"], [[1]])
-        backend.remove_table_for_query_by_name("query_%s" % remove_pk)
 
     def test_public_to_shared(self):
         owner = "permissions_xpublic_user1"
