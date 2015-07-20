@@ -117,7 +117,7 @@ def finalize(request, id):
 
 def _get_total_upload_rows(upload):
     file_path = upload.user_file.path
-    handle = open(file_path, "r")
+    handle = open(file_path, "U")
 
     total_lines = 0
     for line in handle:

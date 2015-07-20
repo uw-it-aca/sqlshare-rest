@@ -82,7 +82,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             p.has_header_row(upload.has_column_header)
 
             file_path = upload.user_file.path
-            handle = open(file_path, "rt")
+            handle = open(file_path, "U")
             handle.seek(0)
             p.parse(handle)
 
