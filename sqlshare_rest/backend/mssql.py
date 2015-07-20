@@ -185,6 +185,21 @@ class MSSQLBackend(DBInterface):
         result = self.run_query(count_sql, user)
         return result[0][0]
 
+    def get_query_plan(self, sql, user):
+        connection = self.get_connection_for_user(user)
+        cursor = connection.cursor()
+        cursor.execute("SET SHOWPLAN_XML ON")
+        try:
+            cursor.execute(sql)
+            data = cursor.fetchall()[0][0]
+        except Exception:
+            raise
+        finally:
+            cursor.execute("SET SHOWPLAN_XML OFF")
+
+        cursor.close()
+        return data
+
     def run_query(self, sql, user, params=None, return_cursor=False):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
@@ -460,16 +475,6 @@ class MSSQLBackend(DBInterface):
                 column_defs.append("%s TEXT" % column_name)
 
         return ", ".join(column_defs)
-
-    def remove_table_for_query_by_name(self, name):
-        try:
-            QUERY_SCHEMA = self.get_query_cache_schema_name()
-            cursor = connection.cursor()
-            full_name = "[%s].[%s]" % (QUERY_SCHEMA, name)
-            drop_table = "DROP TABLE %s" % (full_name)
-            cursor.execute(drop_table)
-        except:
-            pass
 
     def create_table_from_query_result(self, name, source_cursor):
         # Make sure the db exists to stash query results into

@@ -40,8 +40,6 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q2.has_error, False)
         self.assertEquals(q2.rows_total, 1)
 
-        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
-
     def test_order(self):
         owner = "dao_query_user2"
         self.remove_users.append(owner)
@@ -82,10 +80,6 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q3.is_finished, True)
 
         process_queue()
-        get_backend().remove_table_for_query_by_name("query_%s" % query1.pk)
-        get_backend().remove_table_for_query_by_name("query_%s" % query2.pk)
-        get_backend().remove_table_for_query_by_name("query_%s" % query3.pk)
-
 
     def test_invalid_sql(self):
         owner = "dao_query_user3"

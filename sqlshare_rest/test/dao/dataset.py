@@ -35,7 +35,6 @@ class TestDatasetDAO(CleanUpTestCase):
         m2 = Dataset.objects.get(pk=model.pk)
 
         self.assertEquals(m2.get_sample_data_status(), "success")
-        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
 
     def setUp(self):
         # Try to cleanup from any previous test runs...

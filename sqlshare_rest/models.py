@@ -230,6 +230,10 @@ class Query(models.Model):
     rows_total = models.IntegerField(null=True)
     process_queue_id = models.IntegerField(null=True)
     terminated = models.BooleanField(default=False)
+    preview_content = models.TextField(null=True)
+    query_plan = models.TextField(null=True)
+    query_time = models.FloatField(null=True)
+    total_time = models.FloatField(null=True)
 
     def save(self, *args, **kwargs):
         super(Query, self).save(*args, **kwargs)

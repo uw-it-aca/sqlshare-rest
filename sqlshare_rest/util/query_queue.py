@@ -9,6 +9,7 @@ from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
 import atexit
 import signal
+import json
 import time
 import sys
 import os
@@ -71,6 +72,19 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         if background:
             sys.exit(0)
 
+    def get_column_names_from_cursor(cursor):
+        index = 0
+        names = []
+        for col in cursor.description:
+            index += 1
+            column_name = col[0]
+            if column_name == "":
+                column_name = "COLUMN%s" % index
+
+            names.append(column_name)
+
+        return names
+
     def process_query(query_id):
         logger = getLogger(__name__)
         query = Query.objects.get(pk=query_id)
@@ -99,16 +113,30 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
         backend = get_backend()
         try:
             start = timezone.now()
+            query_plan = backend.get_query_plan(query.sql, user)
+
+            t1 = time.time()
             cursor = backend.run_query(query.sql,
                                        user,
                                        return_cursor=True)
 
+            t2 = time.time()
             name = "query_%s" % query.pk
             try:
-                create_table = backend.create_table_from_query_result
-                row_count = create_table(name, cursor)
-                backend.add_owner_read_access_to_query(query.pk,
-                                                       user)
+                all_data = []
+                for row in cursor:
+                    all_data.append(list(row))
+                    row_count += 1
+
+                columns = get_column_names_from_cursor(cursor)
+                formatted = json.dumps({"columns": columns, "data": all_data})
+                query.preview_content = formatted
+                t3 = time.time()
+
+                query.query_time = t2-t1
+                query.total_time = t3-t1
+                query.query_plan = query_plan
+                query.save()
 
                 end = timezone.now()
             except:

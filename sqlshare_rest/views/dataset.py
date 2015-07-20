@@ -136,6 +136,7 @@ def _get_dataset(request, owner, name):
     if dataset.preview_is_finished:
         username = user.username
         query = Query.objects.get(is_preview_for=dataset)
+
         sample_data, columns = get_sample_data_for_query(query,
                                                          username)
 

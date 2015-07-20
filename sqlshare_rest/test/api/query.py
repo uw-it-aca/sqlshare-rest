@@ -79,5 +79,3 @@ class QueryAPITest(BaseAPITest):
             values = json.loads(response.content.decode("utf-8"))
 
             self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.query', 'INFO', 'GET finished query; ID: %s' % (qid)))
-
-        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)

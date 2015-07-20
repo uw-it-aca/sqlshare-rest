@@ -180,13 +180,11 @@ class FileUploadAPITest(BaseAPITest):
 
         self.assertEquals(data["rows_total"], 6)
 
-        if is_sqlite3():
-            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
-        else:
+#        if is_sqlite3():
+#            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
+#        else:
             # Hoping that other db engines will also return typed data...
-            self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
-
-        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
+        self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
 
     def test_bad_columns(self):
         owner = "upload_user_wonky_columns"

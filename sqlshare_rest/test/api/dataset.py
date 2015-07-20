@@ -277,15 +277,6 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(data["sample_data_status"], "success")
         self.assertEquals(data["description"], "This is a test dataset")
 
-        try:
-            get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
-        except:
-            pass
-        try:
-            get_backend().remove_table_for_query_by_name("query_%s" % remove_pk2)
-        except:
-            pass
-
     def test_repeated_puts_no_queue_run(self):
         """
         This *should* update the dataset initially created
@@ -337,10 +328,6 @@ class DatsetAPITest(BaseAPITest):
 
         self.assertEquals(data["owner"], owner)
         self.assertEquals(data["description"], "This is a test dataset")
-        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
-
-
-
 
     def test_valid_no_permissions(self):
         owner = "put_user2"
@@ -470,9 +457,6 @@ class DatsetAPITest(BaseAPITest):
         ds1 = Dataset.objects.get(pk = ds1.pk)
         self.assertEquals(ds1.preview_is_finished, True)
         self.assertEquals(ds1.preview_error, None)
-
-        get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
-
 
     def test_delete(self):
         owner = "test_dataset_delete"

@@ -501,11 +501,6 @@ class TestMSSQLBackend(CleanUpTestCase):
             except Exception:
                 pass
 
-            try:
-                get_backend().remove_table_for_query_by_name("query_%s" % remove_pk)
-            except Exception:
-                pass
-
     @classmethod
     def setUpClass(cls):
         def _run_query(sql):

@@ -13,6 +13,14 @@ class DBInterface(object):
     def __init__(self):
         self.username = None
 
+    def get_query_plan(self, sql, user):
+        """
+        This should return a string describing the complexity of the given
+        SQL statement.  By default it's empty, only implemented in some DB
+        backends.
+        """
+        return ""
+
     def run_query(self, sql, user, params=None, return_cursor=False):
         self._not_implemented("run_query")
 
@@ -184,9 +192,6 @@ class DBInterface(object):
         return self.run_query(self.get_query_sample_sql(id),
                               user,
                               return_cursor=True)
-
-    def remove_table_for_query_by_name(self, name):
-        raise NotImplementedError("remove_table_for_query_by_name")
 
     def create_table_from_query_result(self, name, cursor):
         """

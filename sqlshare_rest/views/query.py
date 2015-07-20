@@ -43,11 +43,10 @@ def _get_query(request, id, query):
     data = query.json_data(request)
     user = get_user(request)
 
-    sample_data, columns = get_sample_data_for_query(query,
-                                                     user.username)
-
-    data["sample_data"] = sample_data
-    data["columns"] = columns
+    if query.preview_content:
+        preview_data = json.loads(query.preview_content)
+        data["sample_data"] = preview_data["data"]
+        data["columns"] = preview_data["columns"]
 
     response = HttpResponse(json.dumps(data, default=json_serializer))
 
