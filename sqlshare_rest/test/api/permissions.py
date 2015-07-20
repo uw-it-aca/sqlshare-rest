@@ -457,11 +457,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
         data = json.loads(response.content.decode("utf-8"))
 
-        if is_mysql():
-            # :(
-            self.assertEquals(data["sample_data"], None)
-        else:
-            self.assertEquals(data["sample_data"], [[1]])
+        self.assertEquals(data["sample_data"], [[1]])
 
     def test_public_to_shared(self):
         owner = "permissions_xpublic_user1"

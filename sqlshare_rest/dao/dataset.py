@@ -186,16 +186,11 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
             backend.remove_access_to_dataset(dataset.name,
                                              owner=dataset.owner,
                                              reader=user)
-        if query:
-            backend.remove_read_access_to_query(query.pk, user)
 
     for user in user_models:
         backend.add_read_access_to_dataset(dataset.name,
                                            owner=dataset.owner,
                                            reader=user)
-
-        if query:
-            backend.add_read_access_to_query(query.pk, user)
 
     dataset.shared_with = user_models
     if save_dataset:
@@ -227,9 +222,6 @@ def add_account_to_dataset(dataset, account):
     backend.add_read_access_to_dataset(dataset.name,
                                        owner=dataset.owner,
                                        reader=user)
-
-    if query:
-        backend.add_read_access_to_query(query.pk, user)
 
     dataset.shared_with.add(user)
 
@@ -268,9 +260,6 @@ def reset_dataset_account_access(dataset):
         backend.add_read_access_to_dataset(dataset.name,
                                            owner=dataset.owner,
                                            reader=user)
-
-        if query:
-            backend.add_read_access_to_query(query.pk, user)
 
     if dataset.is_public:
         add_public_access(dataset)
