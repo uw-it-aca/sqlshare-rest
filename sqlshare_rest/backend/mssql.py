@@ -189,7 +189,6 @@ class MSSQLBackend(DBInterface):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
         cursor.execute("SET SHOWPLAN_XML ON")
-        print "Turned on SHOWPLAN_XML"
         try:
             cursor.execute(sql)
             data = cursor.fetchall()[0][0]
