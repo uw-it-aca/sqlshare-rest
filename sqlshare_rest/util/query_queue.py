@@ -121,7 +121,6 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                                        return_cursor=True)
 
             t2 = time.time()
-            name = "query_%s" % query.pk
             try:
                 all_data = []
                 for row in cursor:
