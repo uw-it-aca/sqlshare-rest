@@ -44,7 +44,7 @@ def parser(request, id):
         p = Parser()
 
         file_path = upload.user_file.path
-        handle = open(file_path, "rt")
+        handle = open(file_path, "U")
         p.guess(handle.read())
         handle.close()
 
@@ -58,7 +58,7 @@ def parser(request, id):
 
 def _update_from_parser(upload, parser):
     file_path = upload.user_file.path
-    handle = open(file_path, "rt")
+    handle = open(file_path, "U")
     parser.parse(handle)
     upload.has_column_header = parser.has_header_row()
 

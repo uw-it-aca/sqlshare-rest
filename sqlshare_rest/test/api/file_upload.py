@@ -341,6 +341,142 @@ class FileUploadAPITest(BaseAPITest):
         response = self.client.get(finalize_url, **auth_headers)
         self.assertEquals(response.status_code, 201)
 
+    def test_full_upload_other_eol(self):
+        # Clean up any other file uplaods, so the queue processing at the bottom finds ours
+        FileUpload.objects.all().delete()
+
+        # We also need to clear up Queries, so we can get the data preview
+        Query.objects.all().delete()
+        owner = "upload_user_eol"
+        self.remove_users.append(owner)
+        auth_headers = self.get_auth_header_for_username(owner)
+
+        data1 = "col1,col2,XXcol3\ra,1,2\rb,2,3\nc,3,4\r"
+        data2 = "z,999,2\ry,2,3\rx,30,41"
+
+        init_url = reverse("sqlshare_view_file_upload_init")
+
+        with LogCapture() as l:
+            response1 = self.client.post(init_url, data=data1, content_type="text/plain", **auth_headers)
+            self.assertEquals(response1.status_code, 201)
+            body = response1.content.decode("utf-8")
+
+            re.match("^\d+$", body)
+
+            upload_id = int(body)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, initialized; ID: %s' % (upload_id)))
+
+
+        # Test default parsing
+        with LogCapture() as l:
+            parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+            response2 = self.client.get(parser_url, **auth_headers)
+            self.assertEquals(response2.status_code, 200)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_parser', 'INFO', 'File upload, GET parser; ID: %s' % (upload_id)))
+
+        parser_data = json.loads(response2.content.decode("utf-8"))
+        self.assertEquals(parser_data["parser"]["delimiter"], ",")
+        self.assertEquals(parser_data["parser"]["has_column_headers"], True)
+        self.assertEquals(parser_data["columns"][0], { "name": "col1" })
+        self.assertEquals(parser_data["columns"][1], { "name": "col2" })
+        self.assertEquals(parser_data["columns"][2], { "name": "XXcol3" })
+        self.assertEquals(parser_data["sample_data"][0], ["a", "1", "2"])
+        self.assertEquals(parser_data["sample_data"][1], ["b", "2", "3"])
+        self.assertEquals(parser_data["sample_data"][2], ["c", "3", "4"])
+
+        # Test overriding the parser
+        with LogCapture() as l:
+            response4 = self.client.put(parser_url, data='{ "parser": { "delimiter": "|", "has_column_header": false } }', content_type="application/json", **auth_headers)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_parser', 'INFO', 'File upload, PUT parser; ID: %s; delimiter: |; has_column_header: False' % (upload_id)))
+
+        parser_url = reverse("sqlshare_view_file_parser", kwargs={ "id":upload_id })
+        response5 = self.client.get(parser_url, **auth_headers)
+        self.assertEquals(response2.status_code, 200)
+
+        parser_data = json.loads(response5.content.decode("utf-8"))
+        self.assertEquals(parser_data["parser"]["delimiter"], "|")
+        self.assertEquals(parser_data["parser"]["has_column_headers"], False)
+        self.assertEquals(parser_data["columns"], [{u'name': u'Column1'}, {u'name': u'Column2'}, {u'name': u'Column3'}])
+        self.assertEquals(parser_data["sample_data"][0], ["col1,col2,XXcol3"])
+        self.assertEquals(parser_data["sample_data"][1], ["a,1,2"])
+        self.assertEquals(parser_data["sample_data"][2], ["b,2,3"])
+        self.assertEquals(parser_data["sample_data"][3], ["c,3,4"])
+
+        # Set the parser back...
+        response5 = self.client.put(parser_url, data='{ "parser": { "delimiter": ",", "has_column_header": true} }', content_type="application/json", **auth_headers)
+
+        upload_url = reverse("sqlshare_view_file_upload", kwargs={ "id":upload_id })
+        # Send the rest of the file:
+        with LogCapture() as l:
+            response6 = self.client.post(upload_url, data=data2, content_type="application/json", **auth_headers)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, Append data; ID: %s' % (upload_id)))
+
+        self.assertEquals(response6.status_code, 200)
+
+        # Finalize the upload - turn it into a dataset
+        finalize_url = reverse("sqlshare_view_upload_finalize", kwargs={ "id": upload_id })
+
+        finalize_data = json.dumps({ "dataset_name": "test_dataset_eol",
+                                     "description": "Just a test description"
+                                   })
+
+        with LogCapture() as l:
+            response9 = self.client.post(finalize_url, data=finalize_data, content_type="application/json", **auth_headers)
+            self.assertEquals(response9.status_code, 202)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, PUT finalize; ID: %s; name: test_dataset_eol; description: Just a test description; is_public: False' % (upload_id)))
+
+            data = json.loads(response9.content.decode("utf-8"))
+            self.assertEquals(data["rows_total"], 6)
+            self.assertEquals(data["rows_loaded"], 0)
+
+
+        with LogCapture() as l:
+            response10 = self.client.get(finalize_url, **auth_headers)
+            self.assertEquals(response10.status_code, 202)
+            self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.file_upload', 'INFO', 'File upload, GET finalize; ID: %s' % (upload_id)))
+
+        # Test that the file upload object is tracking the number of rows
+        upload_obj = FileUpload.objects.all()[0]
+        self.assertEquals(upload_obj.rows_total, 6)
+        self.assertEquals(upload_obj.rows_loaded, 0)
+
+        # Process the dataset...
+        process_dataset_queue()
+
+        # Test that the upload object has tracked all 6 rows as added.
+        upload_obj = FileUpload.objects.all()[0]
+        self.assertEquals(upload_obj.rows_total, 6)
+        self.assertEquals(upload_obj.rows_loaded, 6)
+
+        response11 = self.client.get(finalize_url, **auth_headers)
+        self.assertEquals(response11.status_code, 201)
+
+        data = json.loads(response11.content.decode("utf-8"))
+        self.assertEquals(data["rows_total"], 6)
+        self.assertEquals(data["rows_loaded"], 6)
+
+        dataset_url = response11["Location"]
+        self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user_eol/test_dataset_eol")
+
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
+        process_queue()
+        response12 = self.client.get(dataset_url, **auth_headers)
+
+        self.assertEquals(response12.status_code, 200)
+
+        data = json.loads(response12.content.decode("utf-8"))
+
+        self.assertEquals(data["rows_total"], 6)
+
+#        if is_sqlite3():
+#            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
+#        else:
+            # Hoping that other db engines will also return typed data...
+        self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
+
+
+
 
     @classmethod
     def setUpClass(cls):
