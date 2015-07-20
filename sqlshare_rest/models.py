@@ -234,6 +234,7 @@ class Query(models.Model):
     query_plan = models.TextField(null=True)
     query_time = models.FloatField(null=True)
     total_time = models.FloatField(null=True)
+    is_ui_preview = models.NullBooleanField()
 
     def save(self, *args, **kwargs):
         super(Query, self).save(*args, **kwargs)
