@@ -13,6 +13,14 @@ class DBInterface(object):
     def __init__(self):
         self.username = None
 
+    def get_query_plan(self, sql, user):
+        """
+        This should return a string describing the complexity of the given
+        SQL statement.  By default it's empty, only implemented in some DB
+        backends.
+        """
+        return ""
+
     def run_query(self, sql, user, params=None, return_cursor=False):
         self._not_implemented("run_query")
 

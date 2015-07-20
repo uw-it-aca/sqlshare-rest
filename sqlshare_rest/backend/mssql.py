@@ -185,6 +185,22 @@ class MSSQLBackend(DBInterface):
         result = self.run_query(count_sql, user)
         return result[0][0]
 
+    def get_query_plan(self, sql, user):
+        connection = self.get_connection_for_user(user)
+        cursor = connection.cursor()
+        cursor.execute("SET SHOWPLAN_XML ON")
+        print "Turned on SHOWPLAN_XML"
+        try:
+            cursor.execute(sql)
+            data = cursor.fetchall()[0][0]
+        except Exception:
+            raise
+        finally:
+            cursor.execute("SET SHOWPLAN_XML OFF")
+
+        cursor.close()
+        return data
+
     def run_query(self, sql, user, params=None, return_cursor=False):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
