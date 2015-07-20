@@ -383,11 +383,6 @@ class MSSQLBackend(DBInterface):
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
 
-    def get_query_sample_sql(self, query_id):
-        QUERY_SCHEMA = self.get_query_cache_schema_name()
-        return "SELECT TOP 100 * FROM [%s].[query_%s]" % (QUERY_SCHEMA,
-                                                          query_id)
-
     def _get_column_definitions_for_cursor(self, cursor):
         import pyodbc
         index = 0
@@ -629,45 +624,10 @@ class MSSQLBackend(DBInterface):
                                                     dataset,
                                                     reader.db_username)
 
-    def _remove_read_access_to_query_sql(self, query_id, user):
-        db = self.get_query_cache_schema_name()
-        username = user.db_username
-        return "REVOKE SELECT ON [%s].[query_%s] FROM [%s]" % (db,
-                                                               query_id,
-                                                               username)
-
-    def _read_access_to_query_sql(self, query_id, user):
-        db = self.get_query_cache_schema_name()
-        return "GRANT SELECT ON [%s].[query_%s] TO [%s]" % (db,
-                                                            query_id,
-                                                            user.db_username)
-
-    def _owner_read_access_to_query_sql(self, query_id, user):
-        db = self.get_query_cache_schema_name()
-        return ("GRANT SELECT ON [%s].[query_%s] TO "
-                "[%s] WITH GRANT OPTION") % (db,
-                                             query_id,
-                                             user.db_username)
-
-    def add_owner_read_access_to_query(self, query_id, user):
-        sql = self._owner_read_access_to_query_sql(query_id, user)
-        cursor = connection.cursor()
-        cursor.execute(sql)
-
-    def add_read_access_to_query(self, query_id, user):
-        sql = self._read_access_to_query_sql(query_id, user)
-        cursor = connection.cursor()
-        cursor.execute(sql)
-
     def add_read_access_to_dataset(self, dataset, owner, reader):
         # test round one:
         sql = self._add_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
-
-    def remove_read_access_to_query(self, query_id, user):
-        sql = self._remove_read_access_to_query_sql(query_id, user)
-        cursor = connection.cursor()
-        cursor.execute(sql)
 
     def remove_access_to_dataset(self, dataset, owner, reader):
         sql = self._remove_read_access_sql(dataset, owner, reader)
@@ -677,46 +637,17 @@ class MSSQLBackend(DBInterface):
         return "GRANT SELECT ON [%s].[%s] TO PUBLIC" % (owner.schema,
                                                         dataset.name)
 
-    def _add_public_access_to_sample(self, dataset):
-        schema = self.get_query_cache_schema_name()
-        try:
-            query = Query.objects.get(is_preview_for=dataset.pk)
-        except Query.DoesNotExist:
-            return
-        sample_id = query.pk
-
-        if query.is_finished:
-            return "GRANT SELECT ON [%s].[query_%s] TO PUBLIC" % (schema,
-                                                                  sample_id)
-
     def add_public_access(self, dataset, owner):
         sql = self._add_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
-        # Add public access to the data sample
-        sql = self._add_public_access_to_sample(dataset)
-        if sql:
-            self.run_query(sql, owner, return_cursor=True).close()
 
     def _remove_public_access_sql(self, dataset, owner):
         return "REVOKE ALL ON [%s].[%s] FROM PUBLIC" % (owner.schema,
                                                         dataset.name)
 
-    def _remove_public_access_from_sample(self, dataset):
-        schema = self.get_query_cache_schema_name()
-        if dataset.preview_is_finished:
-            query = Query.objects.get(is_preview_for=dataset)
-            sample_id = query.pk
-
-            return "REVOKE SELECT ON [%s].[query_%s] FROM PUBLIC" % (schema,
-                                                                     sample_id)
-
     def remove_public_access(self, dataset, owner):
         sql = self._remove_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
-
-        sql = self._remove_public_access_from_sample(dataset)
-        if sql:
-            self.run_query(sql, owner, return_cursor=True).close()
 
     def get_running_queries(self):
         query = """SELECT sqltext.TEXT as sql,

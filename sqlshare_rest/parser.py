@@ -67,7 +67,7 @@ class Parser(object):
 
     def _get_headers_from_handle(self, handle):
         handle.seek(0)
-        values = self._next(csv.reader(handle))
+        values = self._next(csv.reader(handle, delimiter=str(self._delimiter)))
         unique = self.make_unique_columns(values)
 
         return unique

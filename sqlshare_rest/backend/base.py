@@ -72,9 +72,6 @@ class DBInterface(object):
         self.remove_db_user(model.db_username)
         self.remove_schema(model.schema)
 
-    def add_read_access_to_query(self, query_id, user):
-        self._not_implemented("add_read_access_to_query")
-
     def add_read_access_to_dataset(self, dataset, owner, reader):
         self._not_implemented("add_read_access_to_dataset")
 
