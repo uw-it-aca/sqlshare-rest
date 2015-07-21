@@ -244,7 +244,21 @@ class MSSQLBackend(DBInterface):
         conn = pyodbc.connect(string, autocommit=True)
         return conn
 
+    def _make_safe_column_name_list(self, names):
+        output_names = []
+        seen_names = {}
+        for name in names:
+            name = name.replace("[", "(")
+            name = name.replace("]", ")")
+
+            unique_name = self.make_unique_name(name, seen_names)
+            seen_names[unique_name] = True
+            output_names.append(unique_name)
+
+        return output_names
+
     def _create_table(self, table_name, column_names, column_types, user):
+        column_names = self._make_safe_column_name_list(column_names)
         try:
             sql = self._create_table_sql(user,
                                          table_name,
@@ -383,6 +397,16 @@ class MSSQLBackend(DBInterface):
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
 
+    def make_unique_name(self, name, existing):
+        """
+        Given a name and a dictionary of existing names, returns a name
+        that will be unique when added to the dictionary.
+        """
+        if name not in existing:
+            return name
+
+        return self.make_unique_name("%s_1" % name, existing)
+
     def _get_column_definitions_for_cursor(self, cursor):
         import pyodbc
         index = 0
@@ -397,12 +421,6 @@ class MSSQLBackend(DBInterface):
         str_type = type("")
         binary_type = buffer
 
-        def make_unique_name(name, existing):
-            if name not in existing:
-                return name
-
-            return make_unique_name("%s_1" % name, existing)
-
         existing_column_names = {}
         for col in cursor.description:
             column_name = col[0]
@@ -414,7 +432,8 @@ class MSSQLBackend(DBInterface):
             if column_name == "":
                 column_name = "COLUMN%s" % index
 
-            column_name = make_unique_name(column_name, existing_column_names)
+            column_name = self.make_unique_name(column_name,
+                                                existing_column_names)
             existing_column_names[column_name] = True
 
             column_name = "[%s]" % (column_name)
@@ -584,7 +603,7 @@ class MSSQLBackend(DBInterface):
                     percent_string = '\s*select\s+top\s*\(?[\d]+\)?\s+percent'
                     if re.match(percent_string, sql, re.IGNORECASE):
                         sub_str = '(?i)%s\s*' % percent_string
-                        return re.sub(sub_str, 'SELECT TOP 100 ', sql)
+                        return re.sub(sub_str, 'SELECT TOP 100 ', sql, count=1)
                     else:
                         test = '\s*select\s+top\s*\(?([\d]+)\)?\s+'
                         value = re.match(test, sql, re.IGNORECASE).group(1)
@@ -595,11 +614,12 @@ class MSSQLBackend(DBInterface):
 
                         # String out their limit, add ours
                         replace = '(?i)%s' % test
-                        return re.sub(replace, 'SELECT TOP 100 ', sql)
+                        return re.sub(replace, 'SELECT TOP 100 ', sql, count=1)
 
                 else:
                     # Otherwise, just add the top 100.
-                    return re.sub('(?i)\s*select\s+', 'SELECT TOP 100 ', sql)
+                    return re.sub('(?i)\s*select\s+', 'SELECT TOP 100 ',
+                                  sql, count=1)
         except Exception as ex:
             print("Error on sql statement %s: %s", sql, str(ex))
             return sql
