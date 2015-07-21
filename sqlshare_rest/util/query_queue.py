@@ -239,15 +239,28 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 sys.exit(0)
             # We don't actually have a protocol to speak...
             clientsocket.close()
-            terminate_list = Query.objects.filter(terminated=True,
-                                                  is_finished=False)
+            try:
+                terminate_list = Query.objects.filter(terminated=True,
+                                                      is_finished=False)
 
-            for query in terminate_list:
-                kill_query(query)
+                for query in terminate_list:
+                    kill_query(query)
 
-            queries = Query.objects.filter(is_started=False)
-            for query in queries:
-                start_query(query)
+                queries = Query.objects.filter(is_started=False)
+                for query in queries:
+                    start_query(query)
+            except DatabaseError as ex:
+                ex_str = str(ex)
+                # If there's just, say, a network glitch, carry on.
+                # If it's anything else, re-raise the error.
+                is_ok_error = False
+                if ex_str.find("Read from the server failed") < 0:
+                    is_ok_error = True
+                if ex_str.find("Write to the server failed") < 0:
+                    is_ok_error = True
+
+                if not is_ok_error:
+                    raise
 
 
 def kill_query_queue():
