@@ -268,9 +268,9 @@ class MSSQLBackend(DBInterface):
             if "float" == col_type["type"]:
                 return "[%s] float" % name
             if "text" == col_type["type"] and col_type["max"] > 0:
-                return "[%s] varchar(%s)" % (name, col_type["max"])
+                return "[%s] varchar(MAX)" % (name)
             # Fallback to text is hopefully good?
-            return "[%s] text" % name
+            return "[%s] varchar(MAX)" % name
 
         columns = []
         for i in range(0, len(column_names)):
