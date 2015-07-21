@@ -179,7 +179,13 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 ex_str = str(ex)
                 # If there's just, say, a network glitch, carry on.
                 # If it's anything else, re-raise the error.
-                if str_ex.find("Read from the server failed") < 0:
+                is_ok_error = False
+                if ex_str.find("Read from the server failed") < 0:
+                    is_ok_error = True
+                if ex_str.find("Write to the server failed") < 0:
+                    is_ok_error = True
+
+                if not is_ok_error:
                     raise
 
 
