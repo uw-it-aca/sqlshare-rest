@@ -129,7 +129,6 @@ def process_snapshot_queue(thread_count=0, run_once=True, verbose=False):
             if os.path.isfile(TERMINATE_TRIGGER_FILE):
                 sys.exit(0)
 
-
             snapshots = Dataset.objects.filter(snapshot_source__isnull=False,
                                                snapshot_started=False)
             for snapshot in snapshots:
@@ -141,6 +140,7 @@ def process_snapshot_queue(thread_count=0, run_once=True, verbose=False):
 def get_initial_filter_list():
     return Dataset.objects.filter(snapshot_source__isnull=False,
                                   snapshot_started=False)
+
 
 def kill_snapshot_queue():
     # Create the file that triggers the termination
