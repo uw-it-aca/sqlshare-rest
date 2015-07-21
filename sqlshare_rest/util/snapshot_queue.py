@@ -4,53 +4,76 @@ from sqlshare_rest.util.db import get_backend
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_snapshot_processing
 from sqlshare_rest.util.queue_triggers import SNAPSHOT_QUEUE_PORT_NUMBER
+from django.conf import settings
 import atexit
+import time
+import sys
+import os
 
 import socket
 from threading import Thread
 
-import six
-
-if six.PY2:
-    from Queue import Queue
-elif six.PY3:
-    from queue import Queue
+TERMINATE_TRIGGER_FILE = getattr(settings,
+                                 "SQLSHARE_TERMINATE_QUERY_QUEUE_PATH",
+                                 "/tmp/sqlshare_terminate_snapshot_queue")
 
 
 def process_snapshot_queue(thread_count=0, run_once=True, verbose=False):
-    q = Queue()
 
-    def worker():
+    def start_snapshot(snapshot, background=True):
         """
         Get a dataset snapshot from the queue, and materialize its table.
         """
-        backend = get_backend()
-        keep_looping = True
-        while keep_looping:
-            oldest = q.get()
-            if verbose:
-                print("Processing snapshot: %s" % oldest.pk)
-            user = oldest.owner
-            backend = get_backend()
-            try:
-                backend.load_snapshot_table(oldest, user)
-                create_preview_for_dataset(oldest)
-                oldest.snapshot_finished = True
-                oldest.save()
-                # Do some work here
-            except Exception as ex:
-                if verbose:
-                    print("Error on %s: %s" % (oldest.pk, str(ex)))
-                oldest.snapshot_finished = True
-                oldest.save()
-            finally:
-                backend.close_user_connection(user)
+        snapshot.snapshot_started = True
+        snapshot.save()
+        snapshot_id = snapshot.pk
 
-            q.task_done()
+        if background:
+            from django.db import connection
+            connection.close()
+
+            if os.fork():
+                # This is the main process
+                return
+
+            os.setsid()
+
+            if os.fork():
+                # Double fork the daemon
+                sys.exit(0)
+
+            # Close stdin/out/err
+            sys.stdin.flush()
+            sys.stdout.flush()
+            sys.stderr.flush()
+            null = os.open(os.devnull, os.O_RDWR)
+            os.dup2(null, sys.stdin.fileno())
+            os.dup2(null, sys.stdout.fileno())
+            os.dup2(null, sys.stderr.fileno())
+            os.close(null)
+
+        backend = get_backend()
+        oldest = Dataset.objects.get(pk=snapshot_id)
+
+        if verbose:
+            print("Processing snapshot: %s" % oldest.pk)
+        user = oldest.owner
+        try:
+            backend.load_snapshot_table(oldest, user)
+            create_preview_for_dataset(oldest)
+            oldest.snapshot_finished = True
+            oldest.save()
+            # Do some work here
+        except Exception as ex:
             if verbose:
-                print("Finished snapshot %s." % oldest.pk)
-            if run_once:
-                keep_looping = False
+                print("Error on %s: %s" % (oldest.pk, str(ex)))
+            oldest.snapshot_finished = True
+            oldest.save()
+        finally:
+            backend.close_user_connection(user)
+
+        if verbose:
+            print("Finished snapshot %s." % oldest.pk)
 
     def periodic_check():
         """
@@ -70,23 +93,14 @@ def process_snapshot_queue(thread_count=0, run_once=True, verbose=False):
             oldest = filtered.order_by('id')[:1].get()
         except Dataset.DoesNotExist:
             return
-        q.put(oldest)
-        worker()
+        start_snapshot(oldest, background=False)
     else:
-        # Track the oldest query, so we only select ones newer that
-        newest_pk = 0
-        for i in range(thread_count):
-            t = Thread(target=worker)
-            t.setDaemon(True)
-            t.start()
-
         # Start with any queries already in the queue:
         for dataset in filtered:
-            if dataset.pk > newest_pk:
-                newest_pk = dataset.pk
             if verbose:
                 print("Adding dataset ID %s to the queue." % dataset.pk)
-            q.put(dataset)
+
+            start_snapshot(dataset)
 
         # Just in case things get off the rails - maybe a connection to the
         # server gets blocked? - periodically trigger a check for new queries
@@ -111,20 +125,44 @@ def process_snapshot_queue(thread_count=0, run_once=True, verbose=False):
             (clientsocket, address) = server.accept()
             # We don't actually have a protocol to speak...
             clientsocket.close()
+            # Check to see if we should exit...
+            if os.path.isfile(TERMINATE_TRIGGER_FILE):
+                sys.exit(0)
 
             snapshots = Dataset.objects.filter(snapshot_source__isnull=False,
-                                               snapshot_finished=False,
-                                               pk__gt=newest_pk)
+                                               snapshot_started=False)
             for snapshot in snapshots:
-                if snapshot.pk > newest_pk:
-                    newest_pk = snapshot.pk
                 if verbose:
                     print("Adding snapshot ID %s to the queue." % snapshot.pk)
-                q.put(snapshot)
-
-    q.join()
+                start_snapshot(snapshot)
 
 
 def get_initial_filter_list():
     return Dataset.objects.filter(snapshot_source__isnull=False,
-                                  snapshot_finished=False)
+                                  snapshot_started=False)
+
+
+def kill_snapshot_queue():
+    # Create the file that triggers the termination
+    f = open(TERMINATE_TRIGGER_FILE, "w")
+    f.write("OK")
+    f.close()
+
+    # Trigger the check...
+    trigger_snapshot_processing()
+
+    # Just a quick pause before polling
+    time.sleep(0.3)
+
+    # Poll to see if the process is still running...
+    for i in range(10):
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(('localhost', SNAPSHOT_QUEUE_PORT_NUMBER))
+            time.sleep(1)
+        except socket.error as ex:
+            os.remove(TERMINATE_TRIGGER_FILE)
+            return True
+
+    os.remove(TERMINATE_TRIGGER_FILE)
+    return False

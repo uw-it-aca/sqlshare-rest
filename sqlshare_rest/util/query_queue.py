@@ -7,6 +7,7 @@ from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
+from django.db.utils import DatabaseError
 import atexit
 import signal
 import json

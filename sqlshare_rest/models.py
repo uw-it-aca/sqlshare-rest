@@ -51,6 +51,7 @@ class Dataset(DirtyFieldsMixin, models.Model):
     preview_error = models.TextField(null=True)
     rows_total = models.IntegerField(null=True)
     snapshot_source = models.ForeignKey('Dataset', null=True)
+    snapshot_started = models.NullBooleanField()
     snapshot_finished = models.NullBooleanField()
 
     class Meta:

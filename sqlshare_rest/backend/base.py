@@ -39,6 +39,7 @@ class DBInterface(object):
         sql = self._get_view_sql_for_dataset(table_name, user)
 
         destination.sql = sql
+        destination.snapshot_started = False
         destination.snapshot_finished = False
         destination.snapshot_source = source_dataset
         destination.save()
