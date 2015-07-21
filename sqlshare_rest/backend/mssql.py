@@ -584,7 +584,7 @@ class MSSQLBackend(DBInterface):
                     percent_string = '\s*select\s+top\s*\(?[\d]+\)?\s+percent'
                     if re.match(percent_string, sql, re.IGNORECASE):
                         sub_str = '(?i)%s\s*' % percent_string
-                        return re.sub(sub_str, 'SELECT TOP 100 ', sql)
+                        return re.sub(sub_str, 'SELECT TOP 100 ', sql, count=1)
                     else:
                         test = '\s*select\s+top\s*\(?([\d]+)\)?\s+'
                         value = re.match(test, sql, re.IGNORECASE).group(1)
@@ -595,11 +595,12 @@ class MSSQLBackend(DBInterface):
 
                         # String out their limit, add ours
                         replace = '(?i)%s' % test
-                        return re.sub(replace, 'SELECT TOP 100 ', sql)
+                        return re.sub(replace, 'SELECT TOP 100 ', sql, count=1)
 
                 else:
                     # Otherwise, just add the top 100.
-                    return re.sub('(?i)\s*select\s+', 'SELECT TOP 100 ', sql)
+                    return re.sub('(?i)\s*select\s+', 'SELECT TOP 100 ',
+                                  sql, count=1)
         except Exception as ex:
             print("Error on sql statement %s: %s", sql, str(ex))
             return sql

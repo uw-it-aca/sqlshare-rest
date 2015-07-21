@@ -471,6 +471,7 @@ class TestMSSQLBackend(CleanUpTestCase):
         self.assertEquals("select top(20) (1), (2)", backend.get_preview_sql_for_query("select top(20) (1), (2)"))
         self.assertEquals("select top  20  (1), (2)", backend.get_preview_sql_for_query("select top  20  (1), (2)"))
         self.assertEquals("INSERT INTO BLAH...", backend.get_preview_sql_for_query("INSERT INTO BLAH..."))
+        self.assertEquals("SELECT TOP 100 (1), (2) UNION SELECT (2), (3)", backend.get_preview_sql_for_query("SELECT (1), (2) UNION SELECT (2), (3)"))
 
     def test_column_types(self):
         owner = "test_column_types_user"
