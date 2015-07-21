@@ -1,5 +1,6 @@
 from sqlshare_rest.util.snapshot_queue import process_snapshot_queue
 from django.core.management.base import BaseCommand
+import os
 from optparse import make_option
 
 
@@ -18,10 +19,28 @@ class Command(BaseCommand):
                     default=False,
                     action="store_true",
                     help='Prints status info to standard out'),
+
+        make_option('--daemonize',
+                    dest='daemon',
+                    default=False,
+                    action="store_true",
+                    help='Run in the background'),
                     )
 
     def handle(self, *args, **options):
         verbose = options["verbose"]
+        if options["daemon"]:
+            pid = os.fork()
+            if pid == 0:
+                os.setsid()
+
+                pid = os.fork()
+                if pid != 0:
+                    os._exit(0)
+
+            else:
+                os._exit(0)
+
         if options["run_once"]:
             process_snapshot_queue(verbose=verbose)
         else:

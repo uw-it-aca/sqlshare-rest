@@ -136,7 +136,9 @@ def create_dataset_from_snapshot(user, dataset_name, source):
         backend.create_snapshot_dataset(source, model, user)
 
         model.preview_is_finished = False
+        model.snapshot_started = False
         model.preview_error = None
+        model.save()
 
         return model
     except Exception:

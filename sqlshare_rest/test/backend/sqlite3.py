@@ -148,7 +148,7 @@ class TestSQLite3Backend(CleanUpTestCase):
 
         self.assertRaises(OperationalError, backend.run_query, "SELECT * FROM s3_snap_destination", user)
 
-        process_snapshot_queue(verbose=True)
+        process_snapshot_queue(verbose=True, run_once=True)
 
         result4 = backend.run_query("SELECT * FROM table_s3_snap_destination", user)
         self.assertEquals([(1, 2, 4, 8,)], result4)
