@@ -79,6 +79,7 @@ class Dataset(DirtyFieldsMixin, models.Model):
             "tags": self.get_tags_data(),
             "url": self.get_url(),
             "sample_data_status": self.get_sample_data_status(),
+            "sample_data_query_id": self.get_sample_data_query_id(),
             "sample_data_error": self.preview_error,
             "rows_total": self.rows_total,
             "upload_errors": upload_errors,
@@ -92,6 +93,16 @@ class Dataset(DirtyFieldsMixin, models.Model):
         except FileUpload.DoesNotExist:
             return ""
         return ""
+
+    def get_sample_data_query_id(self):
+        if self.preview_is_finished:
+            return None
+
+        try:
+            query = Query.objects.get(is_preview_for=self.pk)
+            return query.pk
+        except Query.DoesNotExist:
+            return None
 
     def get_sample_data_status(self):
         if self.preview_is_finished and not self.preview_error:
