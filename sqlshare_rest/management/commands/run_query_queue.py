@@ -25,7 +25,6 @@ class Command(BaseCommand):
                     help='Run in the background'),
                     )
 
-
     def handle(self, *args, **options):
         verbose = options["verbose"]
 
