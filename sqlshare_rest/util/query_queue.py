@@ -3,6 +3,7 @@ from sqlshare_rest.models import Query
 from sqlshare_rest.dao.dataset import reset_dataset_account_access
 from django.utils import timezone
 from django.conf import settings
+from django import db
 from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
@@ -250,17 +251,49 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                 queries = Query.objects.filter(is_started=False)
                 for query in queries:
                     start_query(query)
-            except DatabaseError as ex:
+            except Exception as ex:
+                # This was originally DatabaseError - but then there were also
+                # pyodbc.Error exceptions... and pyodbc isn't a hard
+                # requirement.
                 ex_str = str(ex)
                 # If there's just, say, a network glitch, carry on.
+                # Or, say, a server restart
                 # If it's anything else, re-raise the error.
-                is_ok_error = False
-                if ex_str.find("Read from the server failed") < 0:
-                    is_ok_error = True
-                if ex_str.find("Write to the server failed") < 0:
-                    is_ok_error = True
+                is_reset_error = False
+                if ex_str.find("Read from the server failed") >= 0:
+                    is_reset_error = True
+                if ex_str.find("Write to the server failed") >= 0:
+                    is_reset_error = True
+                if ex_str.find("Communication link failure") >= 0:
+                    is_reset_error = True
 
-                if not is_ok_error:
+                adaptive = "Adaptive Server is unavailable or does not exist"
+                if ex_str.find(adaptive) >= 0:
+                    is_reset_error = True
+
+                if is_reset_error:
+                    try:
+                        db.close_connection()
+                    except Exception as ex:
+                        ex_str = str(ex)
+                        is_expected = False
+                        rollback_err = "Could not perform COMMIT or ROLLBACK"
+                        if ex_str.find(rollback_err) >= 0:
+                            # db.close_connection tries to end transactions
+                            # pyodbc was absolutely unable to recover from that
+                            # because it wasn't reconnecting to be able to do
+                            # the rollback...
+                            from django.db import connections
+                            for conn in connections:
+                                connections[conn].close()
+
+                        else:
+                            logger = getLogger(__name__)
+                            logger.error("Error in query queue: %s" % ex_str)
+                            raise
+                else:
+                    logger = getLogger(__name__)
+                    logger.error("Error in query queue: %s" % ex_str)
                     raise
 
 
