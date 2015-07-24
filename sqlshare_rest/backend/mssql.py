@@ -1,5 +1,6 @@
 from sqlshare_rest.backend.base import DBInterface
 from sqlshare_rest.models import User, Query
+from logging import getLogger
 from django import db
 from django.db import connection
 from django.conf import settings
@@ -15,6 +16,7 @@ import hashlib
 # grant all on *.* to <user>
 # Ability to give new users permission to their database
 # grant grant option on *.* to <user>
+logger = getLogger(__name__)
 
 
 class MSSQLBackend(DBInterface):
@@ -251,6 +253,9 @@ class MSSQLBackend(DBInterface):
             name = name.replace("[", "(")
             name = name.replace("]", ")")
 
+            if name == "":
+                name = "COLUMN"
+
             unique_name = self.make_unique_name(name, seen_names)
             seen_names[unique_name] = True
             output_names.append(unique_name)
@@ -267,7 +272,12 @@ class MSSQLBackend(DBInterface):
 
             self.run_query(sql, user, return_cursor=True).close()
         except Exception as ex:
-            print("Error creating table: %s" % str(ex))
+            # We expect tables to already exist - uploading a replacement
+            # file gives that exception.  Anything else though is probably
+            # a bug worth looking into.
+            ex_str = str(ex)
+            if not ex_str.find("There is already an object named"):
+                logger.error("Error creating table: %s" % str(ex))
             drop_sql = self._drop_exisisting_table_sql(user, table_name)
             self.run_query(drop_sql, user, return_cursor=True).close()
             self.run_query(sql, user, return_cursor=True).close()
