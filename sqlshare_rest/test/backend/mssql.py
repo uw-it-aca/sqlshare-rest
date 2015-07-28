@@ -473,6 +473,9 @@ class TestMSSQLBackend(CleanUpTestCase):
         self.assertEquals("INSERT INTO BLAH...", backend.get_preview_sql_for_query("INSERT INTO BLAH..."))
         self.assertEquals("SELECT TOP 100 (1), (2) UNION SELECT (2), (3)", backend.get_preview_sql_for_query("SELECT (1), (2) UNION SELECT (2), (3)"))
 
+        # TOP and DISTINCT don't play well with each other.
+        self.assertEquals("SELECT DISTINCT(10), (1)", backend.get_preview_sql_for_query("SELECT DISTINCT(10), (1)"))
+
     def test_column_types(self):
         owner = "test_column_types_user"
         self.remove_users.append(owner)

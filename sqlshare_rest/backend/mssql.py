@@ -606,6 +606,11 @@ class MSSQLBackend(DBInterface):
             # We only want to modify select statements, though that is the
             # 'expected' type of query here...
             if re.match('\s*select\s', sql, re.IGNORECASE):
+                # SQLSHR-222 - TOP and DISTINCT don't go together
+                # this is probably overly broad, but it seems better to
+                # select too much than to reject a query
+                if re.match('.*distinct', sql, re.IGNORECASE):
+                    return sql
                 # If they already have a TOP value in their query we need to
                 # modify it
                 if re.match('\s*select\s+top', sql, re.IGNORECASE):
