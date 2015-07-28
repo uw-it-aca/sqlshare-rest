@@ -134,6 +134,7 @@ def update_dataset_sql(username, dataset, sql):
     backend.create_view(dataset.name, sql, user)
     create_preview_for_dataset(dataset)
 
+
 def create_dataset_from_snapshot(user, dataset_name, source):
     backend = get_backend()
     try:
