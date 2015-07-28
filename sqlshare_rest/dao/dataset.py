@@ -127,6 +127,13 @@ def create_dataset_from_query(username, dataset_name, sql):
         backend.close_user_connection(user)
 
 
+def update_dataset_sql(username, dataset, sql):
+    backend = get_backend()
+    user = backend.get_user(username)
+
+    backend.create_view(dataset.name, sql, user)
+    create_preview_for_dataset(dataset)
+
 def create_dataset_from_snapshot(user, dataset_name, source):
     backend = get_backend()
     try:
