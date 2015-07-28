@@ -654,19 +654,42 @@ class MSSQLBackend(DBInterface):
                                                     dataset,
                                                     reader.db_username)
 
+    def _add_read_access_sql_to_table(self, dataset, owner, reader):
+        return "GRANT SELECT ON [%s].[table_%s] TO %s" % (owner.schema,
+                                                          dataset,
+                                                          reader.db_username)
+
     def _remove_read_access_sql(self, dataset, owner, reader):
         return "REVOKE ALL ON [%s].[%s] FROM %s" % (owner.schema,
                                                     dataset,
                                                     reader.db_username)
+
+    def _remove_read_access_sql_from_table(self, dataset, owner, reader):
+        return "REVOKE ALL ON [%s].[table_%s] FROM %s" % (owner.schema,
+                                                          dataset,
+                                                          reader.db_username)
 
     def add_read_access_to_dataset(self, dataset, owner, reader):
         # test round one:
         sql = self._add_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
 
+        # If there's a backing table, grant select to that as well...
+        sql = self._add_read_access_sql_to_table(dataset, owner, reader)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+
     def remove_access_to_dataset(self, dataset, owner, reader):
         sql = self._remove_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
+        # If there's a backing table, drom select from that as well...
+        sql = self._remove_read_access_sql_from_table(dataset, owner, reader)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
 
     def _add_public_access_sql(self, dataset, owner):
         return "GRANT SELECT ON [%s].[%s] TO PUBLIC" % (owner.schema,
@@ -687,7 +710,6 @@ class MSSQLBackend(DBInterface):
         except Exception:
             pass
 
-
     def _remove_public_access_sql(self, dataset, owner):
         return "REVOKE ALL ON [%s].[%s] FROM PUBLIC" % (owner.schema,
                                                         dataset.name)
@@ -706,7 +728,6 @@ class MSSQLBackend(DBInterface):
             self.run_query(sql, owner, return_cursor=True).close()
         except Exception:
             pass
-
 
     def get_running_queries(self):
         query = """SELECT sqltext.TEXT as sql,
