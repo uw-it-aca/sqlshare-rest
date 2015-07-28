@@ -13,6 +13,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import create_dataset_from_snapshot
 from sqlshare_rest.dao.dataset import create_preview_for_dataset
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
+from sqlshare_rest.dao.dataset import update_dataset_sql
 from sqlshare_rest.util.query import get_sample_data_for_query
 from sqlshare_rest.logger import getLogger
 
@@ -201,7 +202,13 @@ def _patch_dataset(request, owner, name):
         updated = True
         logger.info("PATCH dataset sql_code; owner: %s; name: %s; "
                     "sql_code: %s" % (owner, name, dataset.sql), request)
-        create_preview_for_dataset(dataset)
+        try:
+            update_dataset_sql(owner, dataset, data["sql_code"])
+            updated = True
+        except Exception as ex:
+            r = HttpResponse("Error updating sql: %s" % (str(ex)))
+            r.status_code = 400
+            return r
 
     if "is_public" in data:
         dataset.is_public = data["is_public"]

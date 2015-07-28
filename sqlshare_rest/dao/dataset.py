@@ -106,7 +106,11 @@ def create_dataset_from_query(username, dataset_name, sql):
             # the new view properly
             backend.delete_dataset(dataset_name, user)
 
-        row_count = backend.create_view(dataset_name, sql, user)
+        try:
+            row_count = backend.create_view(dataset_name, sql, user)
+        except Exception:
+            model.delete()
+            raise
         model.rows_total = row_count
 
         model.preview_is_finished = False
@@ -121,6 +125,14 @@ def create_dataset_from_query(username, dataset_name, sql):
         raise
     finally:
         backend.close_user_connection(user)
+
+
+def update_dataset_sql(username, dataset, sql):
+    backend = get_backend()
+    user = backend.get_user(username)
+
+    backend.create_view(dataset.name, sql, user)
+    create_preview_for_dataset(dataset)
 
 
 def create_dataset_from_snapshot(user, dataset_name, source):

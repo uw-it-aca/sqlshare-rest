@@ -68,7 +68,7 @@ class TestMSSQLBackend(CleanUpTestCase):
                 cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)
 
                 coldef = backend._get_column_definitions_for_cursor(cursor1)
-                self.assertEquals(coldef, "[COLUMN1] INT NOT NULL, [COLUMN2] VARCHAR(5) NOT NULL, [COLUMN3] INT NOT NULL, [COLUMN4] FLOAT, [COLUMN5] INT")
+                self.assertEquals(coldef, "[COLUMN1] INT NOT NULL, [COLUMN2] NVARCHAR(5) NOT NULL, [COLUMN3] INT NOT NULL, [COLUMN4] FLOAT, [COLUMN5] INT")
 
                 backend.create_table_from_query_result("test_query1", cursor1)
 
@@ -472,6 +472,9 @@ class TestMSSQLBackend(CleanUpTestCase):
         self.assertEquals("select top  20  (1), (2)", backend.get_preview_sql_for_query("select top  20  (1), (2)"))
         self.assertEquals("INSERT INTO BLAH...", backend.get_preview_sql_for_query("INSERT INTO BLAH..."))
         self.assertEquals("SELECT TOP 100 (1), (2) UNION SELECT (2), (3)", backend.get_preview_sql_for_query("SELECT (1), (2) UNION SELECT (2), (3)"))
+
+        # TOP and DISTINCT don't play well with each other.
+        self.assertEquals("SELECT DISTINCT(10), (1)", backend.get_preview_sql_for_query("SELECT DISTINCT(10), (1)"))
 
     def test_column_types(self):
         owner = "test_column_types_user"

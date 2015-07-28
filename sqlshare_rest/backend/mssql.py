@@ -292,9 +292,9 @@ class MSSQLBackend(DBInterface):
             if "float" == col_type["type"]:
                 return "[%s] float" % name
             if "text" == col_type["type"] and col_type["max"] > 0:
-                return "[%s] varchar(MAX)" % (name)
+                return "[%s] nvarchar(MAX)" % (name)
             # Fallback to text is hopefully good?
-            return "[%s] varchar(MAX)" % name
+            return "[%s] nvarchar(MAX)" % name
 
         columns = []
         for i in range(0, len(column_names)):
@@ -495,7 +495,7 @@ class MSSQLBackend(DBInterface):
                 if col_len == MSSQLBackend.COLUMN_MAX_LENGTH:
                     type_str = "TEXT"
                 else:
-                    type_str = "VARCHAR(%s)" % (col_len)
+                    type_str = "NVARCHAR(%s)" % (col_len)
 
                 if null_ok:
                     column_defs.append("%s %s" % (column_name,
@@ -606,6 +606,11 @@ class MSSQLBackend(DBInterface):
             # We only want to modify select statements, though that is the
             # 'expected' type of query here...
             if re.match('\s*select\s', sql, re.IGNORECASE):
+                # SQLSHR-222 - TOP and DISTINCT don't go together
+                # this is probably overly broad, but it seems better to
+                # select too much than to reject a query
+                if re.match('.*distinct', sql, re.IGNORECASE):
+                    return sql
                 # If they already have a TOP value in their query we need to
                 # modify it
                 if re.match('\s*select\s+top', sql, re.IGNORECASE):
@@ -649,35 +654,80 @@ class MSSQLBackend(DBInterface):
                                                     dataset,
                                                     reader.db_username)
 
+    def _add_read_access_sql_to_table(self, dataset, owner, reader):
+        return "GRANT SELECT ON [%s].[table_%s] TO %s" % (owner.schema,
+                                                          dataset,
+                                                          reader.db_username)
+
     def _remove_read_access_sql(self, dataset, owner, reader):
         return "REVOKE ALL ON [%s].[%s] FROM %s" % (owner.schema,
                                                     dataset,
                                                     reader.db_username)
+
+    def _remove_read_access_sql_from_table(self, dataset, owner, reader):
+        return "REVOKE ALL ON [%s].[table_%s] FROM %s" % (owner.schema,
+                                                          dataset,
+                                                          reader.db_username)
 
     def add_read_access_to_dataset(self, dataset, owner, reader):
         # test round one:
         sql = self._add_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
 
+        # If there's a backing table, grant select to that as well...
+        sql = self._add_read_access_sql_to_table(dataset, owner, reader)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+
     def remove_access_to_dataset(self, dataset, owner, reader):
         sql = self._remove_read_access_sql(dataset, owner, reader)
         self.run_query(sql, owner, return_cursor=True).close()
+        # If there's a backing table, drom select from that as well...
+        sql = self._remove_read_access_sql_from_table(dataset, owner, reader)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
 
     def _add_public_access_sql(self, dataset, owner):
         return "GRANT SELECT ON [%s].[%s] TO PUBLIC" % (owner.schema,
                                                         dataset.name)
 
+    def _add_public_access_sql_to_table(self, dataset, owner):
+        return "GRANT SELECT ON [%s].[table_%s] TO PUBLIC" % (owner.schema,
+                                                              dataset.name)
+
     def add_public_access(self, dataset, owner):
         sql = self._add_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # If there's a backing table, grant select to public as well...
+        sql = self._add_public_access_sql_to_table(dataset, owner)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
 
     def _remove_public_access_sql(self, dataset, owner):
         return "REVOKE ALL ON [%s].[%s] FROM PUBLIC" % (owner.schema,
                                                         dataset.name)
 
+    def _remove_public_access_sql_from_table(self, dataset, owner):
+        return "REVOKE ALL ON [%s].[table_%s] FROM PUBLIC" % (owner.schema,
+                                                              dataset.name)
+
     def remove_public_access(self, dataset, owner):
         sql = self._remove_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # If there's a backing table, drop select from public as well...
+        sql = self._remove_public_access_sql_from_table(dataset, owner)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
 
     def get_running_queries(self):
         query = """SELECT sqltext.TEXT as sql,

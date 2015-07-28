@@ -9,6 +9,7 @@ from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
 from django.db.utils import DatabaseError
+import datetime
 import atexit
 import signal
 import json
@@ -87,6 +88,10 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
         return names
 
+    def custom_encode(obj):
+        if isinstance(obj, datetime.datetime):
+            return str(obj)
+
     def process_query(query_id):
         logger = getLogger(__name__)
         query = Query.objects.get(pk=query_id)
@@ -135,7 +140,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
                     row_count += 1
 
                 columns = get_column_names_from_cursor(cursor)
-                formatted = json.dumps({"columns": columns, "data": all_data})
+                formatted = json.dumps({"columns": columns, "data": all_data},
+                                       default=custom_encode)
                 query.preview_content = formatted
                 t3 = time.time()
 
