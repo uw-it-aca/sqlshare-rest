@@ -27,7 +27,11 @@ class SQLite3Backend(DBInterface):
 
     def create_view(self, name, sql, user):
         view_sql = "CREATE VIEW `%s` AS %s" % (name, sql)
-        self.run_query(view_sql, user)
+        try:
+            self.run_query(view_sql, user)
+        except Exception:
+            self.delete_dataset(name, user)
+            self.run_query(view_sql, user)
 
         count_sql = "SELECT COUNT(*) FROM `%s`" % (name)
         result = self.run_query(count_sql, user)
