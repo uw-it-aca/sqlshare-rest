@@ -68,7 +68,7 @@ class TestMSSQLBackend(CleanUpTestCase):
                 cursor1 = backend.run_query("select (1), ('a1234'), (1), (1.2), (NULL) UNION select (2), ('b'), (4), (NULL), (3)", user, return_cursor=True)
 
                 coldef = backend._get_column_definitions_for_cursor(cursor1)
-                self.assertEquals(coldef, "[COLUMN1] INT NOT NULL, [COLUMN2] VARCHAR(5) NOT NULL, [COLUMN3] INT NOT NULL, [COLUMN4] FLOAT, [COLUMN5] INT")
+                self.assertEquals(coldef, "[COLUMN1] INT NOT NULL, [COLUMN2] NVARCHAR(5) NOT NULL, [COLUMN3] INT NOT NULL, [COLUMN4] FLOAT, [COLUMN5] INT")
 
                 backend.create_table_from_query_result("test_query1", cursor1)
 

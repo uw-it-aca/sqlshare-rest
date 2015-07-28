@@ -672,17 +672,41 @@ class MSSQLBackend(DBInterface):
         return "GRANT SELECT ON [%s].[%s] TO PUBLIC" % (owner.schema,
                                                         dataset.name)
 
+    def _add_public_access_sql_to_table(self, dataset, owner):
+        return "GRANT SELECT ON [%s].[table_%s] TO PUBLIC" % (owner.schema,
+                                                              dataset.name)
+
     def add_public_access(self, dataset, owner):
         sql = self._add_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # If there's a backing table, grant select to public as well...
+        sql = self._add_public_access_sql_to_table(dataset, owner)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+
 
     def _remove_public_access_sql(self, dataset, owner):
         return "REVOKE ALL ON [%s].[%s] FROM PUBLIC" % (owner.schema,
                                                         dataset.name)
 
+    def _remove_public_access_sql_from_table(self, dataset, owner):
+        return "REVOKE ALL ON [%s].[table_%s] FROM PUBLIC" % (owner.schema,
+                                                              dataset.name)
+
     def remove_public_access(self, dataset, owner):
         sql = self._remove_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # If there's a backing table, drop select from public as well...
+        sql = self._remove_public_access_sql_from_table(dataset, owner)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+
 
     def get_running_queries(self):
         query = """SELECT sqltext.TEXT as sql,
