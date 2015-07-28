@@ -292,9 +292,9 @@ class MSSQLBackend(DBInterface):
             if "float" == col_type["type"]:
                 return "[%s] float" % name
             if "text" == col_type["type"] and col_type["max"] > 0:
-                return "[%s] varchar(MAX)" % (name)
+                return "[%s] nvarchar(MAX)" % (name)
             # Fallback to text is hopefully good?
-            return "[%s] varchar(MAX)" % name
+            return "[%s] nvarchar(MAX)" % name
 
         columns = []
         for i in range(0, len(column_names)):
@@ -495,7 +495,7 @@ class MSSQLBackend(DBInterface):
                 if col_len == MSSQLBackend.COLUMN_MAX_LENGTH:
                     type_str = "TEXT"
                 else:
-                    type_str = "VARCHAR(%s)" % (col_len)
+                    type_str = "NVARCHAR(%s)" % (col_len)
 
                 if null_ok:
                     column_defs.append("%s %s" % (column_name,
