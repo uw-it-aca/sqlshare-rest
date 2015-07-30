@@ -37,7 +37,7 @@ class Parser(object):
         if self._has_header:
             self._column_names = self._get_headers_from_handle(data)
         else:
-            count = len(self._next(csv.reader(data)))
+            count = len(self._next(self._get_csv_reader(data)))
             self._column_names = self.generate_column_names(count)
 
     def parse(self, handle):
@@ -52,7 +52,7 @@ class Parser(object):
             # XXX - make this overridable?
             self._column_names = self._get_headers_from_handle(handle)
         else:
-            count = len(self._next(csv.reader(handle)))
+            count = len(self._next(self._get_csv_reader(handle)))
             handle.seek(0)
             self._column_names = self.generate_column_names(count)
 
@@ -67,10 +67,13 @@ class Parser(object):
 
     def _get_headers_from_handle(self, handle):
         handle.seek(0)
-        values = self._next(csv.reader(handle, delimiter=str(self._delimiter)))
+        values = self._next(self._get_csv_reader(handle))
         unique = self.make_unique_columns(values)
 
         return unique
+
+    def _get_csv_reader(self, handle):
+        return csv.reader(handle, delimiter=str(self._delimiter))
 
     def make_unique_columns(self, names):
         seen_names = {}
@@ -232,7 +235,7 @@ class Parser(object):
             delimiter = self.delimiter().encode("ascii")
         elif six.PY3:
             delimiter = self.delimiter()
-        reader = csv.reader(self._handle, delimiter=delimiter)
+        reader = self._get_csv_reader(self._handle)
         return self._next(reader)
 
     # Python 3 version of next
