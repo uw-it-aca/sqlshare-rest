@@ -13,7 +13,8 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.dao.dataset import create_dataset_from_snapshot
 from sqlshare_rest.dao.dataset import create_preview_for_dataset
 from sqlshare_rest.dao.dataset import get_dataset_by_owner_and_name
-from sqlshare_rest.dao.dataset import update_dataset_sql
+from sqlshare_rest.dao.dataset import update_dataset_sql, add_public_access
+from sqlshare_rest.dao.dataset import remove_public_access
 from sqlshare_rest.util.query import get_sample_data_for_query
 from sqlshare_rest.logger import getLogger
 
@@ -82,7 +83,12 @@ def snapshot(request, owner, name):
                 request)
 
     new_dataset = create_dataset_from_snapshot(user, new_name, dataset)
+    if is_public:
+        new_dataset.is_public = True
+    else:
+        new_dataset.is_public = False
 
+    new_dataset.save()
     response = HttpResponse("")
     response["location"] = new_dataset.get_url()
     response.status_code = 201
@@ -165,6 +171,10 @@ def _put_dataset(request, owner, name):
         dataset.is_public = is_public
 
         dataset.save()
+        if is_public:
+            add_public_access(dataset)
+        else:
+            remove_public_access(dataset)
 
         response = HttpResponse(json.dumps(dataset.json_data()))
         response.status_code = 201

@@ -3,7 +3,10 @@ from sqlshare_rest.models import Dataset, User, SharingEmail, DatasetTag, Tag
 from sqlshare_rest.models import DatasetSharingEmail
 from sqlshare_rest.models import Query, RecentDatasetView
 from sqlshare_rest.exceptions import InvalidAccountException
+from logging import getLogger
 from django.db.models import Q
+
+logger = getLogger(__name__)
 
 
 def get_datasets_owned_by_user(user, request, page_list=True):
@@ -143,7 +146,15 @@ def create_dataset_from_snapshot(user, dataset_name, source):
         if not created:
             # Clear out the existing dataset, so we can create
             # the new view properly
-            backend.delete_dataset(dataset_name, user)
+            try:
+                backend.delete_dataset(dataset_name, user)
+            except Exception as ex:
+                username = user.username
+                logger.info("Error deleting dataset while creating snapshot."
+                            " User: %s, Dataset: %s,"
+                            " Error: %s" % (username,
+                                            dataset_name,
+                                            str(ex)))
 
         backend.create_snapshot_dataset(source, model, user)
 
