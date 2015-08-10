@@ -48,7 +48,7 @@ def user_override(request):
         validation_error = validation_module(new_user)
         if validation_error is None:
             logger.info("%s is impersonating %s",
-                        get_original_user(request),
+                        get_original_user(request).username,
                         new_user)
             set_override_user(request, new_user)
         else:
@@ -56,9 +56,13 @@ def user_override(request):
             override_error_msg = validation_error
 
     if "clear_override" in request.POST:
+        override_username = "<none>"
+        override_obj = get_override_user(request)
+        if override_obj:
+            override_username = override_obj.username
         logger.info("%s is ending impersonation of %s",
-                    get_original_user(request),
-                    get_override_user(request))
+                    get_original_user(request).username,
+                    override_username)
         clear_override(request)
 
     override_user = get_override_user(request)
