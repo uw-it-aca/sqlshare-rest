@@ -123,6 +123,9 @@ class DBInterface(object):
     def get_view_sql_for_dataset(self, table_name, user):
         return self._get_view_sql_for_dataset(table_name, user)
 
+    def get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
+        return self._get_view_sql_for_dataset(table_name, user)
+
     def delete_table(self, table_name, owner):
         self._not_implemented("delete_table")
 

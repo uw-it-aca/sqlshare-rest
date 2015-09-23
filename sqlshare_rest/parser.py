@@ -115,7 +115,7 @@ class Parser(object):
 
         Resets the handle to position 0.
         """
-        MAX_COLUMN_TYPE_GUESS = 1000
+        MAX_COLUMN_TYPE_GUESS = 100
 
         if self._column_types:
             return self._column_types
@@ -255,7 +255,9 @@ class DataHandler(object):
         return self
 
     def next(self):
-        typed = []
+        # We try to type the data, but if it isn't correct we just add the
+        # raw strings, and hope a later step can sort it out.
+        semi_typed = []
         raw = self._parser.next()
 
         try:
@@ -264,16 +266,19 @@ class DataHandler(object):
 
                 if len(raw) <= i:
                     # Make the data square!
-                    typed.append(None)
+                    semi_typed.append(None)
                 else:
-                    value = raw[i]
-                    if "int" == col_type:
-                        typed.append(int(value))
-                    elif "float" == col_type:
-                        typed.append(float(value))
-                    else:
-                        typed.append(value)
-            return typed
+                    try:
+                        value = raw[i]
+                        if "int" == col_type:
+                            semi_typed.append(int(value))
+                        elif "float" == col_type:
+                            semi_typed.append(float(value))
+                        else:
+                            semi_typed.append(value)
+                    except Exception as ex:
+                        semi_typed.append(value)
+            return semi_typed
 
         except Exception as ex:
             return str(ex)

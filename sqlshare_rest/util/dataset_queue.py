@@ -88,13 +88,14 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             p.parse(handle)
 
             name = upload.dataset_name
-            table_name = backend.create_table_from_parser(name,
-                                                          p,
-                                                          upload,
-                                                          user)
+            table = backend.create_table_from_parser(name,
+                                                     p,
+                                                     upload,
+                                                     user)
 
-            dataset_sql = backend.get_view_sql_for_dataset(table_name,
-                                                           user)
+            dataset_sql = backend.get_view_sql_for_dataset_by_parser(table,
+                                                                     p,
+                                                                     user)
             dataset = create_dataset_from_query(user.username,
                                                 upload.dataset_name,
                                                 dataset_sql)

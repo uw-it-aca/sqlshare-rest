@@ -91,7 +91,6 @@ class TestMSSQLBackend(CleanUpTestCase):
                 cursor.execute("DROP TABLE [%s].[test_query1]" % schema_name)
 
             except Exception as ex:
-                print ("EX: ", ex)
                 raise
             finally:
                 backend.close_user_connection(user)
@@ -164,6 +163,36 @@ class TestMSSQLBackend(CleanUpTestCase):
         finally:
             backend.close_user_connection(user)
 
+    def test_bad_data_after_100(self):
+        self.remove_users.append("test_bad_over100")
+        backend = get_backend()
+        user = backend.get_user("test_bad_over100")
+
+        try:
+            data = "1,2,3\n" * 100
+            data += "a,b,c\n1,2,3"
+
+            parser = Parser()
+            handle = StringIO(data)
+            parser.guess(handle.read(1024*20))
+            handle.seek(0)
+            parser.parse(handle)
+
+            ul = FileUpload.objects.create(owner=user)
+            backend.create_dataset_from_parser("test_over100", parser, ul, user)
+            result = backend.run_query("SELECT * FROM [%s].[table_test_over100]" % user.schema, user)
+            self.assertEquals(len(result), 101)
+
+            result = backend.run_query("SELECT * FROM [%s].[untyped_table_test_over100]" % user.schema, user)
+            self.assertEquals(len(result), 1)
+
+            result = backend.run_query("SELECT * FROM [%s].[test_over100]" % user.schema, user)
+            self.assertEquals(len(result), 102)
+            pass
+        except Exception:
+            raise
+        finally:
+            backend.close_user_connection(user)
 
     def test_create_table_wrong_schema(self):
         self.remove_users.append("test_user_bad_schema1")
@@ -206,12 +235,12 @@ class TestMSSQLBackend(CleanUpTestCase):
         try:
             backend.create_dataset_from_parser("soon_to_be_gone", parser, ul, user)
             result = backend.run_query("SELECT * FROM %s.soon_to_be_gone" % user.schema, user)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
             backend.delete_dataset("soon_to_be_gone", user)
 
@@ -257,7 +286,6 @@ class TestMSSQLBackend(CleanUpTestCase):
                 backend.run_query("SELECT * from %s.test1" % user1.schema, user2)
 
         except Exception as ex:
-            print ("EX: ", ex)
             raise
         finally:
             backend.close_user_connection(user1)
@@ -289,7 +317,7 @@ class TestMSSQLBackend(CleanUpTestCase):
 
             # Just check that it's there:
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[1][2], '12')
 
             # Not shared yet - no access
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user2)
@@ -299,21 +327,21 @@ class TestMSSQLBackend(CleanUpTestCase):
 
             # Check the new person has access
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user2)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
             # Check that the owner still has access
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
             # Make sure only user2 has access, not user3
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_permissions1.share_me", user3)
@@ -327,12 +355,12 @@ class TestMSSQLBackend(CleanUpTestCase):
 
             # Make sure the owner does have access
             result = backend.run_query("SELECT * FROM test_user_permissions1.share_me", user1)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
         except Exception:
             raise
@@ -367,7 +395,7 @@ class TestMSSQLBackend(CleanUpTestCase):
 
             # Just check that it's there:
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user1)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[1][2], '12')
 
             # Not shared yet - no access
             self.assertRaises(pyodbc.ProgrammingError, backend.run_query, "SELECT * FROM test_user_public_permissions1.share_me", user2)
@@ -377,31 +405,31 @@ class TestMSSQLBackend(CleanUpTestCase):
 
             # Check the new person has access
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user2)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
             # Check that the owner still has access
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user1)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
 
             # Check that user3 also has access owner
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user3)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
 
             # Drop the public sharing
@@ -413,12 +441,12 @@ class TestMSSQLBackend(CleanUpTestCase):
 
             # Make sure the owner does have access
             result = backend.run_query("SELECT * FROM test_user_public_permissions1.share_me", user1)
-            self.assertEquals(result[0][0], 1)
-            self.assertEquals(result[0][1], 3)
-            self.assertEquals(result[0][2], 4)
-            self.assertEquals(result[1][0], 2)
-            self.assertEquals(result[1][1], 10)
-            self.assertEquals(result[1][2], 12)
+            self.assertEquals(result[0][0], '1')
+            self.assertEquals(result[0][1], '3')
+            self.assertEquals(result[0][2], '4')
+            self.assertEquals(result[1][0], '2')
+            self.assertEquals(result[1][1], '10')
+            self.assertEquals(result[1][2], '12')
 
         except Exception:
             raise

@@ -264,6 +264,7 @@ class MSSQLBackend(DBInterface):
 
     def _create_table(self, table_name, column_names, column_types, user):
         column_names = self._make_safe_column_name_list(column_names)
+        # Create a table that has the correctly typed data
         try:
             sql = self._create_table_sql(user,
                                          table_name,
@@ -282,8 +283,31 @@ class MSSQLBackend(DBInterface):
             self.run_query(drop_sql, user, return_cursor=True).close()
             self.run_query(sql, user, return_cursor=True).close()
 
+        # Create a second table that has ... everything we were wrong about
+        try:
+            sql = self._create_untyped_table_sql(user,
+                                                 table_name,
+                                                 column_names,
+                                                 column_types)
+
+            self.run_query(sql, user, return_cursor=True).close()
+        except Exception as ex:
+            # We expect tables to already exist - uploading a replacement
+            # file gives that exception.  Anything else though is probably
+            # a bug worth looking into.
+            ex_str = str(ex)
+            if not ex_str.find("There is already an object named"):
+                logger.error("Error creating table: %s" % str(ex))
+            drop_sql = self._drop_exisisting_untyped_table_sql(user,
+                                                               table_name)
+            self.run_query(drop_sql, user, return_cursor=True).close()
+            self.run_query(sql, user, return_cursor=True).close()
+
     def _drop_exisisting_table_sql(self, user, table_name):
         return "DROP TABLE [%s].[%s]" % (user.schema, table_name)
+
+    def _drop_exisisting_untyped_table_sql(self, user, table_name):
+        return "DROP TABLE [%s].[untyped_%s]" % (user.schema, table_name)
 
     def _create_table_sql(self, user, table_name, column_names, column_types):
         def _column_sql(name, col_type):
@@ -305,6 +329,29 @@ class MSSQLBackend(DBInterface):
                     table_name,
                     ", ".join(columns)
                )
+
+    def _create_untyped_table_sql(self, user, table_name, names, types):
+        columns = []
+        for i in range(0, len(names)):
+            name = names[i]
+            columns.append("[%s] nvarchar(MAX)" % name)
+
+        return "CREATE TABLE [%s].[untyped_%s] (%s)" % (
+                    user.schema,
+                    table_name,
+                    ", ".join(columns)
+               )
+
+    def _load_table_untyped_sql(self, table_name, row, user, row_count):
+        placeholders = map(lambda x: "?", row)
+        ph_str = ", ".join(placeholders)
+
+        all_rows = map(lambda x: "(%s)" % ph_str, range(row_count))
+        placeholders = ", ".join(all_rows)
+
+        return "INSERT INTO [%s].[untyped_%s] VALUES %s" % (user.schema,
+                                                            table_name,
+                                                            placeholders)
 
     def _load_table_sql(self, table_name, row, user, row_count):
         placeholders = map(lambda x: "?", row)
@@ -330,6 +377,11 @@ class MSSQLBackend(DBInterface):
                                        current_data[0]["data"],
                                        user,
                                        1)
+
+            untyped_sql = self._load_table_untyped_sql(table_name,
+                                                       current_data[0]["data"],
+                                                       user,
+                                                       1)
             errors = ""
 
             for row in current_data:
@@ -340,7 +392,10 @@ class MSSQLBackend(DBInterface):
                                    return_cursor=True).close()
                 except Exception as ex:
                     row_num = row["row"]
-                    errors += "Error on row %s: %s\n" % (row_num, str(ex))
+                    self.run_query(untyped_sql,
+                                   user,
+                                   row["data"],
+                                   return_cursor=True).close()
 
             return errors
 
@@ -403,6 +458,63 @@ class MSSQLBackend(DBInterface):
         if errors:
             upload.error = errors
             upload.save()
+
+    def create_dataset_from_parser(self, dataset_name, parser, upload, user):
+        """
+        OVERRIDING THE BASE METHOD!
+
+        Our datset sql needs to be column aware, because we're storing data
+        in 2 tables, one that's clean, one that isn't.  The union needs to do
+        per-column casts of the clean data.
+
+        Turns a parser object into a dataset.  This process should update
+        the rows_loaded attribute of the upload object as it is processed.
+        rows_loaded will be set to rows_total at the end of
+        create_table_from_parser().
+
+        # Creates a table based on the parser columns
+        # Loads the data that's in the handle for the parser
+        # Creates the view for the dataset
+        """
+        table_name = self.create_table_from_parser(dataset_name,
+                                                   parser,
+                                                   upload,
+                                                   user)
+        upload.save()
+        self.create_view(dataset_name,
+                         self._get_view_sql_for_dataset_by_parser(table_name,
+                                                                  parser,
+                                                                  user),
+                         user)
+
+    def get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
+        return self._get_view_sql_for_dataset_by_parser(table_name,
+                                                        parser,
+                                                        user)
+
+    def _get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
+        cast = []
+        plain = []
+        base = []
+        for c in parser.column_names():
+            cast.append("\n    CAST(%s AS NVARCHAR(MAX)) AS %s" % (c, c))
+            plain.append("\n    %s" % (c))
+            base.append(c)
+
+        base.append('clean')
+        all_unique = parser.make_unique_columns(base)
+        clean_col = all_unique[-1]
+
+        cast.append("\n    1 as %s" % (clean_col))
+        plain.append("\n    0 as %s" % (clean_col))
+
+        cast_columns = ", ".join(cast)
+        plain_columns = ", ".join(plain)
+
+        args = (cast_columns, user.schema, table_name,
+                plain_columns, user.schema, table_name)
+        return ("SELECT %s FROM [%s].[%s]\nUNION ALL\n"
+                "SELECT %s FROM [%s].[untyped_%s]") % args
 
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
