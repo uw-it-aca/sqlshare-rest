@@ -497,24 +497,24 @@ class MSSQLBackend(DBInterface):
         plain = []
         base = []
         for c in parser.column_names():
-            cast.append("\n    CAST(%s AS NVARCHAR(MAX)) AS %s" % (c, c))
-            plain.append("\n    %s" % (c))
+            cast.append("CAST(%s AS NVARCHAR(MAX)) AS %s" % (c, c))
+            plain.append(c)
             base.append(c)
 
         base.append('clean')
         all_unique = parser.make_unique_columns(base)
         clean_col = all_unique[-1]
 
-        cast.append("\n    1 as %s" % (clean_col))
-        plain.append("\n    0 as %s" % (clean_col))
+        cast.append("1 as %s" % (clean_col))
+        plain.append("0 as %s" % (clean_col))
 
-        cast_columns = ", ".join(cast)
-        plain_columns = ", ".join(plain)
+        cast_columns = "\n     , ".join(cast)
+        plain_columns = "\n     , ".join(plain)
 
         args = (cast_columns, user.schema, table_name,
                 plain_columns, user.schema, table_name)
-        return ("SELECT %s FROM [%s].[%s]\nUNION ALL\n"
-                "SELECT %s FROM [%s].[untyped_%s]") % args
+        return ("SELECT %s\n  FROM [%s].[%s]\nUNION ALL\n"
+                "SELECT %s\n  FROM [%s].[untyped_%s]") % args
 
     def _get_view_sql_for_dataset(self, table_name, user):
         return "SELECT * FROM [%s].[%s]" % (user.schema, table_name)
