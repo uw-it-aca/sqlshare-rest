@@ -468,4 +468,8 @@ class DatsetListAPITest(BaseAPITest):
         _run_query("drop login ds_list_user8")
         _run_query("drop login ds_list_user9")
         _run_query("drop login ds_list_user6")
+        _run_query("drop login ds_list_user6")
+        _run_query("drop login test_pagination_public")
+        _run_query("drop login test_pagination_shared")
+        _run_query("drop login test_pagination_owner")
 
