@@ -53,7 +53,7 @@ def upload(request, id):
         return get403()
 
     file_path = upload.user_file.path
-    handle = open(file_path, "at")
+    handle = open(file_path, "ab")
 
     handle.write(request.body.decode("utf-8"))
     logger.info("File upload, Append data; ID: %s" % (upload.pk), request)
