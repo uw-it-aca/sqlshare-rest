@@ -136,8 +136,13 @@ class Parser(object):
                 break
             self._guess_column_types_by_row(row, values)
 
+        names = self.column_names()
         if values == []:
-            for name in self.column_names():
+            for name in names:
+                values.append({"type": "text", "max": 100})
+
+        if len(values) < len(names):
+            for i in range(len(names)-len(values)):
                 values.append({"type": "text", "max": 100})
 
         self._handle.seek(0)

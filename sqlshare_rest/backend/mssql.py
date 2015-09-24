@@ -497,8 +497,8 @@ class MSSQLBackend(DBInterface):
         plain = []
         base = []
         for c in parser.column_names():
-            cast.append("CAST(%s AS NVARCHAR(MAX)) AS %s" % (c, c))
-            plain.append(c)
+            cast.append("CAST([%s] AS NVARCHAR(MAX)) AS [%s]" % (c, c))
+            plain.append("[%s]" % c)
             base.append(c)
 
         base.append('clean')
@@ -513,6 +513,7 @@ class MSSQLBackend(DBInterface):
 
         args = (cast_columns, user.schema, table_name,
                 plain_columns, user.schema, table_name)
+
         return ("SELECT %s\n  FROM [%s].[%s]\nUNION ALL\n"
                 "SELECT %s\n  FROM [%s].[untyped_%s]") % args
 
