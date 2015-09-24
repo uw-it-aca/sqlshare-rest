@@ -143,7 +143,7 @@ class Parser(object):
 
         if len(values) < len(names):
             for i in range(len(names)-len(values)):
-                values.append({"type": "text"})
+                values.append({"type": "text", "max": 100})
 
         self._handle.seek(0)
         self._column_types = values
