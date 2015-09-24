@@ -13,3 +13,4 @@ AuthZ-Group
 testfixtures
 django-userservice
 django-dirtyfields
+chardet
