@@ -82,6 +82,7 @@
             
             .sql-wayf-sponsors { margin-top: 3em;
                 h3 { text-transform: uppercase; font-family: 'Oswald', sans-serif; color: @asbestos; font-size: 18px; }
+                .ss-wayf-sponsors-logo { display: inline-block; margin-right: 50px; margin-bottom: 15px; }
             }
             
             .sql-footer { color: #666;
@@ -104,7 +105,7 @@
         
         <h1 class="sql-wayf-logo"><i class="fa fa-database"></i> SQL<span>SHARE</span> <span class="logo-beta">BETA</span></h1>
         
-        <p class="sql-wayf-headline">SQLShare is a secure and easy way to store your research data.</strong>  There is no need to install or administer a database server. Just upload and start analyzing your data instantly.</p>
+        <p class="sql-wayf-headline">SQLShare is a secure and easy way to manage, share, and manipulate your research data.</strong> There is no database to install or configure -- just upload your data through a browser, write queries in SQL, and share the results with anyone.</p>
         
         <div class="sql-wayf-login">
             <h2>Log in:</h2>
@@ -114,7 +115,7 @@
         </div>
         
         <div class="sql-wayf-create">
-        <p><strong>Don&rsquo;t have an account?</strong> Create a <a href="https://www.google.com/accounts/NewAccount">Google Account</a> and start using SQLShare.</p>
+        <p><strong>Don&rsquo;t have an account?</strong> Create a <a href="https://www.google.com/accounts/NewAccount" style="color:#d9534f;">Google Account</a> and start using SQLShare.</p>
         </div>
         
         <p style="text-align:right; font-size:13px; margin:0;"><a href="https://www.flickr.com/photos/rdecom/7222825892" title="Army scientists energize battery research by U.S. Army RDECOM, on Flickr" style="text-decoration:none; color:#000;"><i class="fa fa-flickr"></i> photo credit</a></p>
@@ -128,15 +129,15 @@
       <div class="row">
         <div class="col-md-4">
           <h2><i class="fa fa-upload"></i> Upload</h2>
-          <p>Just upload any tabular data and start analyzing instantly. No need to mess with server installations and purchasing hardware.</p>
+          <p>Just upload any tabular data and start analyzing it instantly in your browser.  No hardware, to software to install and configure, no database to design.</p>
         </div>
         <div class="col-md-4">
-          <h2><i class="fa fa-gears"></i> Query</h2>
-          <p>Exercise the full power of SQL even with zero programming experience: joins, subqueries, set operations. You can do it all within SQLShare.</p>
+          <h2><i class="fa fa-gears"></i> Analyze</h2>
+          <p>Write queries, not code. Automate your analysis using full SQL -- joins, nested queries, statistical functions, more.  Derive new virtual datasets and save them on the server for further analysis -- no more jumbles of files polluting your hard drive.</p>
        </div>
         <div class="col-md-4">
           <h2><i class="fa fa-users"></i> Collaborate</h2>
-          <p>Create datasets and share them with your colleagues. No need to send huge files across email or wait for long downloads. </p>
+          <p>Share your virtual datasets with colleagues by emailing them a link -- no more file attachments disconnected from the script that created them.  Your collaborators can derive their own virtual datasets using SQL -- everything is centralized and tracked. </p>
         </div>
       </div>
       
@@ -144,9 +145,10 @@
 
         <h3>Brought to you by:</h3>
 
-        <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/ss-wayf-escience.png" style="" /><br/>eScience Institute</div>
+        <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/eScience_logo.png" style="width:215px;" /></div>
         <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/moore-foundation-logo.gif" style="" /></div>
- 
+        <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/uwit-logo.png" style="width:280px;" /></div>
+        
       </div>
 
 
