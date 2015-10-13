@@ -1,5 +1,5 @@
 from sqlshare_rest.models import FileUpload
-from sqlshare_rest.parser import Parser
+from sqlshare_rest.parser import Parser, open_encoded
 from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.dao.dataset import create_dataset_from_query
 from time import sleep
@@ -65,7 +65,9 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 # relatively ok if that fails
                 pass
             logger = getLogger(__name__)
-            logger.error("Error on %s: %s" % (upload_id, str(ex)))
+            import traceback
+            tb = traceback.format_exc()
+            logger.error("Error on %s: %s (%s)" % (upload_id, str(ex), tb))
 
         if background:
             sys.exit(0)
@@ -83,7 +85,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             p.has_header_row(upload.has_column_header)
 
             file_path = upload.user_file.path
-            handle = open(file_path, "U")
+            handle = open_encoded(file_path, "U")
             handle.seek(0)
             p.parse(handle)
 
@@ -107,7 +109,9 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             upload.dataset_created = True
             upload.save()
         except Exception as ex:
-            msg = "Error on %s: %s" % (upload.pk, str(ex))
+            import traceback
+            tb = traceback.format_exc()
+            msg = "Error on %s: %s - %s" % (upload.pk, str(ex), tb)
             logger.error(msg)
             upload.has_error = True
             upload.error = str(ex)

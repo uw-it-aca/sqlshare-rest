@@ -243,7 +243,8 @@ class MSSQLBackend(DBInterface):
             settings.DATABASES['default']['OPTIONS']['extra_params'],
             )
 
-        conn = pyodbc.connect(string, autocommit=True)
+        conn = pyodbc.connect(string, autocommit=True, unicode_results=True,
+                              ansi=False)
         return conn
 
     def _make_safe_column_name_list(self, names):
