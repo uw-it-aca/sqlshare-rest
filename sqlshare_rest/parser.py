@@ -304,7 +304,7 @@ class DataHandler(object):
 
 def open_encoded(filename, mode):
     handle = open(filename, "rb")
-    sample = handle.read(1024)
+    sample = handle.read()
 
     encoding = chardet.detect(sample)["encoding"]
     handle.close()
