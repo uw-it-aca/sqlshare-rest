@@ -6,6 +6,8 @@ from sqlshare_rest.views import get_oauth_user, get403, get404
 from sqlshare_rest.parser import Parser
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.logger import getLogger
+from sqlshare_rest.parser import open_encoded
+import chardet
 import json
 
 logger = getLogger(__name__)
@@ -44,7 +46,7 @@ def parser(request, id):
         p = Parser()
 
         file_path = upload.user_file.path
-        handle = open(file_path, "U")
+        handle = open_encoded(file_path, "Ub")
         p.guess(handle.read())
         handle.close()
 
@@ -58,7 +60,7 @@ def parser(request, id):
 
 def _update_from_parser(upload, parser):
     file_path = upload.user_file.path
-    handle = open(file_path, "U")
+    handle = open_encoded(file_path, "U")
     parser.parse(handle)
     upload.has_column_header = parser.has_header_row()
 

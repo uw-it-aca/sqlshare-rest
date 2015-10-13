@@ -1,5 +1,7 @@
 import csv
 import six
+import chardet
+import codecs
 
 if six.PY2:
     from StringIO import StringIO
@@ -72,8 +74,14 @@ class Parser(object):
 
         return unique
 
+
     def _get_csv_reader(self, handle):
-        return csv.reader(handle, delimiter=str(self._delimiter))
+        # From https://docs.python.org/2/library/csv.html
+        def utf_8_encoder(unicode_csv_data):
+            for line in unicode_csv_data:
+                yield line.encode('utf-8')
+        return csv.reader(utf_8_encoder(handle),
+                          delimiter=str(self._delimiter))
 
     def make_unique_columns(self, names):
         seen_names = {}
@@ -226,9 +234,9 @@ class Parser(object):
     # To handle python 2/3 differences
     def _next(self, handle):
         if six.PY2:
-            return handle.next()
+            return [unicode(cell, 'utf-8') for cell in handle.next()]
         elif six.PY3:
-            return next(handle)
+            return [unicode(cell, 'utf-8') for cell in next(handle)]
 
     # To make this iterable - intended to make it so we can be somewhat
     # low-memory, even on large files
@@ -289,3 +297,13 @@ class DataHandler(object):
             return str(ex)
 
     __next__ = next
+
+
+def open_encoded(filename, mode):
+    handle = open(filename, "rb")
+    sample = handle.read(1024)
+
+    encoding = chardet.detect(sample)["encoding"]
+    handle.close()
+
+    return codecs.open(filename, mode=mode, encoding=encoding)
