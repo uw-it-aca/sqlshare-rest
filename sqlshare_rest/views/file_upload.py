@@ -55,7 +55,7 @@ def upload(request, id):
     file_path = upload.user_file.path
     handle = open(file_path, "ab")
 
-    handle.write(request.body.decode("utf-8"))
+    handle.write(request.body)
     logger.info("File upload, Append data; ID: %s" % (upload.pk), request)
 
     return HttpResponse("")

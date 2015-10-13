@@ -79,8 +79,12 @@ class Parser(object):
         def utf_8_encoder(unicode_csv_data):
             for line in unicode_csv_data:
                 yield line.encode('utf-8')
-        return csv.reader(utf_8_encoder(handle),
-                          delimiter=str(self._delimiter))
+
+        if six.PY2:
+            return csv.reader(utf_8_encoder(handle),
+                              delimiter=str(self._delimiter))
+        elif six.PY3:
+            return csv.reader(handle, delimiter=str(self._delimiter))
 
     def make_unique_columns(self, names):
         seen_names = {}
@@ -235,6 +239,7 @@ class Parser(object):
         if six.PY2:
             return [unicode(cell, 'utf-8') for cell in handle.next()]
         elif six.PY3:
+            return next(handle)
             return [unicode(cell, 'utf-8') for cell in next(handle)]
 
     # To make this iterable - intended to make it so we can be somewhat
