@@ -351,8 +351,8 @@ class FileUploadAPITest(BaseAPITest):
         self.remove_users.append(owner)
         auth_headers = self.get_auth_header_for_username(owner)
 
-        data1 = "col1,col2,XXcol3\ra,1,2\rb,2,3\nc,3,4\r"
-        data2 = "z,999,2\ry,2,3\rx,30,41"
+        data1 = "col1,col2,XXcol3\r\na,1,2\r\nb,2,3\r\nc,3,4\r\n"
+        data2 = "z,999,2\r\ny,2,3\r\nx,30,41"
 
         init_url = reverse("sqlshare_view_file_upload_init")
 
