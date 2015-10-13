@@ -240,7 +240,6 @@ class Parser(object):
             return [unicode(cell, 'utf-8') for cell in handle.next()]
         elif six.PY3:
             return next(handle)
-            return [unicode(cell, 'utf-8') for cell in next(handle)]
 
     # To make this iterable - intended to make it so we can be somewhat
     # low-memory, even on large files
