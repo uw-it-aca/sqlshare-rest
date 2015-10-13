@@ -74,7 +74,6 @@ class Parser(object):
 
         return unique
 
-
     def _get_csv_reader(self, handle):
         # From https://docs.python.org/2/library/csv.html
         def utf_8_encoder(unicode_csv_data):
