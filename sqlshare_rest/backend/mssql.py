@@ -773,6 +773,12 @@ class MSSQLBackend(DBInterface):
                                                           dataset,
                                                           reader.db_username)
 
+    def _add_read_access_sql_to_untyped(self, dataset, owner, reader):
+        username = reader.db_username
+        return "GRANT SELECT ON [%s].[untyped_table_%s] TO %s" % (owner.schema,
+                                                                  dataset,
+                                                                  username)
+
     def _remove_read_access_sql(self, dataset, owner, reader):
         return "REVOKE ALL ON [%s].[%s] FROM %s" % (owner.schema,
                                                     dataset,
@@ -783,6 +789,12 @@ class MSSQLBackend(DBInterface):
                                                           dataset,
                                                           reader.db_username)
 
+    def _remove_read_access_sql_from_untyped(self, dataset, owner, reader):
+        username = reader.db_username
+        return "REVOKE ALL ON [%s].[untyped_table_%s] FROM %s" % (owner.schema,
+                                                                  dataset,
+                                                                  username)
+
     def add_read_access_to_dataset(self, dataset, owner, reader):
         # test round one:
         sql = self._add_read_access_sql(dataset, owner, reader)
@@ -790,6 +802,14 @@ class MSSQLBackend(DBInterface):
 
         # If there's a backing table, grant select to that as well...
         sql = self._add_read_access_sql_to_table(dataset, owner, reader)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+        # If there's a backing table, grant select to that as well...
+        sql = self._add_read_access_sql_to_untyped(dataset,
+                                                   owner,
+                                                   reader)
         try:
             self.run_query(sql, owner, return_cursor=True).close()
         except Exception:
@@ -805,6 +825,14 @@ class MSSQLBackend(DBInterface):
         except Exception:
             pass
 
+        sql = self._remove_read_access_sql_from_untyped(dataset,
+                                                        owner,
+                                                        reader)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+
     def _add_public_access_sql(self, dataset, owner):
         return "GRANT SELECT ON [%s].[%s] TO PUBLIC" % (owner.schema,
                                                         dataset.name)
@@ -813,12 +841,23 @@ class MSSQLBackend(DBInterface):
         return "GRANT SELECT ON [%s].[table_%s] TO PUBLIC" % (owner.schema,
                                                               dataset.name)
 
+    def _add_public_access_sql_to_untyped(self, dataset, owner):
+        user = owner.schema
+        name = dataset.name
+        return "GRANT SELECT ON [%s].[untyped_table_%s] TO PUBLIC" % (user,
+                                                                      name)
+
     def add_public_access(self, dataset, owner):
         sql = self._add_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
 
         # If there's a backing table, grant select to public as well...
         sql = self._add_public_access_sql_to_table(dataset, owner)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+        sql = self._add_public_access_sql_to_untyped(dataset, owner)
         try:
             self.run_query(sql, owner, return_cursor=True).close()
         except Exception:
@@ -832,12 +871,24 @@ class MSSQLBackend(DBInterface):
         return "REVOKE ALL ON [%s].[table_%s] FROM PUBLIC" % (owner.schema,
                                                               dataset.name)
 
+    def _remove_public_access_sql_from_untyped(self, dataset, owner):
+        user = owner.schema
+        name = dataset.name
+        return "REVOKE ALL ON [%s].[untyped_table_%s] FROM PUBLIC" % (user,
+                                                                      name)
+
     def remove_public_access(self, dataset, owner):
         sql = self._remove_public_access_sql(dataset, owner)
         self.run_query(sql, owner, return_cursor=True).close()
 
         # If there's a backing table, drop select from public as well...
         sql = self._remove_public_access_sql_from_table(dataset, owner)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception:
+            pass
+
+        sql = self._remove_public_access_sql_from_untyped(dataset, owner)
         try:
             self.run_query(sql, owner, return_cursor=True).close()
         except Exception:
