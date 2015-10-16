@@ -19,6 +19,9 @@ TERMINATE_TRIGGER_FILE = getattr(settings,
 
 
 def process_snapshot_queue(thread_count=0, run_once=True, verbose=False):
+    # Make sure only one instance is running at a time:
+    if trigger_snapshot_processing():
+        return
 
     def start_snapshot(snapshot, background=True):
         """

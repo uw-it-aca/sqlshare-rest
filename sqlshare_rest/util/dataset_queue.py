@@ -23,6 +23,10 @@ TERMINATE_TRIGGER_FILE = getattr(settings,
 
 
 def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
+    # Make sure only one instance is running at a time:
+    if trigger_upload_queue_processing():
+        return
+
     def start_upload(upload, background=True):
         upload.is_started = True
         upload.save()
