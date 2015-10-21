@@ -497,13 +497,17 @@ class MSSQLBackend(DBInterface):
         cast = []
         plain = []
         base = []
-        for c in parser.column_names():
+
+        base = parser.column_names()
+        base.append('clean')
+        all_unique = parser.make_unique_columns(base)
+        all_unique = self._make_safe_column_name_list(all_unique)
+
+        for c in all_unique[0:-1]:
             cast.append("CAST([%s] AS NVARCHAR(MAX)) AS [%s]" % (c, c))
             plain.append("[%s]" % c)
             base.append(c)
 
-        base.append('clean')
-        all_unique = parser.make_unique_columns(base)
         clean_col = all_unique[-1]
 
         cast.append("1 as %s" % (clean_col))
