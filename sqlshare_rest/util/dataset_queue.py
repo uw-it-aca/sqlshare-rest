@@ -27,8 +27,6 @@ if six.PY2:
 if six.PY3:
     from urllib.parse import quote
 
-
-
 TERMINATE_TRIGGER_FILE = getattr(settings,
                                  "SQLSHARE_TERMINATE_UPLOAD_QUEUE_PATH",
                                  "/tmp/sqlshare_terminate_upload_queue")
@@ -44,8 +42,8 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
         values = {}
 
         url_format = getattr(settings,
-                         "SQLSHARE_DETAIL_URL_FORMAT",
-                         "https://sqlshare.uw.edu/detail/%s/%s")
+                             "SQLSHARE_DETAIL_URL_FORMAT",
+                             "https://sqlshare.uw.edu/detail/%s/%s")
 
         url = url_format % (quote(dataset.owner.username), quote(dataset.name))
 
@@ -62,7 +60,8 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
         try:
             msg.send()
         except Exception as ex:
-            logger.error("Unable to send email to %s.  Error: %s" % (to, str(ex)))
+            logger.error("Unable to send email to %s.  Error: %s" % (to,
+                                                                     str(ex)))
 
     def start_upload(upload, background=True):
         upload.is_started = True
