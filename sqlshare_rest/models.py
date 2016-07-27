@@ -23,6 +23,12 @@ class User(models.Model):
     db_password = models.CharField(max_length=200)
     override_as = models.ForeignKey("User", null=True)
 
+    def get_email(self):
+        # If they're a google login, this won't match - just for uw
+        # users whose login name doesn't match their email domain.
+        email = self.username.replace("@washington.edu", "@uw.edu")
+        return email
+
     def get_full_name(self):
         # TODO
         return ""
