@@ -27,6 +27,9 @@ class User(models.Model):
         # If they're a google login, this won't match - just for uw
         # users whose login name doesn't match their email domain.
         email = self.username.replace("@washington.edu", "@uw.edu")
+        if email.find("@") < 0:
+            email = email + "@uw.edu"
+
         return email
 
     def get_full_name(self):
