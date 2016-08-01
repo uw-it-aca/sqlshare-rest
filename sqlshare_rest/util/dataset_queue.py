@@ -31,6 +31,8 @@ TERMINATE_TRIGGER_FILE = getattr(settings,
                                  "SQLSHARE_TERMINATE_UPLOAD_QUEUE_PATH",
                                  "/tmp/sqlshare_terminate_upload_queue")
 
+logger = getLogger(__name__)
+
 
 def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
     # Make sure only one instance is running at a time:
@@ -106,7 +108,6 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 # That try is just trying to get info out to the user, it's
                 # relatively ok if that fails
                 pass
-            logger = getLogger(__name__)
             import traceback
             tb = traceback.format_exc()
             logger.error("Error on %s: %s (%s)" % (upload_id, str(ex), tb))
@@ -118,14 +119,12 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 email_owner_success(saved.dataset)
             except Exception as ex:
                 print ex
-                logger = getLogger(__name__)
                 logger.error("Error emailing on upload success: %s" % ex)
 
         if background:
             sys.exit(0)
 
     def process_upload(upload_id):
-        logger = getLogger(__name__)
         upload = FileUpload.objects.get(pk=upload_id)
         msg = "Processing file upload: %s" % upload.pk
         logger.info(msg)
@@ -270,11 +269,9 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                                 connections[conn].close()
 
                         else:
-                            logger = getLogger(__name__)
                             logger.error("Error in dataset queue: %s" % ex_str)
                             raise
                 else:
-                    logger = getLogger(__name__)
                     logger.error("Error in dataset queue: %s" % ex_str)
                     raise
 
