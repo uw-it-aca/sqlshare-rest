@@ -1,5 +1,5 @@
 Django==1.6
-oauth2client
+oauth2client<2.0
 oauthlib == 1.0
 django-compressor==1.5
 # django-fields

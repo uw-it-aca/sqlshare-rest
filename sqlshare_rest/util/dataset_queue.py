@@ -6,6 +6,8 @@ from time import sleep
 from sqlshare_rest.util.queue_triggers import trigger_upload_queue_processing
 from sqlshare_rest.util.queue_triggers import UPLOAD_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
 from django.db.utils import DatabaseError
 from django.conf import settings
 from django import db
@@ -13,9 +15,17 @@ import atexit
 import time
 import sys
 import os
+import re
 
 import socket
 from threading import Thread
+
+import six
+
+if six.PY2:
+    from urllib import quote
+if six.PY3:
+    from urllib.parse import quote
 
 TERMINATE_TRIGGER_FILE = getattr(settings,
                                  "SQLSHARE_TERMINATE_UPLOAD_QUEUE_PATH",
@@ -26,6 +36,32 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
     # Make sure only one instance is running at a time:
     if trigger_upload_queue_processing():
         return
+
+    def email_owner_success(dataset):
+        to = dataset.owner.get_email()
+        values = {}
+
+        url_format = getattr(settings,
+                             "SQLSHARE_DETAIL_URL_FORMAT",
+                             "https://sqlshare.uw.edu/detail/%s/%s")
+
+        url = url_format % (quote(dataset.owner.username), quote(dataset.name))
+
+        values['url'] = url
+        values['name'] = dataset.name
+
+        text_version = render_to_string('uploaded_email/text.html', values)
+        html_version = render_to_string('uploaded_email/html.html', values)
+        subject = render_to_string('uploaded_email/subject.html', values)
+        subject = re.sub(r'[\s]*$', '', subject)
+        from_email = "sqlshare-noreply@uw.edu"
+        msg = EmailMultiAlternatives(subject, text_version, from_email, [to])
+        msg.attach_alternative(html_version, "text/html")
+        try:
+            msg.send()
+        except Exception as ex:
+            logger.error("Unable to send email to %s.  Error: %s" % (to,
+                                                                     str(ex)))
 
     def start_upload(upload, background=True):
         upload.is_started = True
@@ -55,8 +91,10 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             os.dup2(null, sys.stderr.fileno())
             os.close(null)
 
+        success = False
         try:
             process_upload(upload_id)
+            success = True
         except Exception as ex:
             try:
                 upload = FileUpload.objects.get(pk=upload_id)
@@ -72,6 +110,16 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             import traceback
             tb = traceback.format_exc()
             logger.error("Error on %s: %s (%s)" % (upload_id, str(ex), tb))
+
+        if success:
+            try:
+                # Get a new upload object, to get the dataset
+                saved = FileUpload.objects.get(pk=upload.pk)
+                email_owner_success(saved.dataset)
+            except Exception as ex:
+                print ex
+                logger = getLogger(__name__)
+                logger.error("Error emailing on upload success: %s" % ex)
 
         if background:
             sys.exit(0)
