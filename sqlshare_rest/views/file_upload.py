@@ -102,7 +102,17 @@ def finalize(request, id):
     if request.META["REQUEST_METHOD"] == "GET":
         logger.info("File upload, GET finalize; ID: %s" % (upload.pk), request)
 
+
+
     response = HttpResponse(json.dumps(upload.finalize_json_data()))
+
+    if "rows_total" in upload.finalize_json_data():
+        response = HttpResponse("Error: something something")
+        response.status_code = 400
+        print "response: ", response, upload.finalize_json_data()
+        return response
+
+
     if upload.dataset_created:
         response.status_code = 201
         response["location"] = upload.dataset.get_url()
