@@ -104,12 +104,6 @@ def finalize(request, id):
 
     response = HttpResponse(json.dumps(upload.finalize_json_data()))
 
-    if "rows_total" in upload.finalize_json_data():
-        response = HttpResponse("Error: something something")
-        response.status_code = 400
-        print "response: ", response, upload.finalize_json_data()
-        return response
-
     if upload.dataset_created:
         response.status_code = 201
         response["location"] = upload.dataset.get_url()
