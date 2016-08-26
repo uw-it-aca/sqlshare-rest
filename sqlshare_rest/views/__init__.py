@@ -36,7 +36,7 @@ def get403():
     return response
 
 
-def get400():
-    response = HttpResponse("")
+def get400(msg=""):
+    response = HttpResponse(msg)
     response.status_code = 400
     return response

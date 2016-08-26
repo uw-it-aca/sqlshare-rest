@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.decorators import protected_resource
 from sqlshare_rest.models import FileUpload
-from sqlshare_rest.views import get_oauth_user, get403, get404
+from sqlshare_rest.views import get_oauth_user, get403, get404, get400
 from sqlshare_rest.parser import Parser
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.logger import getLogger
@@ -43,15 +43,18 @@ def parser(request, id):
         _update_from_parser(upload, p)
 
     if not upload.has_parser_values:
-        p = Parser()
+        try:
+            p = Parser()
 
-        file_path = upload.user_file.path
-        handle = open_encoded(file_path, "U")
+            file_path = upload.user_file.path
+            handle = open_encoded(file_path, "U")
 
-        p.guess(handle.read())
-        handle.close()
+            p.guess(handle.read())
+            handle.close()
 
-        _update_from_parser(upload, p)
+            _update_from_parser(upload, p)
+        except Exception as ex:
+            return get400("Error parsing file: %s" % ex)
 
     if request.META["REQUEST_METHOD"] == "GET":
         logger.info("File upload, GET parser; ID: %s" % (upload.pk), request)
