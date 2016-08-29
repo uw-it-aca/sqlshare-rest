@@ -45,11 +45,26 @@ class DBInterface(object):
         destination.save()
 
     def load_snapshot_table(self, dataset, user):
+        """
+        Create a snapshot of a dataset.
+        """
         source_dataset = dataset.snapshot_source
         table_name = self._get_table_name_for_dataset(dataset.name)
 
+        try:
+            self.delete_table(table_name, user)
+            self.delete_dataset(dataset, user)
+        except Exception as ex:
+            print "EX: ", ex
+
         self._create_snapshot_table(source_dataset, table_name, user)
         self._create_view_of_snapshot(dataset, user)
+
+        # Rebuild the DB permissions on the created values, if this is a
+        # replacement snapshot
+        accounts = dataset.shared_with
+        from sqlshare_rest.dao.dataset import set_dataset_accounts
+        set_dataset_accounts(dataset, accounts.all(), save_dataset=False)
 
     def _create_view_of_snapshot(self, dataset, user):
         sql = self._get_snapshot_view_sql(dataset)
