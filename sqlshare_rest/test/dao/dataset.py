@@ -46,8 +46,9 @@ class TestDatasetDAO(CleanUpTestCase):
         self.remove_users.append(shared_to1)
         self.remove_users.append(shared_to2)
 
-        u1 = User.objects.create(username=shared_to1, db_username=shared_to1, db_password="", schema=shared_to1)
-        u2 = User.objects.create(username=shared_to2, db_username=shared_to2, db_password="", schema=shared_to2)
+        backend = get_backend()
+        u1 = backend.get_user(shared_to1)
+        u2 = backend.get_user(shared_to2)
         Query.objects.all().delete()
         model = create_dataset_from_query(username=owner, dataset_name="test4", sql="SELECT (3)")
 
