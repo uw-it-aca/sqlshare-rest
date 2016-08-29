@@ -202,6 +202,8 @@ def set_dataset_accounts(dataset, accounts, save_dataset=True):
     if len(user_models) != len(accounts):
         raise InvalidAccountException()
 
+    user_models = filter(lambda x: x.username != dataset.owner.username,
+                         user_models)
     query = get_preview_query(dataset)
 
     # XXX - put this in a transaction?

@@ -2,6 +2,8 @@ from sqlshare_rest.test import CleanUpTestCase
 from sqlshare_rest.util.db import get_backend
 from django.db import connection
 from sqlshare_rest.dao.dataset import create_dataset_from_query
+from sqlshare_rest.dao.dataset import set_dataset_accounts
+from sqlshare_rest.models import User
 from django.test.utils import override_settings
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query, Dataset
@@ -35,6 +37,32 @@ class TestDatasetDAO(CleanUpTestCase):
         m2 = Dataset.objects.get(pk=model.pk)
 
         self.assertEquals(m2.get_sample_data_status(), "success")
+
+    def test_no_share_to_owner(self):
+        owner = "dataset_dao_user3"
+        shared_to1 = "add_access1"
+        shared_to2 = "add_access2"
+        self.remove_users.append(owner)
+        self.remove_users.append(shared_to1)
+        self.remove_users.append(shared_to2)
+
+        backend = get_backend()
+        u1 = backend.get_user(shared_to1)
+        u2 = backend.get_user(shared_to2)
+        Query.objects.all().delete()
+        model = create_dataset_from_query(username=owner, dataset_name="test4", sql="SELECT (3)")
+
+        set_dataset_accounts(model, [shared_to1, owner, shared_to2])
+
+        m2 = Dataset.objects.get(pk=model.pk)
+
+        shared_to = m2.shared_with.all()
+
+        usernames = map(lambda x: x.username, shared_to)
+        self.assertTrue(shared_to1 in usernames)
+        self.assertTrue(shared_to2 in usernames)
+        self.assertEquals(len(shared_to), 2)
+
 
     def setUp(self):
         # Try to cleanup from any previous test runs...
