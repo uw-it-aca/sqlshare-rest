@@ -22,6 +22,9 @@ logger = getLogger(__name__)
 class MSSQLBackend(DBInterface):
     COLUMN_MAX_LENGTH = 2147483647
     MAX_PARAMETERS = 2099
+    # This gave a good balance between speed, and not needing to do too many
+    # slow inserts on dirty data.
+    MAX_EXECUTE_MANY = 100
 
     def get_user(self, user):
         """
@@ -210,6 +213,32 @@ class MSSQLBackend(DBInterface):
             # Need to sort out a permissions issue
             return ""
 
+    def run_query_many(self, sql, user, params=None, return_cursor=False):
+        connection = self.get_connection_for_user(user)
+        original_autocommit = connection.autocommit
+        try:
+            connection.autocommit = False
+            cursor = connection.cursor()
+            if params:
+                # Because, seriously:
+                # 'The SQL contains 0 parameter markers,
+                # but 1 parameters were supplied'
+                cursor.executemany(sql, params)
+            else:
+                cursor.executemany(sql)
+
+            connection.commit()
+            if return_cursor:
+                return cursor
+            data = cursor.fetchall()
+            cursor.close()
+            return data
+        except Exception as ex:
+            connection.rollback()
+            raise
+        finally:
+            connection.autocommit = original_autocommit
+
     def run_query(self, sql, user, params=None, return_cursor=False):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
@@ -366,7 +395,7 @@ class MSSQLBackend(DBInterface):
     def _load_table(self, table_name, data_handle, upload, user):
         data_len = 0
         current_data = []
-        sql_max = ""
+        insert_multi_sql = ""
         max_rows = None
         total_rows_loaded = 0
         current_row = 0
@@ -400,7 +429,13 @@ class MSSQLBackend(DBInterface):
 
             return errors
 
+        max_rows = MSSQLBackend.MAX_EXECUTE_MANY
+
         for row in data_handle:
+            if not insert_multi_sql:
+                insert_multi_sql = self._load_table_sql(table_name,
+                                                        row,
+                                                        user, 1)
             current_row += 1
             if type(row) == str:
                 # This is an error in the iteration - eg:
@@ -411,24 +446,15 @@ class MSSQLBackend(DBInterface):
             data_len += 1
             current_data.append({"row": current_row, "data": row})
 
-            if not max_rows:
-                cols = len(row)
-                max_rows = int(MSSQLBackend.MAX_PARAMETERS / cols)
-
             if data_len == max_rows:
-                if not sql_max:
-                    sql_max = self._load_table_sql(table_name,
-                                                   row, user, max_rows)
-
                 insert_data = []
                 for row in current_data:
-                    insert_data.extend(row["data"])
+                    insert_data.append(row["data"])
                 try:
-                    self.run_query(sql_max,
-                                   user,
-                                   insert_data,
-                                   return_cursor=True).close()
-
+                    self.run_query_many(insert_multi_sql,
+                                        user,
+                                        insert_data,
+                                        return_cursor=True).close()
                 except Exception as ex:
                     errors += _handle_error_table_set(current_data)
                 current_data = []
@@ -438,17 +464,15 @@ class MSSQLBackend(DBInterface):
                 upload.save()
 
         if data_len:
-            sql = self._load_table_sql(table_name, row, user, data_len)
-
             insert_data = []
             for row in current_data:
-                insert_data.extend(row["data"])
+                insert_data.append(row["data"])
             try:
-                self.run_query(sql,
-                               user,
-                               insert_data,
-                               return_cursor=True).close()
-            except Exception:
+                self.run_query_many(insert_multi_sql,
+                                    user,
+                                    insert_data,
+                                    return_cursor=True).close()
+            except Exception as ex:
                 errors += _handle_error_table_set(current_data)
 
             total_rows_loaded += data_len
