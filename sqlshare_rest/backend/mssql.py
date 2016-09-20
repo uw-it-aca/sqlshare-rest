@@ -372,6 +372,10 @@ class MSSQLBackend(DBInterface):
                     ", ".join(columns)
                )
 
+    def _load_table_failure_case_sql(self, table_name, user):
+        return "INSERT INTO [%s].[untyped_%s] VALUES ?" % (user.schema,
+                                                           table_name)
+
     def _load_table_untyped_sql(self, table_name, row, user, row_count):
         placeholders = map(lambda x: "?", row)
         ph_str = ", ".join(placeholders)
@@ -412,6 +416,8 @@ class MSSQLBackend(DBInterface):
                                                        current_data[0]["data"],
                                                        user,
                                                        1)
+            failure_sql = self._load_table_failure_case_sql(table_name,
+                                                            user)
             errors = ""
 
             for row in current_data:
@@ -421,11 +427,19 @@ class MSSQLBackend(DBInterface):
                                    row["data"],
                                    return_cursor=True).close()
                 except Exception as ex:
-                    row_num = row["row"]
-                    self.run_query(untyped_sql,
-                                   user,
-                                   row["data"],
-                                   return_cursor=True).close()
+                    try:
+                        row_num = row["row"]
+                        self.run_query(untyped_sql,
+                                       user,
+                                       row["data"],
+                                       return_cursor=True).close()
+                    except:
+                        # Final fall-back - just stuff it into 1 column
+                        self.run_query(failure_sql,
+                                       user,
+                                       ", ".join(row["data"]),
+                                       return_cursor=True).close()
+
 
             return errors
 
