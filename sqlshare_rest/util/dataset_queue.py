@@ -65,6 +65,24 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             logger.error("Unable to send email to %s.  Error: %s" % (to,
                                                                      str(ex)))
 
+    def email_owner_failure(dataset):
+        to = dataset.owner.get_email()
+        values = {}
+
+        values['name'] = dataset.name
+
+        text_version = render_to_string('uploaded_email/fail-text.html',
+                                        values)
+        subject = render_to_string('uploaded_email/fail-subject.html', values)
+        subject = re.sub(r'[\s]*$', '', subject)
+        from_email = "sqlshare-noreply@uw.edu"
+        msg = EmailMultiAlternatives(subject, text_version, from_email, [to])
+        try:
+            msg.send()
+        except Exception as ex:
+            logger.error("Unable to send email to %s.  Error: %s" % (to,
+                                                                     str(ex)))
+
     def start_upload(upload, background=True):
         upload.is_started = True
         upload.save()
@@ -108,6 +126,8 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 # That try is just trying to get info out to the user, it's
                 # relatively ok if that fails
                 pass
+            finally:
+                email_owner_failure(upload)
             import traceback
             tb = traceback.format_exc()
             logger.error("Error on %s: %s (%s)" % (upload_id, str(ex), tb))
