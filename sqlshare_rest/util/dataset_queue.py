@@ -65,11 +65,11 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             logger.error("Unable to send email to %s.  Error: %s" % (to,
                                                                      str(ex)))
 
-    def email_owner_failure(dataset):
-        to = dataset.owner.get_email()
+    def email_owner_failure(upload):
+        to = upload.owner.get_email()
         values = {}
 
-        values['name'] = dataset.name
+        values['name'] = upload.dataset_name
 
         text_version = render_to_string('uploaded_email/fail-text.html',
                                         values)
@@ -127,6 +127,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
                 # relatively ok if that fails
                 pass
             finally:
+                upload = FileUpload.objects.get(pk=upload_id)
                 email_owner_failure(upload)
             import traceback
             tb = traceback.format_exc()
@@ -187,6 +188,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             upload.has_error = True
             upload.error = str(ex)
             upload.save()
+            raise
         finally:
             backend.close_user_connection(user)
 
