@@ -1,6 +1,7 @@
 import csv
 import six
 import chardet
+from chardet.utf8prober import UTF8Prober
 import codecs
 
 if six.PY2:
@@ -302,11 +303,22 @@ class DataHandler(object):
     __next__ = next
 
 
+def detect(sample):
+    utf8_test = UTF8Prober()
+    utf8_test.feed(sample)
+
+    confidence = utf8_test.get_confidence()
+    if confidence > 0.5:
+        return { "encoding": "utf-8", "confidence": confidence }
+
+    return chardet.detect(sample)
+
+
 def open_encoded(filename, mode):
     handle = open(filename, "rb")
     sample = handle.read()
 
-    encoding = chardet.detect(sample)["encoding"]
+    encoding = detect(sample)["encoding"]
     handle.close()
 
     return codecs.open(filename, mode=mode, encoding=encoding)

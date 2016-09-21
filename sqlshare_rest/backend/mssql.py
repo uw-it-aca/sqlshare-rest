@@ -373,7 +373,7 @@ class MSSQLBackend(DBInterface):
                )
 
     def _load_table_failure_case_sql(self, table_name, user):
-        return "INSERT INTO [%s].[untyped_%s] VALUES ?" % (user.schema,
+        return "INSERT INTO [%s].[untyped_%s] VALUES (?)" % (user.schema,
                                                            table_name)
 
     def _load_table_untyped_sql(self, table_name, row, user, row_count):
@@ -435,11 +435,13 @@ class MSSQLBackend(DBInterface):
                                        return_cursor=True).close()
                     except:
                         # Final fall-back - just stuff it into 1 column
-                        self.run_query(failure_sql,
-                                       user,
-                                       ", ".join(row["data"]),
-                                       return_cursor=True).close()
-
+                        try:
+                            self.run_query(failure_sql,
+                                           user,
+                                           u", ".join(map(lambda x: u"" if x is None else x, row["data"])),
+                                           return_cursor=True).close()
+                        except Exception as ex:
+                            print "E: ", ex, row
 
             return errors
 
