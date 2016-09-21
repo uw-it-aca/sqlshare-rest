@@ -309,7 +309,7 @@ def detect(sample):
 
     confidence = utf8_test.get_confidence()
     if confidence > 0.5:
-        return { "encoding": "utf-8", "confidence": confidence }
+        return {"encoding": "utf-8", "confidence": confidence}
 
     return chardet.detect(sample)
 

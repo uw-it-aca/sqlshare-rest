@@ -374,7 +374,7 @@ class MSSQLBackend(DBInterface):
 
     def _load_table_failure_case_sql(self, table_name, user):
         return "INSERT INTO [%s].[untyped_%s] VALUES (?)" % (user.schema,
-                                                           table_name)
+                                                             table_name)
 
     def _load_table_untyped_sql(self, table_name, row, user, row_count):
         placeholders = map(lambda x: "?", row)
@@ -436,9 +436,12 @@ class MSSQLBackend(DBInterface):
                     except:
                         # Final fall-back - just stuff it into 1 column
                         try:
+                            def to_string(x):
+                                return u"" if x is None else x
+                            val = u", ".join(map(to_string, row["data"]))
                             self.run_query(failure_sql,
                                            user,
-                                           u", ".join(map(lambda x: u"" if x is None else x, row["data"])),
+                                           val,
                                            return_cursor=True).close()
                         except Exception as ex:
                             print "E: ", ex, row
