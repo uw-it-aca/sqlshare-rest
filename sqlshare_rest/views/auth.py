@@ -43,11 +43,12 @@ def require_google_login(request):
     scope = ('https://www.googleapis.com/auth/plus.login '
              'https://www.googleapis.com/auth/userinfo.email')
     if credential is None or credential.invalid is True:
+        next_url = request.GET.get('next', settings.SQLSHARE_WEB_URL)
         flow = OAuth2WebServerFlow(client_id=settings.GOOGLE_OAUTH_KEY,
                                    client_secret=settings.GOOGLE_OAUTH_SECRET,
                                    scope=scope,
                                    user_agent='plus-django-sample/1.0',
-                                   state=request.GET['next'],
+                                   state=next_url,
                                    redirect_uri=settings.GOOGLE_RETURN_URL)
 
         authorize_url = flow.step1_get_authorize_url()
@@ -82,7 +83,9 @@ def _login_user(request, login_name, name, last_name, email):
 
     login(request, user)
 
-    return redirect(request.GET['next'])
+    next_url = request.GET.get('next', settings.SQLSHARE_WEB_URL)
+
+    return redirect(next_url)
 
 
 def google_return(request):
