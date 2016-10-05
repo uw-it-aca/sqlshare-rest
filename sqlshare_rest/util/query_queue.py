@@ -40,13 +40,18 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             from django.db import connection
             connection.close()
 
-            if os.fork():
+            pid = os.fork()
+            if pid:
                 # This is the main process
+                # This wait should be quick, because it forks a new process
+                # Then exits
+                os.wait()
                 return
 
             os.setsid()
 
-            if os.fork():
+            pid = os.fork()
+            if pid:
                 # Double fork the daemon
                 sys.exit(0)
 

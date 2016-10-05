@@ -93,6 +93,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
 
             if os.fork():
                 # This is the main process
+                os.wait()
                 return
 
             os.setsid()
