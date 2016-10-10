@@ -3,6 +3,7 @@ import six
 import chardet
 from chardet.utf8prober import UTF8Prober
 import codecs
+import types
 
 if six.PY2:
     from StringIO import StringIO
@@ -238,7 +239,13 @@ class Parser(object):
     # To handle python 2/3 differences
     def _next(self, handle):
         if six.PY2:
-            return [unicode(cell, 'utf-8') for cell in handle.next()]
+            def to_unicode(v):
+                try:
+                    value = unicode(v, 'utf-8')
+                except:
+                    value = '?'
+                return value
+            return [to_unicode(cell) for cell in handle.next()]
         elif six.PY3:
             return next(handle)
 
@@ -316,44 +323,52 @@ def detect(sample):
 
 def open_encoded(filename, mode):
     handle = open(filename, "rb")
-    sample = read_handle(handle, 1000)
+    sample = handle.read(1000)
 
     encoding = detect(sample)["encoding"]
     handle.close()
 
-    return codecs.open(filename, mode=mode, encoding=encoding)
+    handle = codecs.open(filename, mode=mode, encoding=encoding)
+
+    handle.___original_read = handle.read
+    handle.read = types.MethodType(skip_bad_unicode_read, handle)
+
+    handle.reader.___original_read = handle.reader.read
+    handle.reader.read = types.MethodType(skip_bad_unicode_read, handle.reader)
+
+    return handle
 
 
 # If we guess the encoding wrong, handle.read() can raise an exception.
 # Rather than do the (potentially very) expensive work to make sure that's
 # 100% - just catch problems here and present bad data as ?
-def read_handle(handle, size=None):
-    position = handle.tell()
+def skip_bad_unicode_read(self, size=None, **kwargs):
+    position = self.tell()
     try:
-        return handle.read(size)
+        return self.___original_read(size)
     except UnicodeDecodeError:
-        handle.seek(position)
+        self.seek(position)
         data = []
         if size:
             if size == 1:
                 try:
                     # need the handle to advance past this!
-                    handle.read(1)
+                    self.___original_read(1)
                 except:
                     pass
                 return '?'
             if size > 1:
                 subsize = int(size / 2)
-                data.append(read_handle(handle, subsize))
-                data.append(read_handle(handle, subsize))
+                data.append(self.read(subsize))
+                data.append(self.read(subsize))
 
                 if size % 2:
-                    data.append(read_handle(handle, 1))
+                    data.append(self.read(1))
 
         else:
-            value = read_handle(handle, 1000)
+            value = self.read(1000)
             while value:
                 data.append(value)
-                value = read_handle(handle, 1000)
+                value = self.read(1000)
         return "".join(data)
 
