@@ -316,7 +316,7 @@ def detect(sample):
 
 def open_encoded(filename, mode):
     handle = open(filename, "rb")
-    sample = handle.read()
+    sample = handle.read(1000)
 
     encoding = detect(sample)["encoding"]
     handle.close()
