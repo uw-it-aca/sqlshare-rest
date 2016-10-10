@@ -316,9 +316,44 @@ def detect(sample):
 
 def open_encoded(filename, mode):
     handle = open(filename, "rb")
-    sample = handle.read(1000)
+    sample = read_handle(handle, 1000)
 
     encoding = detect(sample)["encoding"]
     handle.close()
 
     return codecs.open(filename, mode=mode, encoding=encoding)
+
+
+# If we guess the encoding wrong, handle.read() can raise an exception.
+# Rather than do the (potentially very) expensive work to make sure that's
+# 100% - just catch problems here and present bad data as ?
+def read_handle(handle, size=None):
+    position = handle.tell()
+    try:
+        return handle.read(size)
+    except UnicodeDecodeError:
+        handle.seek(position)
+        data = []
+        if size:
+            if size == 1:
+                try:
+                    # need the handle to advance past this!
+                    handle.read(1)
+                except:
+                    pass
+                return '?'
+            if size > 1:
+                subsize = int(size / 2)
+                data.append(read_handle(handle, subsize))
+                data.append(read_handle(handle, subsize))
+
+                if size % 2:
+                    data.append(read_handle(handle, 1))
+
+        else:
+            value = read_handle(handle, 1000)
+            while value:
+                data.append(value)
+                value = read_handle(handle, 1000)
+        return "".join(data)
+
