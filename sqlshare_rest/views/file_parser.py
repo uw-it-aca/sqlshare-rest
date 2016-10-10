@@ -49,7 +49,7 @@ def parser(request, id):
             file_path = upload.user_file.path
             handle = open_encoded(file_path, "U")
 
-            p.guess(read_handle(handle)
+            p.guess(read_handle(handle))
             handle.close()
 
             _update_from_parser(upload, p)
