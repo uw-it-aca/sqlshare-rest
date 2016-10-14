@@ -57,7 +57,11 @@ class PGBackend(DBInterface):
         return "CREATE VIEW %s.%s AS %s" % (schema, name, sql)
 
     def _drop_view_sql(self, schema, name):
-        return "DROP VIEW %s.%s" % (schema, name)
+        return "DROP VIEW %s.%s CASCADE" % (schema, name)
+
+    def delete_dataset(self, dataset_name, owner):
+        sql = self._drop_view_sql(owner.schema, dataset_name)
+        self.run_query(sql, owner, return_cursor=True).close()
 
     def create_view(self, name, sql, user):
         schema = user.schema
