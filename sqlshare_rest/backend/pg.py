@@ -59,6 +59,13 @@ class PGBackend(DBInterface):
     def _drop_view_sql(self, schema, name):
         return "DROP VIEW %s.%s CASCADE" % (schema, name)
 
+    def _drop_table_sql(self, schema, name):
+        return "DROP TABLE %s.%s CASCADE" % (schema, name)
+
+    def delete_table(self, dataset_name, owner):
+        sql = self._drop_table_sql(owner.schema, dataset_name)
+        self.run_query(sql, owner, return_cursor=True).close()
+
     def delete_dataset(self, dataset_name, owner):
         sql = self._drop_view_sql(owner.schema, dataset_name)
         self.run_query(sql, owner, return_cursor=True).close()
@@ -81,6 +88,28 @@ class PGBackend(DBInterface):
 
         result = self.run_query(count_sql, user)
         return result[0][0]
+
+    def _get_snapshot_view_sql(self, dataset):
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        return ("CREATE VIEW %s.%s AS "
+                "SELECT * FROM %s.%s" % (dataset.owner.schema,
+                                             dataset.name,
+                                             dataset.owner.schema,
+                                             table_name))
+
+    def _create_view_of_snapshot(self, dataset, user):
+        sql = self._get_snapshot_view_sql(dataset)
+        self.run_query(sql, user, return_cursor=True).close()
+
+    def _create_snapshot_table(self, source_dataset, table_name, user):
+        source_schema = source_dataset.owner.schema
+        sql = "CREATE TABLE %s.%s AS SELECT * FROM %s.%s" % (user.schema,
+                                                             table_name,
+                                                             source_schema,
+                                                             source_dataset.name)
+
+        self.run_query(sql, user, return_cursor=True).close()
+
 
     def add_public_access(self, dataset, owner):
         sql = "GRANT SELECT ON %s.%s to PUBLIC" % (owner.schema, dataset.name)
@@ -112,6 +141,62 @@ class PGBackend(DBInterface):
 
     def get_qualified_name(self, dataset):
         return "%s.%s" % (dataset.owner.schema, dataset.name)
+
+    def make_unique_name(self, name, existing):
+        """
+        Given a name and a dictionary of existing names, returns a name
+        that will be unique when added to the dictionary.
+        """
+        if name not in existing:
+            return name
+
+        return self.make_unique_name("%s_1" % name, existing)
+
+    def _make_safe_column_name_list(self, names):
+        output_names = []
+        seen_names = {}
+        for name in names:
+            if name == "":
+                name = "COLUMN"
+
+            unique_name = self.make_unique_name(name, seen_names)
+            seen_names[unique_name] = True
+            output_names.append(unique_name)
+
+        return output_names
+
+    def _get_view_sql_for_dataset(self, table_name, user):
+        return "SELECT * FROM %s.%s" % (user.schema, table_name)
+
+    def _get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
+        cast = []
+        plain = []
+        base = []
+
+        base = parser.column_names()
+        base.append('clean')
+        all_unique = parser.make_unique_columns(base)
+        all_unique = self._make_safe_column_name_list(all_unique)
+
+        for c in all_unique[0:-1]:
+            cast.append("CAST(%s AS TEXT) AS %s" % (c, c))
+            plain.append("%s" % c)
+            base.append(c)
+
+        clean_col = all_unique[-1]
+
+        cast.append("1 as %s" % (clean_col))
+        plain.append("0 as %s" % (clean_col))
+
+        cast_columns = "\n     , ".join(cast)
+        plain_columns = "\n     , ".join(plain)
+
+        args = (cast_columns, user.schema, table_name,
+                plain_columns, user.schema, table_name)
+
+        return ("SELECT %s\n  FROM %s.%s\nUNION ALL\n"
+                "SELECT %s\n  FROM %s.untyped_%s") % args
+
 
     def get_db_username(self, user):
         base_name = "ss_user_%s" % user
