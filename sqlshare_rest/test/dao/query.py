@@ -40,6 +40,29 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q2.has_error, False)
         self.assertEquals(q2.rows_total, 1)
 
+    def test_preview_query(self):
+        owner = "dao_query_user1p"
+        self.remove_users.append(owner)
+
+        # Make sure we're not going to be processing a bunch of extra query objects...
+        Query.objects.all().delete()
+
+        query = create_query(owner, "SELECT (1)", is_preview=True)
+
+        self.assertEquals(query.is_finished, False)
+        self.assertEquals(query.has_error, False)
+
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
+        process_queue()
+
+        q2 = Query.objects.get(pk=query.pk)
+
+        self.assertEquals(q2.is_finished, True)
+        self.assertEquals(q2.error, None)
+        self.assertEquals(q2.has_error, False)
+        self.assertEquals(q2.rows_total, 1)
+
     def test_order(self):
         owner = "dao_query_user2"
         self.remove_users.append(owner)

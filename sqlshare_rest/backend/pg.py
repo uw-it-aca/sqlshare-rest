@@ -131,6 +131,9 @@ class PGBackend(DBInterface):
                                                  reader.db_username)
         self.run_query(sql, owner, return_cursor=True).close()
 
+    def get_preview_sql_for_query(self, sql):
+        return "SELECT * FROM (%s) AS X LIMIT 100" % sql
+
     def get_preview_sql_for_dataset(self, dataset_name, user):
         return 'SELECT * FROM %s."%s" LIMIT 100' % (user.schema, dataset_name)
 
