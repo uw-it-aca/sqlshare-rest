@@ -54,13 +54,13 @@ class PGBackend(DBInterface):
         return cursor.fetchall()
 
     def _create_view_sql(self, schema, name, sql):
-        return "CREATE VIEW %s.%s AS %s" % (schema, name, sql)
+        return 'CREATE VIEW %s."%s" AS %s' % (schema, name, sql)
 
     def _drop_view_sql(self, schema, name):
-        return "DROP VIEW %s.%s CASCADE" % (schema, name)
+        return 'DROP VIEW %s."%s" CASCADE' % (schema, name)
 
     def _drop_table_sql(self, schema, name):
-        return "DROP TABLE %s.%s CASCADE" % (schema, name)
+        return 'DROP TABLE %s."%s" CASCADE' % (schema, name)
 
     def delete_table(self, dataset_name, owner):
         sql = self._drop_table_sql(owner.schema, dataset_name)
@@ -84,18 +84,18 @@ class PGBackend(DBInterface):
                 print "E: ", ex
                 raise
 
-        count_sql = "SELECT COUNT(*) FROM %s.%s" % (schema, name)
+        count_sql = 'SELECT COUNT(*) FROM %s."%s"' % (schema, name)
 
         result = self.run_query(count_sql, user)
         return result[0][0]
 
     def _get_snapshot_view_sql(self, dataset):
         table_name = self._get_table_name_for_dataset(dataset.name)
-        return ("CREATE VIEW %s.%s AS "
-                "SELECT * FROM %s.%s" % (dataset.owner.schema,
-                                             dataset.name,
-                                             dataset.owner.schema,
-                                             table_name))
+        return ('CREATE VIEW %s."%s" AS '
+                'SELECT * FROM %s."%s"' % (dataset.owner.schema,
+                                           dataset.name,
+                                           dataset.owner.schema,
+                                           table_name))
 
     def _create_view_of_snapshot(self, dataset, user):
         sql = self._get_snapshot_view_sql(dataset)
@@ -103,44 +103,79 @@ class PGBackend(DBInterface):
 
     def _create_snapshot_table(self, source_dataset, table_name, user):
         source_schema = source_dataset.owner.schema
-        sql = "CREATE TABLE %s.%s AS SELECT * FROM %s.%s" % (user.schema,
-                                                             table_name,
-                                                             source_schema,
-                                                             source_dataset.name)
+        base = 'CREATE TABLE %s."%s" AS SELECT * FROM %s."%s"'
+        sql = base % (user.schema,
+                      table_name,
+                      source_schema,
+                      source_dataset.name)
 
         self.run_query(sql, user, return_cursor=True).close()
 
-
     def add_public_access(self, dataset, owner):
-        sql = "GRANT SELECT ON %s.%s to PUBLIC" % (owner.schema, dataset.name)
+        sql = 'GRANT SELECT ON %s."%s" to PUBLIC' % (owner.schema,
+                                                     dataset.name)
         self.run_query(sql, owner, return_cursor=True).close()
 
     def remove_public_access(self, dataset, owner):
-        sql = "REVOKE SELECT ON %s.%s FROM PUBLIC" % (owner.schema,
-                                                      dataset.name)
+        sql = 'REVOKE SELECT ON %s."%s" FROM PUBLIC' % (owner.schema,
+                                                        dataset.name)
         self.run_query(sql, owner, return_cursor=True).close()
 
     def add_read_access_to_dataset(self, dataset, owner, reader):
-        sql = "GRANT SELECT ON %s.%s to %s" % (owner.schema, dataset,
-                                               reader.db_username)
+        sql = 'GRANT SELECT ON %s."%s" to %s' % (owner.schema, dataset,
+                                                 reader.db_username)
         self.run_query(sql, owner, return_cursor=True).close()
 
     def remove_access_to_dataset(self, dataset, owner, reader):
-        sql = "REVOKE ALL ON %s.%s FROM %s" % (owner.schema, dataset,
-                                               reader.db_username)
+        sql = 'REVOKE ALL ON %s."%s" FROM %s' % (owner.schema, dataset,
+                                                 reader.db_username)
         self.run_query(sql, owner, return_cursor=True).close()
 
     def get_preview_sql_for_dataset(self, dataset_name, user):
-        return "SELECT * FROM %s.%s LIMIT 100" % (user.schema, dataset_name)
+        return 'SELECT * FROM %s."%s" LIMIT 100' % (user.schema, dataset_name)
 
     def get_view_sql_for_dataset(self, dataset):
-        return "SELECT * FROM %s" % self.get_qualified_name(dataset)
+        return 'SELECT * FROM %s' % self.get_qualified_name(dataset)
 
     def get_download_sql_for_dataset(self, dataset):
-        return "SELECT * FROM %s" % self.get_qualified_name(dataset)
+        return 'SELECT * FROM %s' % self.get_qualified_name(dataset)
 
     def get_qualified_name(self, dataset):
-        return "%s.%s" % (dataset.owner.schema, dataset.name)
+        return '%s."%s"' % (dataset.owner.schema, dataset.name)
+
+    def _get_insert_statement(self, user, table_name, row):
+        placeholders = map(lambda x: "%s", row)
+        ph_str = ", ".join(placeholders)
+
+        return 'INSERT INTO %s."%s" VALUES (%s)' % (user.schema,
+                                                    table_name,
+                                                    ph_str)
+
+    def _load_table(self, table_name, data_handle, upload, user):
+        for row in data_handle:
+            typed_insert_sql = None
+            untyped_insert_sql = None
+            if not typed_insert_sql:
+                untyped_name = "untyped_%s" % table_name
+                typed_insert_sql = self._get_insert_statement(user,
+                                                              table_name,
+                                                              row)
+                untyped_insert_sql = self._get_insert_statement(user,
+                                                                untyped_name,
+                                                                row)
+            try:
+                self.run_query(typed_insert_sql,
+                               user,
+                               row,
+                               return_cursor=True).close()
+            except Exception as ex:
+                try:
+                    self.run_query(untyped_insert_sql,
+                                   user,
+                                   row,
+                                   return_cursor=True).close()
+                except Exception as ex:
+                    print "Real problem: ", ex
 
     def make_unique_name(self, name, existing):
         """
@@ -166,7 +201,7 @@ class PGBackend(DBInterface):
         return output_names
 
     def _get_view_sql_for_dataset(self, table_name, user):
-        return "SELECT * FROM %s.%s" % (user.schema, table_name)
+        return 'SELECT * FROM %s."%s"' % (user.schema, table_name)
 
     def _get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
         cast = []
@@ -194,9 +229,82 @@ class PGBackend(DBInterface):
         args = (cast_columns, user.schema, table_name,
                 plain_columns, user.schema, table_name)
 
-        return ("SELECT %s\n  FROM %s.%s\nUNION ALL\n"
-                "SELECT %s\n  FROM %s.untyped_%s") % args
+        return ("SELECT %s\n  FROM %s.\"%s\"\nUNION ALL\n"
+                "SELECT %s\n  FROM %s.\"untyped_%s\"") % args
 
+    def _create_table(self, table_name, column_names, column_types, user):
+        column_names = self._make_safe_column_name_list(column_names)
+        # Create a table that has the correctly typed data
+        try:
+            sql = self._create_table_sql(user,
+                                         table_name,
+                                         column_names,
+                                         column_types)
+
+            self.run_query(sql, user, return_cursor=True).close()
+        except Exception as ex:
+            # We expect tables to already exist - uploading a replacement
+            # file gives that exception.  Anything else though is probably
+            # a bug worth looking into.
+            ex_str = str(ex)
+            if not ex_str.find("There is already an object named"):
+                logger.error("Error creating table: %s" % str(ex))
+            drop_sql = self._drop_table_sql(user.schema, table_name)
+            self.run_query(drop_sql, user, return_cursor=True).close()
+            self.run_query(sql, user, return_cursor=True).close()
+
+        # Create a second table that has ... everything we were wrong about
+        try:
+            sql = self._create_untyped_table_sql(user,
+                                                 table_name,
+                                                 column_names,
+                                                 column_types)
+
+            self.run_query(sql, user, return_cursor=True).close()
+        except Exception as ex:
+            # We expect tables to already exist - uploading a replacement
+            # file gives that exception.  Anything else though is probably
+            # a bug worth looking into.
+            ex_str = str(ex)
+            if not ex_str.find("There is already an object named"):
+                logger.error("Error creating table: %s" % str(ex))
+            drop_sql = self._drop_table_sql(user.schema,
+                                            "untyped_%s" % table_name)
+            self.run_query(drop_sql, user, return_cursor=True).close()
+            self.run_query(sql, user, return_cursor=True).close()
+
+    def _create_table_sql(self, user, table_name, column_names, column_types):
+        def _column_sql(name, col_type):
+            if "int" == col_type["type"]:
+                return "%s bigint" % name
+            if "float" == col_type["type"]:
+                return "%s decimal" % name
+            if "text" == col_type["type"] and col_type["max"] > 0:
+                return "%s text" % (name)
+            # Fallback to text is hopefully good?
+            return "%s text" % name
+
+        columns = []
+        for i in range(0, len(column_names)):
+            columns.append(_column_sql(column_names[i], column_types[i]))
+
+        return 'CREATE TABLE %s."%s" (%s)' % (
+                    user.schema,
+                    table_name,
+                    ", ".join(columns)
+               )
+
+    def _create_untyped_table_sql(self, user, table_name, names, types):
+        columns = []
+        for i in range(0, len(names)):
+            name = names[i]
+            columns.append("%s text" % name)
+
+        return 'CREATE TABLE %s."untyped_%s" (%s)' % (
+                    user.schema,
+                    table_name,
+                    ", ".join(columns)
+               )
 
     def get_db_username(self, user):
         base_name = "ss_user_%s" % user

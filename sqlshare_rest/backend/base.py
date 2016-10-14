@@ -191,7 +191,7 @@ class DBInterface(object):
                             db_password=password,
                             schema=schema_name)
 
-    def _load_table(self, table_name, data_handle, user):
+    def _load_table(self, table_name, data_handle, upload, user):
         """
         Add data from data_handle to the table.  data_handle must be iterable,
         and the type values for columns must be correct.
