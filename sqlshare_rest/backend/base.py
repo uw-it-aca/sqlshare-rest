@@ -241,7 +241,7 @@ class DBInterface(object):
         self._not_implemented("add_public_access")
 
     def remove_public_access(self, dataset, owner):
-        self._not_implemented("add_public_access")
+        self._not_implemented("remove_public_access")
 
     def run_public_query(self, sql, params=None):
         """

@@ -1,5 +1,8 @@
 sudo: false
 language: python
+services:
+  - postgresql
+  - mysql
 python:
   - "2.7"
 # the double-shim to support 3.4 in models.py started failing - don't want to delay release on a non-required python version
@@ -15,6 +18,14 @@ before_script:
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'create user "sqlshare_user" identified by "ss_pass"'; fi
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant all on *.* to sqlshare_user'; fi
   - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant grant option on *.* to sqlshare_user'; fi
+
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'create database sqlshare_app;' -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'create user ss_admin with password "woijh3u43948";' -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'alter role  ss_admin set client_encoding to "utf8";' -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'alter role  ss_admin set default_transaction_isolation TO "read committed";' -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'alter role  ss_admin set timezone TO "UTC";' -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'alter role ss_admin SUPERUSER' -U postgres; fi
+
 # These were only needed for azure - commenting out for containerized travis-ci.  If we go back to testing on azure, there's this alternative:
 # http://docs.travis-ci.com/user/migrating-from-legacy/?utm_source=legacy-notice&utm_medium=banner&utm_campaign=legacy-upgrade#How-do-I-install-APT-sources-and-packages%3F
 #  - sudo apt-get install unixODBC-dev
@@ -26,6 +37,7 @@ before_script:
   - pip install python-coveralls
   - pip install pep8
   - pip install PyMySQL
+  - pip install psycopg2
 # also only used for azure:
 #  - pip install django_pyodbc
   - cp travis-ci/manage.py manage.py
@@ -34,6 +46,7 @@ env:
   matrix:
     - DB=sqlite3
     - DB=mysql
+    - DB=postgresql
 #    - DB=azure
   global:
     - SUBSCRIPTION_ID=af6a4ccb-f42b-4319-b0c0-10b51fcdebee

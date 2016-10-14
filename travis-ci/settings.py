@@ -71,6 +71,17 @@ if os.environ['DB'] == "sqlite3":
             'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         }
     }
+elif os.environ['DB'] == "postgresql":
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'sqlshare_app',
+            'USER': 'ss_admin',
+            'HOST': 'localhost',
+            'PASSWORD': 'woijh3u43948',
+        }
+    }
+
 elif os.environ['DB'] == "mysql":
     try:
         import pymysql

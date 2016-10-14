@@ -1,4 +1,5 @@
 from django.conf import settings
+from sqlshare_rest.backend.pg import PGBackend
 from sqlshare_rest.backend.mysql import MySQLBackend
 from sqlshare_rest.backend.sqlite3 import SQLite3Backend
 from sqlshare_rest.backend.mssql import MSSQLBackend, SQLAzureBackend
@@ -11,17 +12,24 @@ def _get_basic_settings():
 def get_backend():
     engine = _get_basic_settings()['ENGINE']
 
-    if is_mysql():
+    if is_pg():
+        return PGBackend()
+    elif is_mysql():
         return MySQLBackend()
-    if is_sqlite3():
+    elif is_sqlite3():
         return SQLite3Backend()
-    if is_sql_azure():
+    elif is_sql_azure():
         return SQLAzureBackend()
-    if is_mssql():
+    elif is_mssql():
         return MSSQLBackend()
     else:
         raise BackendNotImplemented(engine)
     pass
+
+
+def is_pg():
+    pg_backend = "django.db.backends.postgresql_psycopg2"
+    return _get_basic_settings()['ENGINE'] == pg_backend
 
 
 def is_mysql():
