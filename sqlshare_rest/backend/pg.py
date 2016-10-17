@@ -6,8 +6,6 @@ import re
 import tempfile
 
 
-MAX_INSERT_COUNT = 500
-
 class PGBackend(DBInterface):
     def create_db_user(self, username, password):
         cursor = connection.cursor()
@@ -183,7 +181,6 @@ class PGBackend(DBInterface):
         upload.rows_loaded = upload.rows_total
         return table_name
 
-
     def get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
         return self._get_view_sql_for_dataset_by_parser(table_name,
                                                         parser,
@@ -206,12 +203,14 @@ class PGBackend(DBInterface):
         multi_ph = ", ".join(["(%s)" % ph_str] * len(data))
 
         insert_str = 'INSERT INTO %s."%s" VALUES %s' % (user.schema,
-                                                  table_name,
-                                                  multi_ph)
+                                                        table_name,
+                                                        multi_ph)
         return insert_str
 
     def _get_fallback_insert(self, user, table_name):
-        return 'INSERT INTO %s."%s" VALUES (%s)' % (user.schema, table_name, '%s')
+        return 'INSERT INTO %s."%s" VALUES (%s)' % (user.schema,
+                                                    table_name,
+                                                    '%s')
 
     def _load_table(self, table_name, parser, upload, user):
         # for _load_table_inserts, if we need it.
@@ -262,81 +261,13 @@ class PGBackend(DBInterface):
         valid_data_temp.seek(0)
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
-        cursor.copy_from(valid_data_temp, '%s."%s"' % (user.schema, table_name))
+        cursor.copy_from(valid_data_temp, '%s."%s"' % (user.schema,
+                                                       table_name))
         cursor.close()
         cursor = connection.cursor()
-        cursor.copy_from(bad_data_temp, '%s."untyped_%s"' % (user.schema, table_name))
+        cursor.copy_from(bad_data_temp, '%s."untyped_%s"' % (user.schema,
+                                                             table_name))
         cursor.close()
-
-    def _load_table_inserts(self, table_name, data_handle, upload, user):
-        count = 0
-        data = []
-        untyped_name = "untyped_%s" % table_name
-        total_rows_loaded = 0
-
-        for row in data_handle:
-            count += 1
-            data.append(row)
-
-            if count == MAX_INSERT_COUNT:
-                self._bulk_insert(data, table_name, user)
-                data = []
-
-                total_rows_loaded += count
-                upload.rows_loaded = total_rows_loaded
-                upload.save()
-
-                count = 0
-
-        if data:
-            total_rows_loaded += len(data)
-            upload.rows_loaded = total_rows_loaded
-            upload.save()
-            self._bulk_insert(data, table_name, user)
-
-    def _bulk_insert(self, data, table_name, user):
-        insert = self._get_insert_statement(user, table_name, data)
-        try:
-            flat = [item for sublist in data for item in sublist]
-            self.run_query(insert, user, flat, return_cursor=True).close()
-        except Exception as ex:
-            print "E: ", ex
-            self._load_table_fallback(table_name, data, user)
-
-    def _load_table_fallback(self, table_name, data_handle, user):
-        for row in data_handle:
-            typed_insert_sql = None
-            untyped_insert_sql = None
-            if not typed_insert_sql:
-                untyped_name = "untyped_%s" % table_name
-                typed_insert_sql = self._get_insert_statement(user,
-                                                              table_name,
-                                                              [row]
-                                                              )
-                untyped_insert_sql = self._get_insert_statement(user,
-                                                                untyped_name,
-                                                                [row])
-            try:
-                self.run_query(typed_insert_sql,
-                               user,
-                               row,
-                               return_cursor=True).close()
-            except Exception as ex:
-                try:
-                    self.run_query(untyped_insert_sql,
-                                   user,
-                                   row,
-                                   return_cursor=True).close()
-                except Exception as ex:
-                    try:
-                        super_fallback = self._get_fallback_insert(user, untyped_name)
-                        value = ", ".join(row)[:8000]
-                        value = "%s..." % value
-
-                        self.run_query(super_fallback, user, [value], return_cursor=True).close()
-                    except Exception as ex:
-                        print "Fallback error: ", ex
-
 
     def make_unique_name(self, name, existing):
         """
