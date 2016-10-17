@@ -137,8 +137,41 @@ class PGBackend(DBInterface):
     def get_preview_sql_for_dataset(self, dataset_name, user):
         return 'SELECT * FROM %s."%s" LIMIT 100' % (user.schema, dataset_name)
 
-    def get_view_sql_for_dataset(self, dataset):
-        return 'SELECT * FROM %s' % self.get_qualified_name(dataset)
+    def create_dataset_from_parser(self, dataset_name, parser, upload, user):
+        """
+        OVERRIDING THE BASE METHOD!
+
+        Our datset sql needs to be column aware, because we're storing data
+        in 2 tables, one that's clean, one that isn't.  The union needs to do
+        per-column casts of the clean data.
+
+        Turns a parser object into a dataset.  This process should update
+        the rows_loaded attribute of the upload object as it is processed.
+        rows_loaded will be set to rows_total at the end of
+        create_table_from_parser().
+
+        # Creates a table based on the parser columns
+        # Loads the data that's in the handle for the parser
+        # Creates the view for the dataset
+        """
+        table_name = self.create_table_from_parser(dataset_name,
+                                                   parser,
+                                                   upload,
+                                                   user)
+        upload.save()
+        self.create_view(dataset_name,
+                         self._get_view_sql_for_dataset_by_parser(table_name,
+                                                                  parser,
+                                                                  user),
+                         user)
+
+    def get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
+        return self._get_view_sql_for_dataset_by_parser(table_name,
+                                                        parser,
+                                                        user)
+
+    def _get_view_sql_for_dataset(self, table_name, user):
+        return 'SELECT * FROM %s."%s"' % (user.schema, table_name)
 
     def get_download_sql_for_dataset(self, dataset):
         return 'SELECT * FROM %s' % self.get_qualified_name(dataset)
@@ -202,9 +235,6 @@ class PGBackend(DBInterface):
             output_names.append(unique_name)
 
         return output_names
-
-    def _get_view_sql_for_dataset(self, table_name, user):
-        return 'SELECT * FROM %s."%s"' % (user.schema, table_name)
 
     def _get_view_sql_for_dataset_by_parser(self, table_name, parser, user):
         cast = []
