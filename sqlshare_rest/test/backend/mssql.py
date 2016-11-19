@@ -535,6 +535,7 @@ class TestMSSQLBackend(CleanUpTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestMSSQLBackend, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

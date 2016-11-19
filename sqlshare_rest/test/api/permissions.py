@@ -32,6 +32,7 @@ from sqlshare_rest.models import Dataset, DatasetSharingEmail
 
 class DatasetPermissionsAPITest(BaseAPITest):
     def setUp(self):
+        super(DatasetPermissionsAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
@@ -636,6 +637,7 @@ class DatasetPermissionsAPITest(BaseAPITest):
 
     @classmethod
     def setUpClass(cls):
+        super(DatasetPermissionsAPITest, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

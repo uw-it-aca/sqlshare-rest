@@ -10,6 +10,7 @@ from django.db import connection
 @override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
 class TestQueryDAO(CleanUpTestCase):
     def setUp(self):
+        super(TestQueryDAO, self).setUp()
         self.remove_users = []
         try:
             cursor = connection.cursor()
@@ -123,6 +124,7 @@ class TestQueryDAO(CleanUpTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestQueryDAO, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

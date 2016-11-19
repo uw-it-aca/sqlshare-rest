@@ -38,6 +38,7 @@ elif six.PY3:
 
 class DatsetAPITest(BaseAPITest):
     def setUp(self):
+        super(DatsetAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
@@ -545,6 +546,7 @@ class DatsetAPITest(BaseAPITest):
 
     @classmethod
     def setUpClass(cls):
+        super(DatsetAPITest, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

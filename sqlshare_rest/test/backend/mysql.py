@@ -448,6 +448,7 @@ class TestMySQLBackend(CleanUpTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestMySQLBackend, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

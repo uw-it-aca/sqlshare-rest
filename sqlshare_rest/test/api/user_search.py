@@ -27,6 +27,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 
 class UserSearchTest(BaseAPITest):
     def setUp(self):
+        super(UserSearchTest, self).setUp()
         self.remove_users = []
         self.client = Client()
 

@@ -34,6 +34,7 @@ from testfixtures import LogCapture
                    )
 class FileUploadAPITest(BaseAPITest):
     def setUp(self):
+        super(FileUploadAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
@@ -167,7 +168,7 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(data["rows_loaded"], 6)
 
         dataset_url = response11["Location"]
-        self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user1/test_dataset1")
+        self.assertEquals(dataset_url, "/v3/db/dataset/upload_user1/test_dataset1")
 
         query = Query.objects.all()[0]
         remove_pk = query.pk
@@ -460,7 +461,7 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(data["rows_loaded"], 6)
 
         dataset_url = response11["Location"]
-        self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user_eol/test_dataset_eol")
+        self.assertEquals(dataset_url, "/v3/db/dataset/upload_user_eol/test_dataset_eol")
 
         query = Query.objects.all()[0]
         remove_pk = query.pk
@@ -487,6 +488,7 @@ class FileUploadAPITest(BaseAPITest):
 
     @classmethod
     def setUpClass(cls):
+        super(FileUploadAPITest, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

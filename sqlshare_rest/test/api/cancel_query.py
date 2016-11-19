@@ -32,6 +32,7 @@ from testfixtures import LogCapture
 
 class CancelQueryAPITest(BaseAPITest):
     def setUp(self):
+        super(CancelQueryAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
@@ -148,6 +149,7 @@ class CancelQueryAPITest(BaseAPITest):
 
     @classmethod
     def setUpClass(cls):
+        super(CancelQueryAPITest, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

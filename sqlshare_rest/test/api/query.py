@@ -28,6 +28,7 @@ from testfixtures import LogCapture
 
 class QueryAPITest(BaseAPITest):
     def setUp(self):
+        super(QueryAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()

@@ -29,6 +29,7 @@ import re
 
 class UserOverrideAPITest(BaseAPITest):
     def setUp(self):
+        super(UserOverrideAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()

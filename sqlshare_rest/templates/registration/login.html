@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html class="no-js" lang="en">
     <head>
@@ -110,8 +109,8 @@
         <div class="sql-wayf-login">
             <h2>Log in:</h2>
             
-            <button class="btn btn-primary btn-lg" onclick="go_to_login('{% url 'sqlshare_rest.views.auth.require_uw_login' %}');"><i class="fa fa-university"></i> UW</button>
-            <button class="btn btn-primary btn-lg" onclick="go_to_login('{% url 'sqlshare_rest.views.auth.require_google_login' %}');"><i class="fa fa-google"></i> Google</button>
+            <button class="btn btn-primary btn-lg" onclick="go_to_login('{% url 'require_uw_login' %}');"><i class="fa fa-university"></i> UW</button>
+            <button class="btn btn-primary btn-lg" onclick="go_to_login('{% url 'require_google_login' %}');"><i class="fa fa-google"></i> Google</button>
         </div>
         
         <div class="sql-wayf-create">
@@ -145,9 +144,9 @@
 
         <h3>Brought to you by:</h3>
 
-        <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/eScience_logo.png" style="width:215px;" /></div>
-        <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/moore-foundation-logo.gif" style="" /></div>
-        <div class="ss-wayf-sponsors-logo"><img src="{{STATIC_URL}}images/uwit-logo.png" style="width:280px;" /></div>
+        <div class="ss-wayf-sponsors-logo"><img src="{% static 'images/eScience_logo.png' %}" style="width:215px;" /></div>
+        <div class="ss-wayf-sponsors-logo"><img src="{% static 'images/moore-foundation-logo.gif' %}" style="" /></div>
+        <div class="ss-wayf-sponsors-logo"><img src="{% static 'images/uwit-logo.png' %}" style="width:280px;" /></div>
         
       </div>
 
@@ -161,7 +160,7 @@
     </div> <!-- /container -->
     
 
-        <script type="text/javascript" src="{{STATIC_URL}}javascript/wayf.js"></script>
+        <script type="text/javascript" src="{% static 'javascript/wayf.js' %}"></script>
 
     </body>
 </html>
