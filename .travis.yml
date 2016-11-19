@@ -41,7 +41,7 @@ before_script:
 # also only used for azure:
 #  - pip install django_pyodbc
   - cp travis-ci/manage.py manage.py
-  - python manage.py syncdb --noinput
+  - python manage.py migrate --noinput
 env:
   matrix:
     - DB=sqlite3
