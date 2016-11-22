@@ -64,7 +64,8 @@ class SQLite3Backend(DBInterface):
         return "CREATE VIEW `%s` AS SELECT * FROM `%s`" % (dataset.name,
                                                            table_name)
 
-    def run_query(self, sql, username, params=None, return_cursor=False):
+    def run_query(self, sql, username, params=None, return_cursor=False,
+                  query=None):
         cursor = connection.cursor()
         cursor.execute(sql, params)
         if return_cursor:

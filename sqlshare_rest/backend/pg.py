@@ -2,8 +2,11 @@ from sqlshare_rest.backend.base import DBInterface
 from sqlshare_rest.models import User
 from django.db import connection
 from django.conf import settings
+from logging import getLogger
 import re
 import tempfile
+
+logger = getLogger(__name__)
 
 
 class PGBackend(DBInterface):
@@ -45,8 +48,15 @@ class PGBackend(DBInterface):
         cursor.execute(sql)
         cursor.close()
 
-    def run_query(self, sql, user, params=None, return_cursor=False):
+    def run_query(self, sql, user, params=None, return_cursor=False,
+                  query=None):
         connection = self.get_connection_for_user(user)
+
+        if query:
+            query.backend_terminate_data = "%s" % connection.get_backend_pid()
+            query.save()
+
+
         cursor = connection.cursor()
         cursor.execute(sql, params)
 
@@ -435,3 +445,26 @@ class PGBackend(DBInterface):
 
     def _disconnect_connection(self, connection):
         connection["connection"].close()
+
+    def get_running_queries(self):
+        query = "SELECT query FROM pg_stat_activity WHERE state='active'"
+
+        cursor = connection.cursor()
+        cursor.execute(query)
+
+        queries = []
+        row = cursor.fetchone()
+        while row:
+            queries.append({"sql": row[0]})
+            row = cursor.fetchone()
+
+        return queries
+
+
+    def kill_query(self, query):
+        try:
+            connection = self.get_connection_for_user(query.owner)
+            cursor = connection.cursor()
+            cursor.execute("SELECT pg_cancel_backend(%s)", [query.backend_terminate_data])
+        except Exception as ex:
+            logger.info("The errror: %s " % str(ex))

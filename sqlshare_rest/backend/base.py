@@ -21,7 +21,8 @@ class DBInterface(object):
         """
         return ""
 
-    def run_query(self, sql, user, params=None, return_cursor=False):
+    def run_query(self, sql, user, params=None, return_cursor=False,
+                  query=None):
         self._not_implemented("run_query")
 
     def create_view(self, name, sql, user, column_names=None):
@@ -310,3 +311,6 @@ class DBInterface(object):
 
     def get_testing_time_delta_limit(self):
         return 5
+
+    def kill_query(self, query):
+        pass

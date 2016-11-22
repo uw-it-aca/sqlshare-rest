@@ -255,6 +255,10 @@ class Query(models.Model):
     total_time = models.FloatField(null=True)
     is_ui_preview = models.NullBooleanField()
 
+    # this is implementation-specific data for terminating a query.
+    # presumable pickled, or json...
+    backend_terminate_data = models.TextField(null=True)
+
     def save(self, *args, **kwargs):
         super(Query, self).save(*args, **kwargs)
         trigger_query_queue_processing()
