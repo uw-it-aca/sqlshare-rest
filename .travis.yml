@@ -3,6 +3,8 @@ language: python
 services:
   - postgresql
   - mysql
+addons:
+  postgresql: "9.4"
 python:
   - "2.7"
 # the double-shim to support 3.4 in models.py started failing - don't want to delay release on a non-required python version
