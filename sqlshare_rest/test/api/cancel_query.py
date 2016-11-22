@@ -6,7 +6,7 @@ from multiprocessing import Process
 import json
 import re
 import os
-from sqlshare_rest.util.db import get_backend, is_mssql, is_mysql
+from sqlshare_rest.util.db import get_backend, is_mssql, is_mysql, is_sqlite3, is_pg
 from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.test import missing_url
 from django.test.utils import override_settings
@@ -18,7 +18,7 @@ from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
 from testfixtures import LogCapture
 
-@skipIf(missing_url("sqlshare_view_dataset_list") or not (is_mssql() or is_mysql()), "SQLShare REST URLs not configured")
+@skipIf(missing_url("sqlshare_view_dataset_list") or is_sqlite3(), "SQLShare REST URLs not configured")
 @override_settings(MIDDLEWARE_CLASSES = (
                                 'django.contrib.sessions.middleware.SessionMiddleware',
                                 'django.middleware.common.CommonMiddleware',
@@ -54,14 +54,17 @@ class CancelQueryAPITest(BaseAPITest):
         if is_mysql():
             query_text = "select sleep(432)"
 
+        if is_pg():
+            query_text = "select pg_sleep(8)"
+
         def queue_runner():
             from django import db
-            db.close_connection()
+            db.close_old_connections()
             process_queue(verbose=False, thread_count=2, run_once=False)
 
 
         from django import db
-        db.close_connection()
+        db.close_old_connections()
         p = Process(target=queue_runner)
         p.start()
         # We need to have the server up and running before creating the query...
