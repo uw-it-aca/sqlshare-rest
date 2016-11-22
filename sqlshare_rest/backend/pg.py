@@ -56,7 +56,6 @@ class PGBackend(DBInterface):
             query.backend_terminate_data = "%s" % connection.get_backend_pid()
             query.save()
 
-
         cursor = connection.cursor()
         cursor.execute(sql, params)
 
@@ -460,11 +459,11 @@ class PGBackend(DBInterface):
 
         return queries
 
-
     def kill_query(self, query):
         try:
             connection = self.get_connection_for_user(query.owner)
             cursor = connection.cursor()
-            cursor.execute("SELECT pg_cancel_backend(%s)", [query.backend_terminate_data])
+            cursor.execute("SELECT pg_cancel_backend(%s)",
+                           [query.backend_terminate_data])
         except Exception as ex:
             logger.info("The errror: %s " % str(ex))
