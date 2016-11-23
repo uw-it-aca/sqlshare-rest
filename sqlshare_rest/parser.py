@@ -1,7 +1,7 @@
 import csv
 import six
+import io
 import chardet
-import codecs
 
 if six.PY2:
     from StringIO import StringIO
@@ -309,4 +309,4 @@ def open_encoded(filename, mode):
     encoding = chardet.detect(sample)["encoding"]
     handle.close()
 
-    return codecs.open(filename, mode=mode, encoding=encoding)
+    return io.open(filename, mode=mode, encoding=encoding)

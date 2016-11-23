@@ -1,5 +1,6 @@
 from sqlshare_rest.test import CleanUpTestCase
-from sqlshare_rest.parser import Parser
+from sqlshare_rest.parser import Parser, open_encoded
+from tempfile import NamedTemporaryFile
 import six
 if six.PY2:
     from StringIO import StringIO
@@ -40,7 +41,23 @@ class TestParser(CleanUpTestCase):
         p.parse(handle)
         self.assertEquals(['Column1','Column2','Column3','Column4'], p.column_names())
 
-        
+    def test_windows_line_ending(self):
+        p = Parser()
+        p.guess("a,b,c,d\r\n0,1,2,3\r\n4,5,6,7")
+        self.assertTrue(p.has_header_row())
+        self.assertEquals(['a','b','c','d'], p.column_names())
+
+    def test_old_mac_line_ending(self):
+        f = NamedTemporaryFile()
+        f.write("a,b,c,d\r0,1,2,3\r4,5,6,7")
+        f.flush()
+
+        data = open_encoded(f.name, "r").read()
+        p = Parser()
+        p.guess(data)
+        self.assertTrue(p.has_header_row())
+        self.assertEquals(['a','b','c','d'], p.column_names())
+
 
     def test_overrides(self):
         p = Parser()
