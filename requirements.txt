@@ -4,7 +4,7 @@ oauthlib == 1.0
 django-compressor==1.5
 # django-fields
 unittest2
-django-oauth-toolkit
+django-oauth-toolkit==0.10
 pytz
 python-dateutil
 google-api-python-client
