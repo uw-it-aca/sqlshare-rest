@@ -276,6 +276,10 @@ class DataHandler(object):
         semi_typed = []
         raw = self._parser.next()
 
+        # Skip any blank lines in the file...
+        if len(raw) == 0:
+            return self.next()
+
         try:
             for i in range(0, len(self._columns)):
                 col_type = self._columns[i]["type"]

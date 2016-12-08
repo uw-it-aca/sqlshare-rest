@@ -58,6 +58,19 @@ class TestParser(CleanUpTestCase):
         self.assertTrue(p.has_header_row())
         self.assertEquals(['a','b','c','d'], p.column_names())
 
+    def test_empty_lines(self):
+        p = Parser()
+        content = "a,b,c,d\r\n\r\n\r\n\r\n\r\n\r\n0,1,2,3\r\n4,5,6,7"
+        p.guess(content)
+        handle = StringIO(content)
+        p.parse(handle)
+
+        dh = p.get_data_handle()
+        count = 0
+        for line in dh:
+            count += 1
+        self.assertEquals(count, 3)
+
 
     def test_overrides(self):
         p = Parser()
