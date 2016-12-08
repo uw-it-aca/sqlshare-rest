@@ -9,22 +9,22 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--run-once',
-                    dest='run_once',
-                    default=False,
-                    action="store_true",
-                    help='This will only process one item in the queue')
+                            dest='run_once',
+                            default=False,
+                            action="store_true",
+                            help='Only process one item in the queue')
 
         parser.add_argument('--verbose',
-                    dest='verbose',
-                    default=False,
-                    action="store_true",
-                    help='Prints status info to standard out')
+                            dest='verbose',
+                            default=False,
+                            action="store_true",
+                            help='Prints status info to standard out')
 
         parser.add_argument('--daemonize',
-                    dest='daemon',
-                    default=False,
-                    action="store_true",
-                    help='Run in the background')
+                            dest='daemon',
+                            default=False,
+                            action="store_true",
+                            help='Run in the background')
 
     def handle(self, *args, **options):
         verbose = options["verbose"]
