@@ -7,19 +7,20 @@ from django.contrib.auth.models import User
 class Command(BaseCommand):
     help = "This creates a new client oauth app."
 
-    option_list = BaseCommand.option_list + (
-        make_option('--name',
-                    dest='name',
-                    help='The user-visible name of the client app'),
+    def add_arguments(self, parser):
+        parser.add_argument('--name',
+                            dest='name',
+                            help='The user-visible name of the client app')
 
-        make_option('--return-url',
-                    dest='return_url',
-                    help='The url users return to after authorizing your app'),
+        parser.add_argument('--return-url',
+                            dest='return_url',
+                            help=('The url users return to after '
+                                  'authorizing your app'))
 
-        make_option('--owner-username',
-                    dest='username',
-                    help='The login name of the user that owns this app.'),
-                    )
+        parser.add_argument('--owner-username',
+                            dest='username',
+                            help=('The login name of the user '
+                                  'that owns this app.'))
 
     def handle(self, *args, **options):
         error = False
