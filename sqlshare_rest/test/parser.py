@@ -200,9 +200,9 @@ class TestParser(CleanUpTestCase):
         handle.seek(0)
         p.parse(handle)
         data_handle = p.get_data_handle()
-        self.assertEquals(data_handle.next(), [0, 1, 2, 3, 4, 5])
-        self.assertEquals(data_handle.next(), [0, 1, 2, 3, None, None])
-        self.assertEquals(data_handle.next(), [0, 1, None, None, None, None])
+        self.assertEquals(data_handle.next(), ['0', '1', '2', '3', '4', '5'])
+        self.assertEquals(data_handle.next(), ['0', '1', '2', '3', None, None])
+        self.assertEquals(data_handle.next(), ['0', '1', None, None, None, None])
 
         # Make sure NULLs dont' result in the wrong data type
         handle = StringIO("0,1.1,a,b\n0,1.2,b\n1")
