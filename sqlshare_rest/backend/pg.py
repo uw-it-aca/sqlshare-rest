@@ -235,7 +235,15 @@ class PGBackend(DBInterface):
 
         col_type_len = len(column_types)
 
+        count = 0
+        total_lines = upload.rows_total
+
         for row in data_handle:
+            count += 1
+            if not count % 1000:
+                upload.rows_loaded = count
+                upload.save()
+
             row_len = len(row)
             good_row = True
             for index in range(0, col_type_len):
