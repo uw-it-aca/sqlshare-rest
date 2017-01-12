@@ -286,14 +286,13 @@ class DataHandler(object):
 
         try:
             for i in range(0, len(columns)):
-                value = raw[i]
                 col_type = columns[i]["type"]
 
                 if raw_len <= i:
                     # Make the data square!
                     append(None)
                 else:
-                    append(value)
+                    append(raw[i])
 #                    try:
 #                        value = raw[i]
 #                        if "int" == col_type:
