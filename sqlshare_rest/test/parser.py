@@ -185,8 +185,8 @@ class TestParser(CleanUpTestCase):
         handle = StringIO("0,1.1,a\n3,4.1,bbbsd")
         p.parse(handle)
         data_handle = p.get_data_handle()
-        self.assertEquals(data_handle.next(), [0, 1.1, "a"])
-        self.assertEquals(data_handle.next(), [3, 4.1, "bbbsd"])
+        self.assertEquals(data_handle.next(), ['0', '1.1', "a"])
+        self.assertEquals(data_handle.next(), ['3', '4.1', "bbbsd"])
 
     def test_non_square_data_handle(self):
         p = Parser()
@@ -212,9 +212,9 @@ class TestParser(CleanUpTestCase):
         handle.seek(0)
         p.parse(handle)
         data_handle = p.get_data_handle()
-        self.assertEquals(data_handle.next(), [0, 1.1, 'a', 'b'])
-        self.assertEquals(data_handle.next(), [0, 1.2, 'b', None])
-        self.assertEquals(data_handle.next(), [1, None, None, None])
+        self.assertEquals(data_handle.next(), ['0', '1.1', 'a', 'b'])
+        self.assertEquals(data_handle.next(), ['0', '1.2', 'b', None])
+        self.assertEquals(data_handle.next(), ['1', None, None, None])
 
     def test_non_square_headers(self):
         p = Parser()
