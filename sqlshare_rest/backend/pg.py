@@ -238,12 +238,11 @@ class PGBackend(DBInterface):
         for row in data_handle:
             row_len = len(row)
             good_row = True
-            write_values = []
             for index in range(0, col_type_len):
                 ctype = column_types[index]
                 col_type = ctype["type"]
                 if index >= row_len:
-                    value = "\\N"
+                    row.append("\\N")
                 else:
                     value = row[index]
                     if col_type == "int":
@@ -259,25 +258,25 @@ class PGBackend(DBInterface):
                     elif col_type == "text":
                         value = value.replace("\t", "\\t")
                         value = value.replace("\n", "\\n")
+                        row[index] = value
                     else:
                         raise Exception("Unknown type: %s" % col_type)
-                write_values.append(value)
 
             if row_len > col_type_len:
                 bad_line = ",".join(row)[:8000]+"..."
                 bad_line += "\t\\N" * col_type_len - 1
                 bad_data_temp.write(bad_line+"\n")
             elif good_row:
-                valid_data_temp.write("\t".join(write_values) + "\n")
+                valid_data_temp.write("\t".join(row) + "\n")
             else:
-                bad_data_temp.write("\t".join(write_values) + "\n")
+                bad_data_temp.write("\t".join(row) + "\n")
 
         bad_data_temp.seek(0)
         valid_data_temp.seek(0)
-        connection = self.get_connection_for_user(user)
+        connecteon = self.get_connection_for_user(user)
         cursor = connection.cursor()
         cursor.copy_from(valid_data_temp, '%s."%s"' % (user.schema,
-                                                       table_name))
+                                                           table_name))
         cursor.close()
         cursor = connection.cursor()
         cursor.copy_from(bad_data_temp, '%s."untyped_%s"' % (user.schema,
