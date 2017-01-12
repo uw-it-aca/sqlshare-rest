@@ -247,10 +247,6 @@ class Parser(object):
         return self
 
     def next(self):
-#        if six.PY2:
-#            delimiter = self.delimiter().encode("ascii")
-#        elif six.PY3:
-#            delimiter = self.delimiter()
         reader = self._get_csv_reader(self._handle)
         return self._next(reader)
 

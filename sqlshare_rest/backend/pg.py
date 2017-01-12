@@ -284,7 +284,7 @@ class PGBackend(DBInterface):
         connecteon = self.get_connection_for_user(user)
         cursor = connection.cursor()
         cursor.copy_from(valid_data_temp, '%s."%s"' % (user.schema,
-                                                           table_name))
+                                                       table_name))
         cursor.close()
         cursor = connection.cursor()
         cursor.copy_from(bad_data_temp, '%s."untyped_%s"' % (user.schema,
