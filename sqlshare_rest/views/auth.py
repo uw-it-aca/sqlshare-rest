@@ -1,14 +1,13 @@
 from django.contrib.auth import authenticate, login
 from django.core.urlresolvers import reverse
 from django.contrib.auth.views import login as login_view
-from sqlshare_rest.models import CredentialsModel, FlowModel
+from sqlshare_rest.models import CredentialsModel
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render_to_response
 from django.conf import settings
 from apiclient.discovery import build
-from oauth2client.django_orm import Storage
-from oauth2client.client import OAuth2WebServerFlow, FlowExchangeError
 import httplib2
+from oauth2client.contrib.django_util import decorators
 
 import six
 
@@ -34,42 +33,21 @@ def require_uw_login(request):
     return _login_user(request, login, name, last_name, email)
 
 
+@decorators.oauth_required
 def require_google_login(request):
-    storage = Storage(CredentialsModel,
-                      'id',
-                      request.session.session_key,
-                      'credential')
-    credential = storage.get()
-    scope = ('https://www.googleapis.com/auth/plus.login '
-             'https://www.googleapis.com/auth/userinfo.email')
-    if credential is None or credential.invalid is True:
-        flow = OAuth2WebServerFlow(client_id=settings.GOOGLE_OAUTH_KEY,
-                                   client_secret=settings.GOOGLE_OAUTH_SECRET,
-                                   scope=scope,
-                                   user_agent='plus-django-sample/1.0',
-                                   state=request.GET['next'],
-                                   redirect_uri=settings.GOOGLE_RETURN_URL)
-
-        authorize_url = flow.step1_get_authorize_url()
-
-        f = FlowModel(id=request.session.session_key, flow=flow)
-        f.save()
-
-        return redirect(authorize_url)
-
-    http = httplib2.Http()
-    plus = build('plus', 'v1', http=http)
-    credential.authorize(http)
+    plus = build('plus', 'v1', http=request.oauth.http,
+                 developerKey=settings.GOOGLE_OAUTH2_CLIENT_ID)
     name_data = plus.people().get(userId='me').execute()
 
     name = name_data["name"]["givenName"]
     last_name = name_data["name"]["familyName"]
 
-    plus = build('oauth2', 'v2', http=http)
-    credential.authorize(http)
+    plus = build('oauth2', 'v2', http=request.oauth.http,
+                 developerKey=settings.GOOGLE_OAUTH2_CLIENT_ID)
     email_data = plus.userinfo().get().execute()
     email = email_data["email"]
 
+    print name, email
     return _login_user(request, email, name, last_name, email)
 
 

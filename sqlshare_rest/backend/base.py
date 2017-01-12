@@ -21,7 +21,8 @@ class DBInterface(object):
         """
         return ""
 
-    def run_query(self, sql, user, params=None, return_cursor=False):
+    def run_query(self, sql, user, params=None, return_cursor=False,
+                  query=None):
         self._not_implemented("run_query")
 
     def create_view(self, name, sql, user, column_names=None):
@@ -191,7 +192,7 @@ class DBInterface(object):
                             db_password=password,
                             schema=schema_name)
 
-    def _load_table(self, table_name, data_handle, user):
+    def _load_table(self, table_name, data_handle, upload, user):
         """
         Add data from data_handle to the table.  data_handle must be iterable,
         and the type values for columns must be correct.
@@ -241,7 +242,7 @@ class DBInterface(object):
         self._not_implemented("add_public_access")
 
     def remove_public_access(self, dataset, owner):
-        self._not_implemented("add_public_access")
+        self._not_implemented("remove_public_access")
 
     def run_public_query(self, sql, params=None):
         """
@@ -310,3 +311,6 @@ class DBInterface(object):
 
     def get_testing_time_delta_limit(self):
         return 5
+
+    def kill_query(self, query):
+        pass

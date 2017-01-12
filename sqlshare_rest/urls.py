@@ -1,110 +1,133 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider import views as oa_views
+from oauth2client.contrib.django_util.site import urls as oauth2_urls
 from sqlshare_rest.views import oauth as ss_oa_views
 
-urlpatterns = patterns(
-    'sqlshare_rest.views',
+from sqlshare_rest.views.dataset_permissions import (permissions,
+                                                     add_token_access)
+from sqlshare_rest.views.dataset_tags import tags
+from sqlshare_rest.views.dataset import download, snapshot, dataset
+from sqlshare_rest.views.dataset_list import (dataset_tagged_list,
+                                              dataset_recent_list,
+                                              dataset_all_list,
+                                              dataset_list,
+                                              dataset_shared_list)
+from sqlshare_rest.views.user import (user, logout_process, logout_init,
+                                      post_logout)
+from sqlshare_rest.views.download import run, init
+from sqlshare_rest.views.query import details
+from sqlshare_rest.views.query_list import query_list
+from sqlshare_rest.views.file_upload import finalize, upload, initialize
+from sqlshare_rest.views.file_parser import parser
+from sqlshare_rest.views.users import search
+from sqlshare_rest.views.sql import run as run_sql
+from sqlshare_rest.views.oauth import access_code
+from sqlshare_rest.views.auth import (google_return, require_google_login,
+                                      require_uw_login)
+from sqlshare_rest.views.admin import user_override
+
+urlpatterns = [
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/permissions',
-        'dataset_permissions.permissions',
+        permissions,
         name="sqlshare_view_dataset_permissions"),
 
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/tags',
-        'dataset_tags.tags',
+        tags,
         name="sqlshare_view_dataset_tags"),
 
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/result',
-        'dataset.download',
+        download,
         name="sqlshare_view_download_dataset"),
 
-    url('v3/db/dataset/tagged/(?P<tag>.*)', 'dataset_list.dataset_tagged_list',
+    url('v3/db/dataset/tagged/(?P<tag>.*)', dataset_tagged_list,
         name="sqlshare_view_dataset_tagged_list"),
 
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/snapshot',
-        'dataset.snapshot',
+        snapshot,
         name="sqlshare_dataset_snapshot"),
 
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)',
-        'dataset.dataset',
+        dataset,
         name="sqlshare_view_dataset"),
 
-    url('v3/db/dataset/recent', 'dataset_list.dataset_recent_list',
+    url('v3/db/dataset/recent', dataset_recent_list,
         name="sqlshare_view_dataset_recent_list"),
 
-    url('v3/db/dataset/shared', 'dataset_list.dataset_shared_list',
+    url('v3/db/dataset/shared', dataset_shared_list,
         name="sqlshare_view_dataset_shared_list"),
 
-    url('v3/db/dataset/all', 'dataset_list.dataset_all_list',
+    url('v3/db/dataset/all', dataset_all_list,
         name="sqlshare_view_dataset_all_list"),
 
-    url('v3/db/dataset', 'dataset_list.dataset_list',
+    url('v3/db/dataset', dataset_list,
         name="sqlshare_view_dataset_list"),
 
     url('v3/db/token/(?P<token>.*)',
-        'dataset_permissions.add_token_access',
+        add_token_access,
         name="sqlshare_token_access"),
 
-    url('v3/user/me', 'user.user',
+    url('v3/user/me', user,
         name="sqlshare_view_user"),
 
-    url(r'^v3/user/logout/(?P<token>.*)', 'user.logout_process',
+    url(r'^v3/user/logout/(?P<token>.*)', logout_process,
         name="user_logout"),
-    url(r'^v3/user/logout', 'user.logout_init'),
-    url(r'^logout', 'user.post_logout', name="post_logout_url"),
+    url(r'^v3/user/logout', logout_init),
+    url(r'^logout', post_logout, name="post_logout_url"),
 
     url('v3/db/query/download/(?P<token>[a-z0-9]+)',
-        'download.run',
+        run,
         name="sqlshare_view_run_download"),
 
     url('v3/db/query/download',
-        'download.init',
+        init,
         name="sqlshare_view_init_download"),
 
     url('v3/db/query/(?P<id>[0-9]+)',
-        'query.details',
+        details,
         name="sqlshare_view_query"),
 
     url('v3/db/query',
-        'query_list.query_list',
+        query_list,
         name="sqlshare_view_query_list"),
 
     url('v3/db/file/(?P<id>[0-9]+)/finalize',
-        'file_upload.finalize',
+        finalize,
         name="sqlshare_view_upload_finalize"),
 
     url('v3/db/file/(?P<id>[0-9]+)/parser',
-        'file_parser.parser',
+        parser,
         name="sqlshare_view_file_parser"),
 
     url('v3/db/file/(?P<id>[0-9]+)',
-        'file_upload.upload',
+        upload,
         name="sqlshare_view_file_upload"),
 
     url('v3/db/file/',
-        'file_upload.initialize',
+        initialize,
         name="sqlshare_view_file_upload_init"),
 
     url('v3/users',
-        'users.search',
+        search,
         name="sqlshare_view_user_search"),
 
     url('v3/db/sql',
-        'sql.run',
+        run_sql,
         name="sqlshare_view_run_query"),
 
     # This needs to be outside the block below, to keep it from
     # being namespaced.
     url(r'^access_code/$',
-        'oauth.access_code',
+        access_code,
         name="oauth_access_code"),
 
-    url(r'^google_return', 'auth.google_return'),
-    url(r'^google', 'auth.require_google_login'),
-    url(r'^uw/', 'auth.require_uw_login'),
+    url(r'^google_return', google_return),
+    url(r'^google', require_google_login, name="require_google_login"),
+    url(r'^uw/', require_uw_login, name="require_uw_login"),
 
-    url(r'user/', 'admin.user_override'),
+    url(r'user/', user_override),
 
-)
+]
 
 # OAuth urls.  Doing this instead of including the oauth2_provider urls so we
 # can override the authorization view to allow oob access.
@@ -112,8 +135,7 @@ LIST_TEMPLATE = "oauth_access_code/application_list.html"
 DETAIL_TEMPLATE = "oauth_apps/application_detail.html"
 DELETE_TEMPLATE = "oauth_apps/application_confirm_delete.html"
 
-oauth_patterns = patterns(
-    '',
+oauth_patterns = [
     url(r'^authorize/$',
         ss_oa_views.SSAuthorizationView.as_view(),
         name="authorize"),
@@ -140,9 +162,10 @@ oauth_patterns = patterns(
         ss_oa_views.SSApplicationUpdate.as_view(),
         name="update"),
 
-)
+]
 
-urlpatterns += patterns(
-    '',
+
+urlpatterns += [
     url(r'^o/', include(oauth_patterns, namespace="oauth2_provider")),
-)
+    url(r'^oauth2/', include(oauth2_urls))
+]

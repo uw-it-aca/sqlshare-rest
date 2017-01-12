@@ -7,25 +7,24 @@ from optparse import make_option
 class Command(BaseCommand):
     help = "This processes snapshots of datasets."
 
-    option_list = BaseCommand.option_list + (
-        make_option('--run-once',
-                    dest='run_once',
-                    default=False,
-                    action="store_true",
-                    help='This will only process one item in the queue'),
+    def add_arguments(self, parser):
+        parser.add_argument('--run-once',
+                            dest='run_once',
+                            default=False,
+                            action="store_true",
+                            help='Only process one item in the queue')
 
-        make_option('--verbose',
-                    dest='verbose',
-                    default=False,
-                    action="store_true",
-                    help='Prints status info to standard out'),
+        parser.add_argument('--verbose',
+                            dest='verbose',
+                            default=False,
+                            action="store_true",
+                            help='Prints status info to standard out')
 
-        make_option('--daemonize',
-                    dest='daemon',
-                    default=False,
-                    action="store_true",
-                    help='Run in the background'),
-                    )
+        parser.add_argument('--daemonize',
+                            dest='daemon',
+                            default=False,
+                            action="store_true",
+                            help='Run in the background')
 
     def handle(self, *args, **options):
         verbose = options["verbose"]

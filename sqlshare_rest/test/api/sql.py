@@ -39,6 +39,7 @@ elif six.PY3:
 
 class RunQueryAPITest(BaseAPITest):
     def setUp(self):
+        super(RunQueryAPITest, self).setUp()
         self.remove_users = []
         self.client = Client()
 
@@ -91,6 +92,7 @@ class RunQueryAPITest(BaseAPITest):
 
     @classmethod
     def setUpClass(cls):
+        super(RunQueryAPITest, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

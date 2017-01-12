@@ -134,7 +134,8 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
             cursor = backend.run_query(sql,
                                        user,
-                                       return_cursor=True)
+                                       return_cursor=True,
+                                       query=query)
 
             t2 = time.time()
             try:
@@ -240,6 +241,13 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             query.error = "Query cancelled"
             query.save()
 
+            try:
+                backend = get_backend()
+                backend.kill_query(query)
+            except:
+                # This is optional
+                pass
+
             logger.info("Cancelling query: %s" % query.pk)
             os.kill(pid, signal.SIGKILL)
 
@@ -283,7 +291,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
                 if is_reset_error:
                     try:
-                        db.close_connection()
+                        db.close_old_connections()
                     except Exception as ex:
                         ex_str = str(ex)
                         is_expected = False

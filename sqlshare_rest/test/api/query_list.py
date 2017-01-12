@@ -33,6 +33,7 @@ from testfixtures import LogCapture
 
 class QueryListAPITest(BaseAPITest):
     def setUp(self):
+        super(QueryListAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()

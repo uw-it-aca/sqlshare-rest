@@ -23,6 +23,7 @@ import json
 
 class UserAPITest(BaseAPITest):
     def setUp(self):
+        super(UserAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()

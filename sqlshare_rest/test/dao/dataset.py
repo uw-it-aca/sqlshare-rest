@@ -65,11 +65,13 @@ class TestDatasetDAO(CleanUpTestCase):
 
 
     def setUp(self):
+        super(TestDatasetDAO, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
 
     @classmethod
     def setUpClass(cls):
+        super(TestDatasetDAO, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

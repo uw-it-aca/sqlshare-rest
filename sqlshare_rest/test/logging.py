@@ -31,6 +31,7 @@ from sqlshare_rest.dao.user import set_override_user
 
 class TestLogging(BaseAPITest):
     def setUp(self):
+        super(TestLogging, self).setUp()
         self.remove_users = []
         self.client = Client()
 

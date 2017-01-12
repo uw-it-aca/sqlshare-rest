@@ -24,6 +24,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 
 class TagAPITest(BaseAPITest):
     def setUp(self):
+        super(TagAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()

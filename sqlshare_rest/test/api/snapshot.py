@@ -39,6 +39,7 @@ elif six.PY3:
 
 class SnapshotAPITest(BaseAPITest):
     def setUp(self):
+        super(SnapshotAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
@@ -74,7 +75,7 @@ class SnapshotAPITest(BaseAPITest):
             response = self.client.post(url, data=json.dumps(new_data), content_type="application/json", **owner_auth_headers)
             self.assertEquals(response.status_code, 201)
             self.assertEquals(response.content.decode("utf-8"), "")
-            self.assertEquals(response["Location"], "http://testserver/v3/db/dataset/snapshot_user1/snap_destination1")
+            self.assertEquals(response["Location"], "/v3/db/dataset/snapshot_user1/snap_destination1")
             self.assertTrue(self._has_log(l, owner, None, 'sqlshare_rest.views.dataset', 'INFO', 'POST dataset snapshot; owner: snapshot_user1; name: snap_source1; destination_name: snap_destination1; is_public: True'))
 
 

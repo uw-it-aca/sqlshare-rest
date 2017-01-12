@@ -239,7 +239,8 @@ class MSSQLBackend(DBInterface):
         finally:
             connection.autocommit = original_autocommit
 
-    def run_query(self, sql, user, params=None, return_cursor=False):
+    def run_query(self, sql, user, params=None, return_cursor=False,
+                  query=None):
         connection = self.get_connection_for_user(user)
         cursor = connection.cursor()
         if params:

@@ -17,7 +17,7 @@ from sqlshare_rest.dao.dataset import create_dataset_from_query
 from sqlshare_rest.util.dataset_queue import process_dataset_queue
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import FileUpload, Query
-from sqlshare_rest.util.db import is_mysql, is_sqlite3
+from sqlshare_rest.util.db import is_mysql, is_sqlite3, is_pg
 from testfixtures import LogCapture
 
 @override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
@@ -34,6 +34,7 @@ from testfixtures import LogCapture
                    )
 class FileUploadAPITest(BaseAPITest):
     def setUp(self):
+        super(FileUploadAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
@@ -167,7 +168,7 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(data["rows_loaded"], 6)
 
         dataset_url = response11["Location"]
-        self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user1/test_dataset1")
+        self.assertEquals(dataset_url, "/v3/db/dataset/upload_user1/test_dataset1")
 
         query = Query.objects.all()[0]
         remove_pk = query.pk
@@ -184,7 +185,11 @@ class FileUploadAPITest(BaseAPITest):
 #            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
 #        else:
             # Hoping that other db engines will also return typed data...
-        self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
+        if is_pg():
+            # PG uses the multi-table view approach, with a column that says if the row is "clean"
+            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2", 1], [u"b", u"2", u"3", 1], [u"c", u"3", u"4", 1], [u"z", u"999", u"2", 1],[u"y", u"2", u"3", 1],[u"x", u"30", u"41", 1],])
+        else:
+            self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
 
     def test_bad_columns(self):
         owner = "upload_user_wonky_columns"
@@ -456,7 +461,7 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(data["rows_loaded"], 6)
 
         dataset_url = response11["Location"]
-        self.assertEquals(dataset_url, "http://testserver/v3/db/dataset/upload_user_eol/test_dataset_eol")
+        self.assertEquals(dataset_url, "/v3/db/dataset/upload_user_eol/test_dataset_eol")
 
         query = Query.objects.all()[0]
         remove_pk = query.pk
@@ -473,13 +478,17 @@ class FileUploadAPITest(BaseAPITest):
 #            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2"], [u"b", u"2", u"3"], [u"c", u"3", u"4"], [u"z", u"999", u"2"],[u"y", u"2", u"3"],[u"x", u"30", u"41"],])
 #        else:
             # Hoping that other db engines will also return typed data...
-        self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
+        if is_pg():
+            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2", 1], [u"b", u"2", u"3", 1], [u"c", u"3", u"4", 1], [u"z", u"999", u"2", 1],[u"y", u"2", u"3", 1],[u"x", u"30", u"41", 1],])
+        else:
+            self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
 
 
 
 
     @classmethod
     def setUpClass(cls):
+        super(FileUploadAPITest, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

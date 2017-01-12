@@ -254,7 +254,7 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
 
                 if is_reset_error:
                     try:
-                        db.close_connection()
+                        db.close_old_connections()
                     except Exception as ex:
                         ex_str = str(ex)
                         is_expected = False

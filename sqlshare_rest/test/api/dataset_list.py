@@ -33,6 +33,7 @@ from time import sleep
 
 class DatsetListAPITest(BaseAPITest):
     def setUp(self):
+        super(DatsetListAPITest, self).setUp()
         # Try to cleanup from any previous test runs...
         self.remove_users = []
         self.client = Client()
@@ -455,6 +456,7 @@ class DatsetListAPITest(BaseAPITest):
 
     @classmethod
     def setUpClass(cls):
+        super(DatsetListAPITest, cls).setUpClass()
         def _run_query(sql):
             cursor = connection.cursor()
             try:

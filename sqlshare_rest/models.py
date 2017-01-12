@@ -2,7 +2,7 @@ from django.db import models
 from django.core.urlresolvers import reverse
 from datetime import datetime
 from django.utils import timezone
-from oauth2client.django_orm import CredentialsField, FlowField
+from oauth2client.contrib.django_util.models import CredentialsField
 import json
 from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 import uuid
@@ -51,8 +51,7 @@ class Dataset(DirtyFieldsMixin, models.Model):
     is_public = models.BooleanField(default=False)
     is_shared = models.BooleanField(default=False)
     shared_with = models.ManyToManyField(User, related_name="shared_with")
-    date_created = models.DateTimeField(auto_now_add=True,
-                                        default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(default=timezone.now)
     popularity = models.IntegerField(default=0)
     last_viewed = models.DateTimeField(null=True)
@@ -245,8 +244,7 @@ class Query(models.Model):
     error = models.TextField(null=True)
     is_preview_for = models.ForeignKey(Dataset, null=True)
     owner = models.ForeignKey(User)
-    date_created = models.DateTimeField(auto_now_add=True,
-                                        default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
     date_finished = models.DateTimeField(null=True)
     rows_total = models.IntegerField(null=True)
     process_queue_id = models.IntegerField(null=True)
@@ -256,6 +254,10 @@ class Query(models.Model):
     query_time = models.FloatField(null=True)
     total_time = models.FloatField(null=True)
     is_ui_preview = models.NullBooleanField()
+
+    # this is implementation-specific data for terminating a query.
+    # presumable pickled, or json...
+    backend_terminate_data = models.TextField(null=True)
 
     def save(self, *args, **kwargs):
         super(Query, self).save(*args, **kwargs)
@@ -306,8 +308,7 @@ class FileUpload(models.Model):
     column_list = models.TextField(null=True)
     sample_data = models.TextField(null=True)
     user_file = models.FileField(upload_to="user_files/%Y/%m/%d")
-    date_created = models.DateTimeField(auto_now_add=True,
-                                        default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
     dataset_created = models.BooleanField(default=False, db_index=True)
     dataset = models.ForeignKey(Dataset, null=True)
     has_error = models.BooleanField(default=False)
@@ -342,37 +343,10 @@ class FileUpload(models.Model):
         }
 
 
-if six.PY3:
-    # Python3 shims.
-    # Still need to use add_metaclass, so the python2 parser doesn't break
-    # on metaclass=...
-
-    # But - in python2 this breaks.  so double shimmed.
-    @add_metaclass(models.SubfieldBase)
-    class Py3FlowField(FlowField):
-        pass
-
-    @add_metaclass(models.SubfieldBase)
-    class Py3CredentialsField(CredentialsField):
-        pass
-
-if six.PY2:
-    class Py3FlowField(FlowField):
-        pass
-
-    class Py3CredentialsField(CredentialsField):
-        pass
-
-
 # These are for the google logins
 class CredentialsModel(models.Model):
     id = models.CharField(max_length=50, primary_key=True)
-    credential = Py3CredentialsField()
-
-
-class FlowModel(models.Model):
-    id = models.CharField(max_length=50, primary_key=True)
-    flow = Py3FlowField()
+    credential = CredentialsField()
 
 
 class DownloadToken(models.Model):
