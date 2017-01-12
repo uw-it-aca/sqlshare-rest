@@ -247,10 +247,10 @@ class Parser(object):
         return self
 
     def next(self):
-        if six.PY2:
-            delimiter = self.delimiter().encode("ascii")
-        elif six.PY3:
-            delimiter = self.delimiter()
+#        if six.PY2:
+#            delimiter = self.delimiter().encode("ascii")
+#        elif six.PY3:
+#            delimiter = self.delimiter()
         reader = self._get_csv_reader(self._handle)
         return self._next(reader)
 
@@ -274,33 +274,40 @@ class DataHandler(object):
         # We try to type the data, but if it isn't correct we just add the
         # raw strings, and hope a later step can sort it out.
         semi_typed = []
+        append = semi_typed.append
         raw = self._parser.next()
 
+        raw_len = len(raw)
         # Skip any blank lines in the file...
-        if len(raw) == 0:
+        if raw_len == 0:
             return self.next()
 
-        try:
-            for i in range(0, len(self._columns)):
-                col_type = self._columns[i]["type"]
+        columns = self._columns
 
-                if len(raw) <= i:
+        try:
+            for i in range(0, len(columns)):
+                value = raw[i]
+                col_type = columns[i]["type"]
+
+                if raw_len <= i:
                     # Make the data square!
-                    semi_typed.append(None)
+                    append(None)
                 else:
-                    try:
-                        value = raw[i]
-                        if "int" == col_type:
-                            semi_typed.append(int(value))
-                        elif "float" == col_type:
-                            semi_typed.append(float(value))
-                        else:
-                            semi_typed.append(value)
-                    except Exception as ex:
-                        semi_typed.append(value)
+                    append(value)
+#                    try:
+#                        value = raw[i]
+#                        if "int" == col_type:
+#                            append(int(value))
+#                        elif "float" == col_type:
+#                            append(float(value))
+#                        else:
+#                            append(value)
+#                    except Exception as ex:
+#                        append(value)
             return semi_typed
 
         except Exception as ex:
+            print "E: ", ex
             return str(ex)
 
     __next__ = next

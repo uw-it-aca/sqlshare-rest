@@ -243,13 +243,15 @@ class PGBackend(DBInterface):
                 else:
                     value = row[index]
                     if col_type == "int":
-                        if type(value) != int:
+                        try:
+                            int(value)
+                        except Exception:
                             good_row = False
-                        value = "%s" % value
                     elif col_type == "float":
-                        if type(value) != float:
+                        try:
+                            float(value)
+                        except Exception:
                             good_row = False
-                        value = "%s" % value
                     elif col_type == "text":
                         value = value.replace("\t", "\\t")
                         value = value.replace("\n", "\\n")
