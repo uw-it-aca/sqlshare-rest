@@ -233,12 +233,16 @@ class PGBackend(DBInterface):
         column_types = parser.column_types()
         data_handle = parser.get_data_handle()
 
+        col_type_len = len(column_types)
+
         for row in data_handle:
+            row_len = len(row)
             good_row = True
             write_values = []
-            for index, ctype in enumerate(column_types):
+            for index in range(0, col_type_len):
+                ctype = column_types[index]
                 col_type = ctype["type"]
-                if index >= len(row):
+                if index >= row_len:
                     value = "\\N"
                 else:
                     value = row[index]
@@ -259,9 +263,9 @@ class PGBackend(DBInterface):
                         raise Exception("Unknown type: %s" % col_type)
                 write_values.append(value)
 
-            if len(row) > len(column_types):
+            if row_len > col_type_len:
                 bad_line = ",".join(row)[:8000]+"..."
-                bad_line += "\t\\N" * len(column_types) - 1
+                bad_line += "\t\\N" * col_type_len - 1
                 bad_data_temp.write(bad_line+"\n")
             elif good_row:
                 valid_data_temp.write("\t".join(write_values) + "\n")
