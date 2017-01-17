@@ -124,24 +124,100 @@ class PGBackend(DBInterface):
         self.run_query(sql, user, return_cursor=True).close()
 
     def add_public_access(self, dataset, owner):
+        # Granting to the view
         sql = 'GRANT SELECT ON %s."%s" to PUBLIC' % (owner.schema,
                                                      dataset.name)
+
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # Granting to the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'GRANT SELECT ON %s."%s" to PUBLIC' % (owner.schema,
+                                                     table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # Granting to the underlying untyped table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'GRANT SELECT ON %s."untyped_%s" to PUBLIC' % (owner.schema,
+                                                             table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
 
     def remove_public_access(self, dataset, owner):
         sql = 'REVOKE SELECT ON %s."%s" FROM PUBLIC' % (owner.schema,
                                                         dataset.name)
         self.run_query(sql, owner, return_cursor=True).close()
 
+        # dropping from the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'REVOKE SELECT ON %s."%s" FROM PUBLIC' % (owner.schema,
+                                                        table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # dropping from the underlying untyped table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'REVOKE SELECT ON %s."untyped_%s" FROM PUBLIC' % (owner.schema,
+                                                                table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
     def add_read_access_to_dataset(self, dataset, owner, reader):
         sql = 'GRANT SELECT ON %s."%s" to %s' % (owner.schema, dataset,
                                                  reader.db_username)
         self.run_query(sql, owner, return_cursor=True).close()
 
+        # Granting to the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset)
+        sql = 'GRANT SELECT ON %s."%s" to %s' % (owner.schema,
+                                                 table_name,
+                                                 reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # Granting to the underlying untyped table, if one exists
+        sql = 'GRANT SELECT ON %s."untyped_%s" to %s' % (owner.schema,
+                                                         table_name,
+                                                         reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
     def remove_access_to_dataset(self, dataset, owner, reader):
         sql = 'REVOKE ALL ON %s."%s" FROM %s' % (owner.schema, dataset,
                                                  reader.db_username)
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # dropping from the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset)
+        sql = 'REVOKE SELECT ON %s."%s" FROM %s' % (owner.schema,
+                                                    table_name,
+                                                    reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # dropping from the underlying untyped table, if one exists
+        sql = 'REVOKE SELECT ON %s."untyped_%s" FROM %s' % (owner.schema,
+                                                            table_name,
+                                                            reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
 
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) AS X LIMIT 100" % sql
