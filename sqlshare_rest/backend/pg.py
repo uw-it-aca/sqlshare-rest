@@ -91,9 +91,15 @@ class PGBackend(DBInterface):
         except Exception as ex:
             try:
                 drop_sql = self._drop_view_sql(schema, name)
-                self.run_query(drop_sql, user, return_cursor=True).close()
+                try:
+                    self.run_query(drop_sql, user, return_cursor=True).close()
+                except:
+                    # We don't care if there's an error trying to drop the
+                    # view.  It might Not exist.  We want the exception that
+                    # goes back to be the creation exception.
+                    pass
                 self.run_query(view_sql, user, return_cursor=True).close()
-            except Exception as ex:
+            except:
                 raise
 
         count_sql = 'SELECT COUNT(*) FROM %s."%s"' % (schema, name)
