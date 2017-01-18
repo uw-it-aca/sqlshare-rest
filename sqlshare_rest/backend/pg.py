@@ -22,6 +22,10 @@ class PGBackend(DBInterface):
         cursor.execute(sql % (schema, username))
         cursor.close()
 
+        # Make sure people can see items in the schema
+        sql = 'GRANT USAGE ON SCHEMA %s to PUBLIC' % (schema)
+        self.run_query(sql, owner, return_cursor=True).close()
+
     def remove_user(self, username):
         model = User.objects.get(username=username)
         self.close_user_connection(model)
