@@ -1,7 +1,7 @@
 Django==1.10.*
 oauth2client==4.0.*
 oauthlib == 1.0
-django-compressor==1.5
+django-compressor==2.1
 # django-fields
 unittest2
 django-oauth-toolkit==0.10
