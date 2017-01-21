@@ -6,7 +6,7 @@ from sqlshare_rest.dao.user import get_original_user, get_override_user
 from sqlshare_rest.dao.user import clear_override, set_override_user
 from authz_group import Group
 from django import template
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, render
 from django.template import RequestContext
 
 
@@ -96,9 +96,7 @@ def user_override(request):
         # template
         pass
 
-    return render_to_response('admin/user_override.html',
-                              context,
-                              context_instance=RequestContext(request))
+    return render(request, 'admin/user_override.html', context)
 
 
 def _get_validation_module():
