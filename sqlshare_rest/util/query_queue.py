@@ -9,6 +9,7 @@ from sqlshare_rest.util.queue_triggers import trigger_query_queue_processing
 from sqlshare_rest.util.queue_triggers import QUERY_QUEUE_PORT_NUMBER
 from sqlshare_rest.logger import getLogger
 from django.db.utils import DatabaseError
+from decimal import Decimal
 import datetime
 import atexit
 import signal
@@ -140,10 +141,16 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             t2 = time.time()
             try:
                 all_data = []
+                decimal_test = type(Decimal())
+                def map_decimal(d):
+                    if type(d) == decimal_test:
+                        return float(d)
+                    return d
+
                 for row in cursor:
                     # Need to manually map Decimal values to strings,
                     # otherwise json turns them into None
-                    all_data.append(list(row))
+                    all_data.append(map(map_decimal, list(row)))
                     row_count += 1
 
                 columns = get_column_names_from_cursor(cursor)
