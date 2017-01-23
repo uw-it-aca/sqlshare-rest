@@ -142,6 +142,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             try:
                 all_data = []
                 decimal_test = type(Decimal())
+
                 def map_decimal(d):
                     if type(d) == decimal_test:
                         return float(d)
