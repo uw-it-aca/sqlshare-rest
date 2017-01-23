@@ -6,6 +6,8 @@ from sqlshare_rest.dao.query import create_query
 from sqlshare_rest.util.query_queue import process_queue
 from sqlshare_rest.models import Query
 from django.db import connection
+from unittest2 import skipUnless
+from sqlshare_rest.util.db import is_pg
 import json
 
 @override_settings(SQLSHARE_QUERY_CACHE_DB="test_ss_query_db")
@@ -42,6 +44,7 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q2.has_error, False)
         self.assertEquals(q2.rows_total, 1)
 
+    @skipUnless(is_pg(), "Only run on Postgres")
     def test_pg_decimal(self):
         owner = "dao_query_decimal"
         self.remove_users.append(owner)
