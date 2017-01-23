@@ -145,7 +145,7 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
 
                 def map_decimal(d):
                     if type(d) == decimal_test:
-                        return float(d)
+                        return str(d)
                     return d
 
                 for row in cursor:
