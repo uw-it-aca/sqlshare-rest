@@ -41,7 +41,9 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             from django.db import connection
             connection.close()
 
-            if os.fork():
+            pid1 = os.fork()
+            if pid1:
+                os.waitpid(pid1, 0)
                 # This is the main process
                 return
 
@@ -50,16 +52,6 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             if os.fork():
                 # Double fork the daemon
                 sys.exit(0)
-
-            # Close stdin/out/err
-            sys.stdin.flush()
-            sys.stdout.flush()
-            sys.stderr.flush()
-            null = os.open(os.devnull, os.O_RDWR)
-            os.dup2(null, sys.stdin.fileno())
-            os.dup2(null, sys.stdout.fileno())
-            os.dup2(null, sys.stderr.fileno())
-            os.close(null)
 
         try:
             process_query(query_id)
