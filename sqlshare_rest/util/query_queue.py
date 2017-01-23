@@ -141,7 +141,9 @@ def process_queue(thread_count=0, run_once=True, verbose=False):
             try:
                 all_data = []
                 for row in cursor:
-                    all_data.append(list(row))
+                    # Need to manually map Decimal values to strings,
+                    # otherwise json turns them into None
+                    all_data.append(map(lambda x: str(x), list(row)))
                     row_count += 1
 
                 columns = get_column_names_from_cursor(cursor)
