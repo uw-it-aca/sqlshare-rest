@@ -63,7 +63,7 @@ class TestQueryDAO(CleanUpTestCase):
 
         q2 = Query.objects.get(pk=query.pk)
         data = json.loads(q2.preview_content)
-        self.assertEquals(data["data"][0][0], 1.2)
+        self.assertEquals(data["data"][0][0], '1.2')
 
 
     def test_preview_query(self):
