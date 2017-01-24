@@ -361,11 +361,11 @@ class PGBackend(DBInterface):
             if row_len > col_type_len:
                 bad_line = ",".join(row)[:8000]+"..."
                 bad_line += "\t\\N" * col_type_len - 1
-                bad_data_temp.write(bad_line+"\n")
+                bad_data_temp.write(bad_line.encode('utf-8')+"\n")
             elif good_row:
-                valid_data_temp.write("\t".join(row) + "\n")
+                valid_data_temp.write("\t".join(row).encode('utf-8') + "\n")
             else:
-                bad_data_temp.write("\t".join(row) + "\n")
+                bad_data_temp.write("\t".join(row).encode('utf-8') + "\n")
 
         bad_data_temp.seek(0)
         valid_data_temp.seek(0)
