@@ -6,6 +6,7 @@ from sqlshare_rest.util.db import get_backend
 from sqlshare_rest.util.query import frontend_description_from_cursor
 from sqlshare_rest.dao.user import get_user
 from sqlshare_rest.logger import getLogger
+import codecs
 import json
 import re
 
@@ -55,6 +56,7 @@ def stream_query(cursor, user):
 
     names = ",".join(list(map(lambda x: csv_encode(x["name"]), columns)))
 
+    yield codecs.BOM_UTF8
     yield names
     yield "\n"
 
