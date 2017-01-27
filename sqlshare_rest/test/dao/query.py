@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from sqlshare_rest.test import CleanUpTestCase
 from django.db import connection
 from django.test.utils import override_settings
@@ -44,6 +45,27 @@ class TestQueryDAO(CleanUpTestCase):
         self.assertEquals(q2.has_error, False)
         self.assertEquals(q2.rows_total, 1)
 
+    @skipUnless(is_pg(), "Only run on Postgres")
+    def test_pg_unicode(self):
+        owner = "dao_query_unicode"
+        self.remove_users.append(owner)
+        # Make sure we're not going to be processing a bunch of extra query objects...
+        Query.objects.all().delete()
+
+        #query = create_query(owner, "SELECT (1.2 AS DECIMAL)")
+        query = create_query(owner, u"SELECT ('事')")
+
+        self.assertEquals(query.is_finished, False)
+        self.assertEquals(query.has_error, False)
+
+        query = Query.objects.all()[0]
+        remove_pk = query.pk
+        process_queue()
+
+        q2 = Query.objects.get(pk=query.pk)
+        data = json.loads(q2.preview_content)
+        self.assertEquals(data["data"][0][0], u'事')
+   
     @skipUnless(is_pg(), "Only run on Postgres")
     def test_pg_decimal(self):
         owner = "dao_query_decimal"
