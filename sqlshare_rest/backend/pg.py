@@ -63,7 +63,7 @@ class PGBackend(DBInterface):
             query.save()
 
         cursor = connection.cursor()
-        cursor.execute(sql, params)
+        cursor.execute(sql.encode('utf-8'), params)
 
         if return_cursor:
             return cursor
@@ -413,6 +413,7 @@ class PGBackend(DBInterface):
         all_unique = self._make_safe_column_name_list(all_unique)
 
         for c in all_unique[0:-1]:
+            c = '"%s"' % c.replace('"', '_')
             cast.append("CAST(%s AS TEXT) AS %s" % (c, c))
             plain.append("%s" % c)
             base.append(c)
@@ -449,7 +450,12 @@ class PGBackend(DBInterface):
             if not ex_str.find("There is already an object named"):
                 logger.error("Error creating table: %s" % str(ex))
             drop_sql = self._drop_table_sql(user.schema, table_name)
-            self.run_query(drop_sql, user, return_cursor=True).close()
+            try:
+                self.run_query(drop_sql, user, return_cursor=True).close()
+            except:
+                # It's ok if this table didn't exist.  We want the error
+                # on create
+                pass
             self.run_query(sql, user, return_cursor=True).close()
 
         # Create a second table that has ... everything we were wrong about
@@ -469,11 +475,17 @@ class PGBackend(DBInterface):
                 logger.error("Error creating table: %s" % str(ex))
             drop_sql = self._drop_table_sql(user.schema,
                                             "untyped_%s" % table_name)
-            self.run_query(drop_sql, user, return_cursor=True).close()
+            try:
+                self.run_query(drop_sql, user, return_cursor=True).close()
+            except:
+                # It's ok if this table didn't exist.  We want the error
+                # on create
+                pass
             self.run_query(sql, user, return_cursor=True).close()
 
     def _create_table_sql(self, user, table_name, column_names, column_types):
         def _column_sql(name, col_type):
+            name = '"%s"' % name.replace('"', '_')
             if "int" == col_type["type"]:
                 return "%s bigint" % name
             if "float" == col_type["type"]:
@@ -498,6 +510,7 @@ class PGBackend(DBInterface):
         columns = []
         for i in range(0, len(names)):
             name = names[i]
+            name = '"%s"' % name.replace('"', '_')
             columns.append("%s text" % name)
 
         return 'CREATE TABLE %s."untyped_%s" (%s)' % (
