@@ -50,7 +50,7 @@ class DownloadAPITest(BaseAPITest):
         self.assertEqual(response2.status_code, 200)
         self.assertTrue(response2.streaming)
 
-        response_body = StringIO("".join(map(lambda x: x.decode("utf-8"), response2.streaming_content))).read()
+        response_body = StringIO("".join(map(lambda x: x.decode("utf-8-sig"), response2.streaming_content))).read()
 
         if is_mssql():
             resp = '""\n"1"\n'
