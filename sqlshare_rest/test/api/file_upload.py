@@ -52,8 +52,8 @@ class FileUploadAPITest(BaseAPITest):
         auth_headers = self.get_auth_header_for_username(owner)
         other_auth_headers = self.get_auth_header_for_username(other)
 
-        data1 = "col1,col2,XXcol3\na,1,2\nb,2,3\nc,3,4\n"
-        data2 = "z,999,2\ny,2,3\nx,30,41"
+        data1 = "col1,col2,XXcol3\na,1,2.1\nb,2,3.2\nc,3,4.3\n"
+        data2 = "z,999,2.4\ny,2,3.5\nx,30,41.6"
 
         init_url = reverse("sqlshare_view_file_upload_init")
 
@@ -81,9 +81,9 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(parser_data["columns"][0], { "name": "col1" })
         self.assertEquals(parser_data["columns"][1], { "name": "col2" })
         self.assertEquals(parser_data["columns"][2], { "name": "XXcol3" })
-        self.assertEquals(parser_data["sample_data"][0], ["a", "1", "2"])
-        self.assertEquals(parser_data["sample_data"][1], ["b", "2", "3"])
-        self.assertEquals(parser_data["sample_data"][2], ["c", "3", "4"])
+        self.assertEquals(parser_data["sample_data"][0], ["a", "1", "2.1"])
+        self.assertEquals(parser_data["sample_data"][1], ["b", "2", "3.2"])
+        self.assertEquals(parser_data["sample_data"][2], ["c", "3", "4.3"])
 
         # Test that no one else can access the upload
         response3 = self.client.get(parser_url, **other_auth_headers)
@@ -103,9 +103,9 @@ class FileUploadAPITest(BaseAPITest):
         self.assertEquals(parser_data["parser"]["has_column_headers"], False)
         self.assertEquals(parser_data["columns"], [{u'name': u'Column1'}])
         self.assertEquals(parser_data["sample_data"][0], ["col1,col2,XXcol3"])
-        self.assertEquals(parser_data["sample_data"][1], ["a,1,2"])
-        self.assertEquals(parser_data["sample_data"][2], ["b,2,3"])
-        self.assertEquals(parser_data["sample_data"][3], ["c,3,4"])
+        self.assertEquals(parser_data["sample_data"][1], ["a,1,2.1"])
+        self.assertEquals(parser_data["sample_data"][2], ["b,2,3.2"])
+        self.assertEquals(parser_data["sample_data"][3], ["c,3,4.3"])
 
         # Set the parser back...
         response5 = self.client.put(parser_url, data='{ "parser": { "delimiter": ",", "has_column_header": true} }', content_type="application/json", **auth_headers)
@@ -187,9 +187,9 @@ class FileUploadAPITest(BaseAPITest):
             # Hoping that other db engines will also return typed data...
         if is_pg():
             # PG uses the multi-table view approach, with a column that says if the row is "clean"
-            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2", 1], [u"b", u"2", u"3", 1], [u"c", u"3", u"4", 1], [u"z", u"999", u"2", 1],[u"y", u"2", u"3", 1],[u"x", u"30", u"41", 1],])
+            self.assertEquals(data["sample_data"], [[u"a", u"1", u"2.1", 1], [u"b", u"2", u"3.2", 1], [u"c", u"3", u"4.3", 1], [u"z", u"999", u"2.4", 1],[u"y", u"2", u"3.5", 1],[u"x", u"30", u"41.6", 1],])
         else:
-            self.assertEquals(data["sample_data"], [[u"a", 1, 2], [u"b", 2, 3], [u"c", 3, 4], [u"z", 999, 2],[u"y", 2, 3],[u"x", 30, 41],])
+            self.assertEquals(data["sample_data"], [[u"a", 1, 2.1], [u"b", 2, 3.2], [u"c", 3, 4.3], [u"z", 999, 2.4],[u"y", 2, 3.5],[u"x", 30, 41.6],])
 
     def test_bad_columns(self):
         owner = "upload_user_wonky_columns"

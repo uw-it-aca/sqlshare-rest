@@ -73,7 +73,9 @@ def process_dataset_queue(thread_count=0, run_once=True, verbose=False):
             from django.db import connection
             connection.close()
 
-            if os.fork():
+            pid1 = os.fork()
+            if pid1:
+                os.waitpid(pid1, 0)
                 # This is the main process
                 return
 

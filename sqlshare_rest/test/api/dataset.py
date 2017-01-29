@@ -501,7 +501,7 @@ class DatsetAPITest(BaseAPITest):
         self.assertEquals(response["Content-Disposition"],  'attachment; filename="ds13.csv"')
         self.assertEquals(response["Content-Type"],  'text/csv')
 
-        data = StringIO("".join(map(lambda x: x.decode("utf-8"), response.streaming_content)))
+        data = StringIO("".join(map(lambda x: x.decode("utf-8-sig"), response.streaming_content)))
         reader = csv.reader(data, delimiter=",")
         values = []
         for row in reader:

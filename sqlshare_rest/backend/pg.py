@@ -22,6 +22,12 @@ class PGBackend(DBInterface):
         cursor.execute(sql % (schema, username))
         cursor.close()
 
+        # Make sure people can see items in the schema
+        cursor = connection.cursor()
+        sql = 'GRANT USAGE ON SCHEMA %s to PUBLIC' % (schema)
+        cursor.execute(sql)
+        cursor.close()
+
     def remove_user(self, username):
         model = User.objects.get(username=username)
         self.close_user_connection(model)
@@ -57,7 +63,7 @@ class PGBackend(DBInterface):
             query.save()
 
         cursor = connection.cursor()
-        cursor.execute(sql, params)
+        cursor.execute(sql.encode('utf-8'), params)
 
         if return_cursor:
             return cursor
@@ -91,9 +97,15 @@ class PGBackend(DBInterface):
         except Exception as ex:
             try:
                 drop_sql = self._drop_view_sql(schema, name)
-                self.run_query(drop_sql, user, return_cursor=True).close()
+                try:
+                    self.run_query(drop_sql, user, return_cursor=True).close()
+                except:
+                    # We don't care if there's an error trying to drop the
+                    # view.  It might Not exist.  We want the exception that
+                    # goes back to be the creation exception.
+                    pass
                 self.run_query(view_sql, user, return_cursor=True).close()
-            except Exception as ex:
+            except:
                 raise
 
         count_sql = 'SELECT COUNT(*) FROM %s."%s"' % (schema, name)
@@ -124,24 +136,100 @@ class PGBackend(DBInterface):
         self.run_query(sql, user, return_cursor=True).close()
 
     def add_public_access(self, dataset, owner):
+        # Granting to the view
         sql = 'GRANT SELECT ON %s."%s" to PUBLIC' % (owner.schema,
                                                      dataset.name)
+
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # Granting to the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'GRANT SELECT ON %s."%s" to PUBLIC' % (owner.schema,
+                                                     table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # Granting to the underlying untyped table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'GRANT SELECT ON %s."untyped_%s" to PUBLIC' % (owner.schema,
+                                                             table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
 
     def remove_public_access(self, dataset, owner):
         sql = 'REVOKE SELECT ON %s."%s" FROM PUBLIC' % (owner.schema,
                                                         dataset.name)
         self.run_query(sql, owner, return_cursor=True).close()
 
+        # dropping from the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'REVOKE SELECT ON %s."%s" FROM PUBLIC' % (owner.schema,
+                                                        table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # dropping from the underlying untyped table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset.name)
+        sql = 'REVOKE SELECT ON %s."untyped_%s" FROM PUBLIC' % (owner.schema,
+                                                                table_name)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
     def add_read_access_to_dataset(self, dataset, owner, reader):
         sql = 'GRANT SELECT ON %s."%s" to %s' % (owner.schema, dataset,
                                                  reader.db_username)
         self.run_query(sql, owner, return_cursor=True).close()
 
+        # Granting to the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset)
+        sql = 'GRANT SELECT ON %s."%s" to %s' % (owner.schema,
+                                                 table_name,
+                                                 reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # Granting to the underlying untyped table, if one exists
+        sql = 'GRANT SELECT ON %s."untyped_%s" to %s' % (owner.schema,
+                                                         table_name,
+                                                         reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
     def remove_access_to_dataset(self, dataset, owner, reader):
         sql = 'REVOKE ALL ON %s."%s" FROM %s' % (owner.schema, dataset,
                                                  reader.db_username)
         self.run_query(sql, owner, return_cursor=True).close()
+
+        # dropping from the underlying table, if one exists
+        table_name = self._get_table_name_for_dataset(dataset)
+        sql = 'REVOKE SELECT ON %s."%s" FROM %s' % (owner.schema,
+                                                    table_name,
+                                                    reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
+
+        # dropping from the underlying untyped table, if one exists
+        sql = 'REVOKE SELECT ON %s."untyped_%s" FROM %s' % (owner.schema,
+                                                            table_name,
+                                                            reader.db_username)
+        try:
+            self.run_query(sql, owner, return_cursor=True).close()
+        except Exception as ex:
+            pass
 
     def get_preview_sql_for_query(self, sql):
         return "SELECT * FROM (%s) AS X LIMIT 100" % sql
@@ -273,11 +361,11 @@ class PGBackend(DBInterface):
             if row_len > col_type_len:
                 bad_line = ",".join(row)[:8000]+"..."
                 bad_line += "\t\\N" * col_type_len - 1
-                bad_data_temp.write(bad_line+"\n")
+                bad_data_temp.write(bad_line.encode('utf-8')+"\n")
             elif good_row:
-                valid_data_temp.write("\t".join(row) + "\n")
+                valid_data_temp.write("\t".join(row).encode('utf-8') + "\n")
             else:
-                bad_data_temp.write("\t".join(row) + "\n")
+                bad_data_temp.write("\t".join(row).encode('utf-8') + "\n")
 
         bad_data_temp.seek(0)
         valid_data_temp.seek(0)
@@ -325,6 +413,7 @@ class PGBackend(DBInterface):
         all_unique = self._make_safe_column_name_list(all_unique)
 
         for c in all_unique[0:-1]:
+            c = '"%s"' % c.replace('"', '_')
             cast.append("CAST(%s AS TEXT) AS %s" % (c, c))
             plain.append("%s" % c)
             base.append(c)
@@ -361,7 +450,12 @@ class PGBackend(DBInterface):
             if not ex_str.find("There is already an object named"):
                 logger.error("Error creating table: %s" % str(ex))
             drop_sql = self._drop_table_sql(user.schema, table_name)
-            self.run_query(drop_sql, user, return_cursor=True).close()
+            try:
+                self.run_query(drop_sql, user, return_cursor=True).close()
+            except:
+                # It's ok if this table didn't exist.  We want the error
+                # on create
+                pass
             self.run_query(sql, user, return_cursor=True).close()
 
         # Create a second table that has ... everything we were wrong about
@@ -381,11 +475,17 @@ class PGBackend(DBInterface):
                 logger.error("Error creating table: %s" % str(ex))
             drop_sql = self._drop_table_sql(user.schema,
                                             "untyped_%s" % table_name)
-            self.run_query(drop_sql, user, return_cursor=True).close()
+            try:
+                self.run_query(drop_sql, user, return_cursor=True).close()
+            except:
+                # It's ok if this table didn't exist.  We want the error
+                # on create
+                pass
             self.run_query(sql, user, return_cursor=True).close()
 
     def _create_table_sql(self, user, table_name, column_names, column_types):
         def _column_sql(name, col_type):
+            name = '"%s"' % name.replace('"', '_')
             if "int" == col_type["type"]:
                 return "%s bigint" % name
             if "float" == col_type["type"]:
@@ -410,6 +510,7 @@ class PGBackend(DBInterface):
         columns = []
         for i in range(0, len(names)):
             name = names[i]
+            name = '"%s"' % name.replace('"', '_')
             columns.append("%s text" % name)
 
         return 'CREATE TABLE %s."untyped_%s" (%s)' % (
