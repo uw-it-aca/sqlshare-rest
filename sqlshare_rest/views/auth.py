@@ -60,7 +60,8 @@ def _login_user(request, login_name, name, last_name, email):
 
     login(request, user)
 
-    return redirect(request.GET['next'])
+    next_url = request.GET.get('next', settings.SQLSHARE_WEB_URL)
+    return redirect(next_url)
 
 
 def google_return(request):
