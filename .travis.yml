@@ -1,0 +1,74 @@
+sudo: false
+language: python
+services:
+  - postgresql
+  - mysql
+addons:
+  postgresql: "9.4"
+python:
+  - "2.7"
+# the double-shim to support 3.4 in models.py started failing - don't want to delay release on a non-required python version
+#  - "3.4"
+before_install:
+    - if [ "$DB" = "azure" ] ; then mkdir /tmp/azure; fi
+    - if [ "$DB" = "azure" ] ; then openssl aes-256-cbc -K $encrypted_d6387f57280a_key -iv $encrypted_d6387f57280a_iv -in travis-ci/azure.tar.enc -out /tmp/azure/azure.tar -d; fi
+    - if [ "$DB" = "azure" ] ; then tar xvf /tmp/azure/azure.tar -C /tmp/azure/; fi
+    - if [ "$DB" = "azure" ] ; then source travis-ci/start_sql_azure.sh ; fi
+install: pip install -r requirements.txt
+before_script:
+  - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'create database sqlshare_app'; fi
+  - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'create user "sqlshare_user" identified by "ss_pass"'; fi
+  - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant all on *.* to sqlshare_user'; fi
+  - if [ "$DB" = "mysql" ] ; then mysql -u root -e 'grant grant option on *.* to sqlshare_user'; fi
+
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'create database sqlshare_app;' -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c "create user ss_admin with password 'woijh3u43948';" -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c "alter role  ss_admin set client_encoding to 'utf8';" -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c "alter role  ss_admin set default_transaction_isolation TO 'read committed';" -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c "alter role  ss_admin set timezone TO 'UTC';" -U postgres; fi
+  - if [ "$DB" = "postgresql" ] ; then psql -c 'alter role ss_admin SUPERUSER' -U postgres; fi
+
+# These were only needed for azure - commenting out for containerized travis-ci.  If we go back to testing on azure, there's this alternative:
+# http://docs.travis-ci.com/user/migrating-from-legacy/?utm_source=legacy-notice&utm_medium=banner&utm_campaign=legacy-upgrade#How-do-I-install-APT-sources-and-packages%3F
+#  - sudo apt-get install unixODBC-dev
+#  - sudo apt-get install freetds-common
+#  - sudo apt-get install tdsodbc
+#  - sudo apt-get install odbcinst1debian2
+  - dpkg-query -L odbcinst1debian2
+  - pip install coverage
+  - pip install python-coveralls
+  - pip install pep8
+  - pip install PyMySQL
+  - pip install -r requirements/pg.txt
+# also only used for azure:
+#  - pip install django_pyodbc
+  - cp travis-ci/manage.py manage.py
+  - python manage.py migrate --noinput
+env:
+  matrix:
+    - DB=sqlite3
+    - DB=mysql
+    - DB=postgresql
+#    - DB=azure
+  global:
+    - SUBSCRIPTION_ID=af6a4ccb-f42b-4319-b0c0-10b51fcdebee
+    - SQLSHARE_KILL_QUERY_WAIT=6
+    - secure: "Fbcg+0YoUsYbcBsJzDbmo3xjfK335yadYhQVp7h8OOg6fYmnoXuXOqmwUZON1beZGRVsB2yFIVmE81+ljLeqMqyf0uSGGSqXf8pHE9nfJ7cBSAAmUTH7jBEZ8UEvoj4cMwxSPTZJ9KTJlp7tjhDplrGe5k9LkGvSduEFsrkjyN0="
+    - secure: "RPYn4/QlfBbXE72hE2P6VqZjTqac5UpvjleWMB/PmArFfNK20qnRBj1WQRqufbgk5rfN0YLPbHVuOamnFrqzaAuXoyFLlo/54msEWR2BFgeocvgodBem5GRkZlQz4hX/4m5BrZCsFtS7aIZ+ta43BlzRiOcLNXIA3sFMH4BMNQA="
+matrix:
+  exclude:
+    - python: "3.4"
+      env: DB=azure
+script:
+  - pep8 sqlshare_rest/ --exclude=migrations,sqlshare_rest/tests.py,sqlshare_rest/test/
+  - coverage run --source=sqlshare_rest/ --omit=sqlshare_rest/migrations/* manage.py test sqlshare_rest
+after_success:
+  - if [ "$DB" = "azure" ] ; then source travis-ci/stop_sql_azure.sh ; fi
+after_failure:
+  - if [ "$DB" = "azure" ] ; then source travis-ci/stop_sql_azure.sh ; fi
+after_script:
+  - coveralls
+notifications:
+  webhooks:
+      urls:
+        - https://yarn.cac.washington.edu/rest/botalyst/v1/travis-ci

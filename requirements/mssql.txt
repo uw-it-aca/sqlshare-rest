@@ -1,0 +1,2 @@
+-e git+https://github.com/vegitron/pyodbc.git#egg=pyODBC
+-e git+https://github.com/vegitron/django-pyodbc.git#egg=django-pyodbc
