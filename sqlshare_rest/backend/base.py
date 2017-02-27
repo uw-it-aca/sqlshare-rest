@@ -21,6 +21,21 @@ class DBInterface(object):
         """
         return ""
 
+    def run_named_cursor_query(self, *args, **kwargs):
+        """
+        For the postgres backend to run effectively, it needs to create a
+        named cursor.  Most of the backends don't need that, so just pass
+        values to run_query.
+        """
+        return self.run_query(*args, **kwargs)
+
+    def finish_named_cursor(self, user, cursor):
+        """
+        A chance to close transactions/re-enable autocommit/do any other
+        cleanup work
+        """
+        pass
+
     def run_query(self, sql, user, params=None, return_cursor=False,
                   query=None):
         self._not_implemented("run_query")
