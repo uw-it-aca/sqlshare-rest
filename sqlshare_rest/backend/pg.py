@@ -343,7 +343,9 @@ class PGBackend(DBInterface):
                     row.append("\\N")
                 else:
                     value = row[index]
-                    if col_type == "int":
+                    if value is None:
+                        row[index] = "\\N"
+                    elif col_type == "int":
                         try:
                             int(value)
                         except Exception:
