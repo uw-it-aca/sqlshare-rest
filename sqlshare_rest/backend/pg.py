@@ -1,5 +1,6 @@
 from sqlshare_rest.backend.base import DBInterface
 from sqlshare_rest.models import User
+from django import db
 from django.db import connection
 from django.conf import settings
 from logging import getLogger
@@ -331,6 +332,7 @@ class PGBackend(DBInterface):
             if not count % 1000:
                 upload.rows_loaded = count
                 upload.save()
+                db.reset_queries()
 
             row_len = len(row)
             good_row = True
