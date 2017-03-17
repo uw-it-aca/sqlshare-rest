@@ -12,7 +12,6 @@ from sqlshare_rest.models import User, Dataset
 from django.db.models import Count
 
 
-
 def require_admin(decorated):
     @login_required
     def wrapped(request, *args, **kwargs):
@@ -52,7 +51,6 @@ def user_override(request):
     override_error_username = None
     override_error_msg = None
     # Do the group auth here.
-
 
     if "override_as" in request.POST:
         new_user = request.POST["override_as"].strip()
