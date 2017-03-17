@@ -8,6 +8,8 @@ if six.PY2:
 elif six.PY3:
     from io import StringIO
 
+MAX_READ = 100000
+
 
 class Parser(object):
     def __init__(self):
@@ -310,9 +312,9 @@ class DataHandler(object):
 
 def open_encoded(filename, mode):
     handle = open(filename, "rb")
-    sample = handle.read()
+    sample = handle.read(MAX_READ)
 
     encoding = chardet.detect(sample)["encoding"]
     handle.close()
 
-    return io.open(filename, mode=mode, encoding=encoding)
+    return io.open(filename, mode=mode, encoding=encoding, errors='replace')
