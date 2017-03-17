@@ -25,7 +25,7 @@ from sqlshare_rest.views.sql import run as run_sql
 from sqlshare_rest.views.oauth import access_code
 from sqlshare_rest.views.auth import (google_return, require_google_login,
                                       require_uw_login)
-from sqlshare_rest.views.admin import user_override
+from sqlshare_rest.views.admin import user_override, stats
 
 urlpatterns = [
     url('v3/db/dataset/(?P<owner>[^/].*)/(?P<name>[^/].*)/permissions',
@@ -126,6 +126,7 @@ urlpatterns = [
     url(r'^uw/', require_uw_login, name="require_uw_login"),
 
     url(r'user/', user_override, name="sqlshare_user_override"),
+    url(r'stats/', stats, name="sqlshare_stats"),
 
 ]
 

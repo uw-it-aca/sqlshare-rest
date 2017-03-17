@@ -1,0 +1,84 @@
+{% extends wrapper_template %}
+{% block content %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.bundle.min.js" integrity="sha256-+q+dGCSrVbejd3MDuzJHKsk2eXd4sF5XYEMfPZsOnYE=" crossorigin="anonymous"></script>
+
+<div class="container">
+<h3>Users:</h3>
+<canvas id="user_chart" width="400" height="150"></canvas>
+
+<h3>Datasets</h3>
+Total Datasets: {{ total_datasets }} <br >
+Public Datasets: {{ public_datasets }} <br />
+Shared Datasets: {{ shared_datasets }} <br />
+
+Shared dataset sharing types: <br />
+<canvas id="dataset_chart" width="400" height="150"></canvas>
+</div>
+    <script>
+
+    var dataset_labels = [];
+    var dataset_email_shares = [];
+    var dataset_account_shares = [];
+    {% for dataset in datasets %}
+        dataset_labels.push('{{ dataset.name }}');
+        dataset_email_shares.push({{ dataset.emails }});
+        dataset_account_shares.push({{ dataset.accounts }});
+    {% endfor %}
+
+    var dataset_data = [];
+    var queries_data = [];
+    var user_labels = [];
+
+    {% for user in users %}
+    user_labels.push('{{ user.username }}');
+    dataset_data.push({{ user.datasets }});
+    queries_data.push({{ user.queries }});
+    {% endfor %}
+
+    var ctx = document.getElementById("user_chart");
+    var user_chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                 labels: user_labels,
+                    datasets: [{
+                        label: 'datasets',
+                        data: dataset_data
+                    },
+                    {
+                        label: 'queries',
+                        data: queries_data
+                    }
+                ],
+                options: {
+                    responsive: false
+                }
+            }
+        });
+
+    var dataset_ctx = document.getElementById("dataset_chart");
+    var user_chart = new Chart(dataset_ctx, {
+            type: 'line',
+            data: {
+                 labels: dataset_labels,
+                    datasets: [{
+                        label: 'emails',
+                        data: dataset_email_shares
+                    },
+                    {
+                        label: 'accounts',
+                        data: dataset_account_shares
+                    }
+                ],
+                options: {
+                    responsive: false
+                }
+            }
+        });
+
+
+    </script>
+
+{% endblock %}
+
+
