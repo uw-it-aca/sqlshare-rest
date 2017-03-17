@@ -101,7 +101,7 @@ def stats(request):
 
     users = User.objects.annotate(num_datasets=Count('dataset', distinct=True),
                                   num_queries=Count('query', distinct=True))
-    users.order_by('num_datasets')
+    users = users.order_by('num_datasets', 'num_queries')
 
     for u in users:
         context['users'].append({'username': u.username,
