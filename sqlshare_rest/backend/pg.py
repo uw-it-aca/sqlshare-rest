@@ -316,8 +316,9 @@ class PGBackend(DBInterface):
         return self._load_table_copy(table_name, parser, upload, user)
 
     def _load_table_copy(self, table_name, parser, upload, user):
-        valid_data_temp = tempfile.NamedTemporaryFile()
-        bad_data_temp = tempfile.NamedTemporaryFile()
+        temp_dir = getattr(settings, "SQLSHARE_TEMP_DIR", None)
+        valid_data_temp = tempfile.NamedTemporaryFile(dir=temp_dir)
+        bad_data_temp = tempfile.NamedTemporaryFile(dir=temp_dir)
 
         column_types = parser.column_types()
         data_handle = parser.get_data_handle()
