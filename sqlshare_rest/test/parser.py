@@ -18,7 +18,7 @@ class TestParser(CleanUpTestCase):
 
         p.guess("9,8,7,6\n0,1,2,3\n4,5,6,7")
         self.assertFalse(p.has_header_row())
-        self.assertEquals(['Column1','Column2','Column3','Column4'], p.column_names())
+        self.assertEquals(['column1','column2','column3','column4'], p.column_names())
 
         p.guess("a,b,5,6\n0,1,2,3\n4,5,6,7")
         self.assertFalse(p.has_header_row())
@@ -39,7 +39,7 @@ class TestParser(CleanUpTestCase):
         p.delimiter(",")
         handle = StringIO("a,b,c,d\n0,1,2,3\n4,5,6,7")
         p.parse(handle)
-        self.assertEquals(['Column1','Column2','Column3','Column4'], p.column_names())
+        self.assertEquals(['column1','column2','column3','column4'], p.column_names())
 
     def test_windows_line_ending(self):
         p = Parser()

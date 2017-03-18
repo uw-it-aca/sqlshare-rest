@@ -106,7 +106,7 @@ class Parser(object):
     def generate_column_names(self, count):
         names = []
         for i in range(1, count+1):
-            names.append("Column%s" % i)
+            names.append("column%s" % i)
         return names
 
     def clear_column_types(self):

@@ -244,9 +244,9 @@ class TestMySQLBackend(CleanUpTestCase):
 
     def test_create_table_sql(self):
         backend = get_backend()
-        sql = backend._create_table_sql("test_table1", ["Column1", "Column2", "Column3"], [{ "type": "int" }, { "type": "float" }, { "type": "text", "max": 400 }])
+        sql = backend._create_table_sql("test_table1", ["column1", "column2", "column3"], [{ "type": "int" }, { "type": "float" }, { "type": "text", "max": 400 }])
 
-        self.assertEquals(sql, "CREATE TABLE `test_table1` (`Column1` INT, `Column2` FLOAT, `Column3` VARCHAR(400)) ENGINE InnoDB CHARACTER SET utf8 COLLATE utf8_bin")
+        self.assertEquals(sql, "CREATE TABLE `test_table1` (`column1` INT, `column2` FLOAT, `column3` VARCHAR(400)) ENGINE InnoDB CHARACTER SET utf8 COLLATE utf8_bin")
 
 
     def test_snapshot(self):
