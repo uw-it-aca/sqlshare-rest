@@ -372,6 +372,8 @@ class PGBackend(DBInterface):
             else:
                 bad_data_temp.write("\t".join(row).encode('utf-8') + "\n")
 
+        valid_data_temp.flush()
+
         bad_data_temp.seek(0)
         valid_data_temp.seek(0)
         connecteon = self.get_connection_for_user(user)
@@ -509,6 +511,7 @@ class PGBackend(DBInterface):
                     table_name,
                     ", ".join(columns)
                )
+
         return sval
 
     def _create_untyped_table_sql(self, user, table_name, names, types):

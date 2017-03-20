@@ -106,7 +106,7 @@ class Parser(object):
     def generate_column_names(self, count):
         names = []
         for i in range(1, count+1):
-            names.append("Column%s" % i)
+            names.append("column%s" % i)
         return names
 
     def clear_column_types(self):
@@ -157,6 +157,9 @@ class Parser(object):
         if len(values) < len(names):
             for i in range(len(names)-len(values)):
                 values.append({"type": "text", "max": 100})
+
+        if len(values) > len(names):
+            values = values[:len(names)]
 
         self._handle.seek(0)
         self._column_types = values
@@ -250,7 +253,9 @@ class Parser(object):
 
     def next(self):
         reader = self._get_csv_reader(self._handle)
-        return self._next(reader)
+        val = self._next(reader)
+
+        return val
 
     # Python 3 version of next
     __next__ = next
@@ -281,9 +286,10 @@ class DataHandler(object):
             return self.next()
 
         columns = self._columns
+        col_len = len(columns)
 
         try:
-            for i in range(0, len(columns)):
+            for i in range(0, col_len):
                 col_type = columns[i]["type"]
 
                 if raw_len <= i:
@@ -301,6 +307,12 @@ class DataHandler(object):
 #                            append(value)
 #                    except Exception as ex:
 #                        append(value)
+
+            if raw_len > col_len:
+                # Stuff extra data into the last cell - it'll (probably)
+                # be a bad row
+                semi_typed[col_len - 1] += "," + ",".join(raw[col_len:])
+
             return semi_typed
 
         except Exception as ex:

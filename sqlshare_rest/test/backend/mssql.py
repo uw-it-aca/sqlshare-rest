@@ -105,7 +105,7 @@ class TestMSSQLBackend(CleanUpTestCase):
         backend = get_backend()
         self.remove_users.append("test_user_view1")
         user = backend.get_user("test_user_view1")
-        backend.create_view("test_view", "SELECT ('1') UNION SELECT ('a')", user, column_names=["Column1"])
+        backend.create_view("test_view", "SELECT ('1') UNION SELECT ('a')", user, column_names=["column1"])
 
         try:
             result = backend.run_query("SELECT * FROM [test_user_view1].[test_view]", user)
@@ -126,7 +126,7 @@ class TestMSSQLBackend(CleanUpTestCase):
         import pyodbc
 
         with self.assertRaises(pyodbc.ProgrammingError):
-            cursor = backend.run_query("CREATE VIEW [test_user_view3].[test_view] (Column1) AS SELECT ('1') UNION SELECT ('a')", user, return_cursor=True)
+            cursor = backend.run_query("CREATE VIEW [test_user_view3].[test_view] (column1) AS SELECT ('1') UNION SELECT ('a')", user, return_cursor=True)
 
 
     def test_create_dataset(self):
