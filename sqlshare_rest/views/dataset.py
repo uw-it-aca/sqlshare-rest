@@ -74,7 +74,7 @@ def snapshot(request, owner, name):
     values = json.loads(request.body.decode("utf-8"))
     new_name = values["name"]
     description = values["description"]
-    is_public = getattr(values, "is_public", True)
+    is_public = values.get("is_public", True)
     logger.info("POST dataset snapshot; owner: %s; name: %s; "
                 "destination_name: %s; is_public: %s" % (owner,
                                                          name,
