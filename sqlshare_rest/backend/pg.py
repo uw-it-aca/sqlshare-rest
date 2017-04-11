@@ -57,8 +57,8 @@ class PGBackend(DBInterface):
         cursor.execute(sql)
         cursor.close()
 
-    def run_named_cursor_query(self, sql, user, params=None, return_cursor=False,
-                               query=None):
+    def run_named_cursor_query(self, sql, user, params=None,
+                               return_cursor=False, query=None):
         connection = self.get_connection_for_user(user)
         connection.set_session(autocommit=False)
 
@@ -66,7 +66,8 @@ class PGBackend(DBInterface):
             query.backend_terminate_data = "%s" % connection.get_backend_pid()
             query.save()
 
-        cursor = connection.cursor('cursor-%s-%s' % (time.time(), random.random()))
+        cursor = connection.cursor('cursor-%s-%s' % (time.time(),
+                                                     random.random()))
         cursor.execute(sql.encode('utf-8'), params)
 
         if return_cursor:
