@@ -41,6 +41,7 @@ def response_for_query(sql, user, download_name):
         disposition = 'attachment; filename="%s"' % download_name
         response = StreamingHttpResponse(stream_query(cursor, user),
                                          content_type='text/csv')
+
         response['Content-Disposition'] = disposition
         return response
     except Exception as ex:
