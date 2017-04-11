@@ -86,7 +86,6 @@ class PGBackend(DBInterface):
     def run_query(self, sql, user, params=None, return_cursor=False,
                   query=None):
         connection = self.get_connection_for_user(user)
-        connection.set_session(autocommit=False)
 
         if query:
             query.backend_terminate_data = "%s" % connection.get_backend_pid()
@@ -97,9 +96,7 @@ class PGBackend(DBInterface):
 
         if return_cursor:
             return cursor
-        data = cursor.fetchall()
-        connection.commit()
-        return data
+        return cursor.fetchall()
 
     def _create_view_sql(self, schema, name, sql):
         return 'CREATE VIEW %s."%s" AS %s' % (schema, name, sql)
