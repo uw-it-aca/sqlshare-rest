@@ -37,10 +37,11 @@ def response_for_query(sql, user, download_name):
         backend = get_backend()
         if sql == "":
             raise Exception("Missing sql statement")
-        cursor = backend.run_query(sql, user, return_cursor=True)
+        cursor = backend.run_named_cursor_query(sql, user, return_cursor=True)
         disposition = 'attachment; filename="%s"' % download_name
         response = StreamingHttpResponse(stream_query(cursor, user),
                                          content_type='text/csv')
+
         response['Content-Disposition'] = disposition
         return response
     except Exception as ex:
@@ -52,6 +53,9 @@ def response_for_query(sql, user, download_name):
 
 
 def stream_query(cursor, user):
+    rows = cursor.fetchmany(100)
+
+    # Need to fetch columns after fetching a bit of data :(
     columns = frontend_description_from_cursor(cursor)
 
     names = ",".join(list(map(lambda x: csv_encode(x["name"]), columns)))
@@ -60,13 +64,14 @@ def stream_query(cursor, user):
     yield names
     yield "\n"
 
-    row = cursor.fetchone()
-    while row:
-        yield ",".join(list(map(lambda x: csv_encode("%s" % x), row)))
-        yield "\n"
-        row = cursor.fetchone()
+    while rows:
+        for row in rows:
+            yield ",".join(list(map(lambda x: csv_encode("%s" % x), row)))
+            yield "\n"
+        rows = cursor.fetchmany(100)
 
-    get_backend().close_user_connection(user)
+    backend = get_backend()
+    backend.finish_named_cursor(user, cursor)
 
 
 def csv_encode(value):

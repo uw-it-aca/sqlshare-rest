@@ -21,6 +21,12 @@ class DBInterface(object):
         """
         return ""
 
+    def run_named_cursor_query(self, *args, **kwargs):
+        return self.run_query(*args, **kwargs)
+
+    def finish_named_cursor(self, *args, **kwargs):
+        pass
+
     def run_query(self, sql, user, params=None, return_cursor=False,
                   query=None):
         self._not_implemented("run_query")

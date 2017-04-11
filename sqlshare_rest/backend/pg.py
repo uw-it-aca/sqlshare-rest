@@ -4,6 +4,8 @@ from django import db
 from django.db import connection
 from django.conf import settings
 from logging import getLogger
+import time
+import random
 import re
 import tempfile
 
@@ -54,6 +56,32 @@ class PGBackend(DBInterface):
         cursor = connection.cursor()
         cursor.execute(sql)
         cursor.close()
+
+    def run_named_cursor_query(self, sql, user, params=None,
+                               return_cursor=False, query=None):
+        connection = self.get_connection_for_user(user)
+        connection.set_session(autocommit=False)
+
+        if query:
+            query.backend_terminate_data = "%s" % connection.get_backend_pid()
+            query.save()
+
+        cursor = connection.cursor('cursor-%s-%s' % (time.time(),
+                                                     random.random()))
+        cursor.execute(sql.encode('utf-8'), params)
+
+        if return_cursor:
+            return cursor
+        data = cursor.fetchall()
+        self.finish_named_cursor(user, cursor)
+        return data
+
+    def finish_named_cursor(self, user, cursor):
+        cursor.close()
+        connection = self.get_connection_for_user(user)
+        connection.commit()
+        connection.set_session(autocommit=True)
+        self.close_user_connection(user)
 
     def run_query(self, sql, user, params=None, return_cursor=False,
                   query=None):
