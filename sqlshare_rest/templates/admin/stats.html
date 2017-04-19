@@ -4,6 +4,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.bundle.min.js" integrity="sha256-+q+dGCSrVbejd3MDuzJHKsk2eXd4sF5XYEMfPZsOnYE=" crossorigin="anonymous"></script>
 
 <div class="container">
+
+<h3>Top users:</h3>
+<h4>By Dataset</h4>
+{% for user in top_dataset_users %}
+{{ user.username }}: {{ user.num_datasets }} datasets <br />
+{% endfor %}
+
+<h4>By Query</h4>
+{% for user in top_query_users %}
+{{ user.username }}: {{ user.num_queries }} queries. <br />
+{% endfor %}
+
+
 <h3>Users:</h3>
 <canvas id="user_chart" width="400" height="150"></canvas>
 
