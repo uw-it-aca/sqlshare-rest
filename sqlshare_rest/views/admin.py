@@ -109,6 +109,16 @@ def stats(request):
                                  'queries': u.num_queries,
                                  })
 
+    top_datasets = User.objects.annotate(num_datasets=Count('dataset',
+                                                            distinct=True))
+    top_datasets = top_datasets.order_by('-num_datasets')[:10]
+    context['top_dataset_users'] = top_datasets
+
+    top_queries = User.objects.annotate(num_queries=Count('query',
+                                                          distinct=True))
+    top_queries = top_queries.order_by('-num_queries')[:10]
+    context['top_query_users'] = top_queries
+
     public_count = 0
     shared_count = 0
     datasets = Dataset.objects.annotate(Count('datasetsharingemail',
