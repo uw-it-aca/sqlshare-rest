@@ -16,9 +16,11 @@ class SSRegistrationForm(forms.ModelForm):
     """
     GRANT_AUTHORIZATION_CODE = 'authorization-code'
     GRANT_IMPLICIT = 'implicit'
+    GRANT_CLIENT_CREDENTIALS = 'client-credentials'
     GRANT_TYPES = (
         (GRANT_AUTHORIZATION_CODE, 'Authorization code'),
         (GRANT_IMPLICIT, 'Implicit'),
+        (GRANT_CLIENT_CREDENTIALS, 'Client credentials'),
     )
 
     # Limit the allowed grant types

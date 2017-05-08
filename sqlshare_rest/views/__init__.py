@@ -11,6 +11,9 @@ def get_oauth_user(request):
                                                        request=request):
             raise Exception("Invalid token - no user")
 
+        if "client-credentials" == request.client.authorization_grant_type:
+            request.user = request.client.user
+
         if not request.user:
             raise Exception("Invalid token - no user")
 
