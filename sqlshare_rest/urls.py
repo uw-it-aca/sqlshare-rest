@@ -122,7 +122,7 @@ urlpatterns = [
         name="oauth_access_code"),
 
     url(r'^google_return', google_return),
-    url(r'^google', require_google_login, name="require_google_login"),
+    url(r'^google/', require_google_login, name="require_google_login"),
     url(r'^uw/', require_uw_login, name="require_uw_login"),
 
     url(r'user/', user_override, name="sqlshare_user_override"),

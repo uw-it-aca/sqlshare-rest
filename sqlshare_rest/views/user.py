@@ -57,15 +57,8 @@ def logout_process(request, token):
             django_logout(request)
             token_obj.delete()
 
-            # This is a crude proxy for google accounts
-            if username.find("@") > 0:
-                # Logout google account
-                logout_url = _get_google_logout_url(request)
-                return HttpResponseRedirect(logout_url)
-            else:
-                # Log out uw account
-                logout_url = _get_uw_logout_url(request)
-                return HttpResponseRedirect(logout_url)
+            return HttpResponseRedirect("/user_logout")
+
     except LogoutToken.DoesNotExist:
         pass
 
@@ -86,18 +79,3 @@ def _get_post_logout_url(request):
     url = reverse("post_logout_url")
 
     return protocol + host + url
-
-
-def _get_uw_logout_url(request):
-    """
-    Logout url for the uw.  Lots of hard-coded values in here.
-    Returns https://<your-host>/user_logout
-    """
-    host = request.get_host()
-
-    return "https://"+host+"/user_logout"
-
-
-def _get_google_logout_url(request):
-    post_logout_url = _get_post_logout_url(request)
-    return "https://www.google.com/accounts/Logout"
