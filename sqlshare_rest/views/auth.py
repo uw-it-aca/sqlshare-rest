@@ -7,8 +7,6 @@ from django.shortcuts import redirect, render_to_response
 from django.conf import settings
 from apiclient.discovery import build
 import httplib2
-from oauth2client.contrib.django_util import decorators
-
 import six
 
 if six.PY2:
@@ -33,21 +31,11 @@ def require_uw_login(request):
     return _login_user(request, login, name, last_name, email)
 
 
-@decorators.oauth_required
 def require_google_login(request):
-    plus = build('plus', 'v1', http=request.oauth.http,
-                 developerKey=settings.GOOGLE_OAUTH2_CLIENT_ID)
-    name_data = plus.people().get(userId='me').execute()
+    email = request.META['mail']
+    name = request.META.get('givenname', '')
+    last_name = request.META.get('surname', '')
 
-    name = name_data["name"]["givenName"]
-    last_name = name_data["name"]["familyName"]
-
-    plus = build('oauth2', 'v2', http=request.oauth.http,
-                 developerKey=settings.GOOGLE_OAUTH2_CLIENT_ID)
-    email_data = plus.userinfo().get().execute()
-    email = email_data["email"]
-
-    print name, email
     return _login_user(request, email, name, last_name, email)
 
 
